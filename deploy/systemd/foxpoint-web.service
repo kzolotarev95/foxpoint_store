@@ -1,0 +1,17 @@
+[Unit]
+Description=FoxPoint Web
+After=network.target foxpoint-api.service
+Wants=foxpoint-api.service
+
+[Service]
+Type=simple
+WorkingDirectory=__APP_DIR__
+EnvironmentFile=__APP_DIR__/.env
+ExecStart=__NPM_BIN__ run start --workspace @foxpoint/web -- --hostname 127.0.0.1 --port 3000
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

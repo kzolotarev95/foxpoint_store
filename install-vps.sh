@@ -1,9 +1,21 @@
-#!/bin/sh
-set -eu
+#!/usr/bin/env bash
+set -euo pipefail
 
 REPO_URL="${REPO_URL:-https://github.com/kzolotarev95/foxpoint_store.git}"
 BRANCH="${BRANCH:-main}"
 APP_DIR="${APP_DIR:-/opt/foxpoint_store}"
+
+DB_NAME="${DB_NAME:-foxpoint}"
+DB_USER="${DB_USER:-foxpoint}"
+DB_PASSWORD="${DB_PASSWORD:-foxpoint}"
+
+APP_DOMAIN="${APP_DOMAIN:-}"
+CERTBOT_EMAIL="${CERTBOT_EMAIL:-}"
+SERVER_IP="${SERVER_IP:-$(hostname -I | awk '{print $1}')}"
+
+NEXT_PUBLIC_TG_BOT_URL="${NEXT_PUBLIC_TG_BOT_URL:-https://t.me/example_bot}"
+NEXT_PUBLIC_TG_CHANNEL_URL="${NEXT_PUBLIC_TG_CHANNEL_URL:-https://t.me/example_channel}"
+SUPPORT_CONTACT="${SUPPORT_CONTACT:-@foxpoint_support}"
 
 log() {
   printf '%s\n' "$*"
@@ -11,36 +23,41 @@ log() {
 
 need_root() {
   if [ "$(id -u)" -ne 0 ]; then
-    log "Run this script with sudo."
+    log "Run this script as root or with sudo."
     exit 1
   fi
 }
 
-install_packages() {
+escape_sed() {
+  printf '%s' "$1" | sed 's/[\/&]/\\&/g'
+}
+
+sql_escape() {
+  printf '%s' "$1" | sed "s/'/''/g"
+}
+
+replace_env_key() {
+  local key="$1"
+  local value="$2"
+  local escaped
+  escaped="$(escape_sed "$value")"
+
+  if grep -q "^${key}=" "$APP_DIR/.env"; then
+    sed -i "s/^${key}=.*/${key}=${escaped}/" "$APP_DIR/.env"
+  else
+    printf '%s=%s\n' "$key" "$value" >> "$APP_DIR/.env"
+  fi
+}
+
+install_base_packages() {
   export DEBIAN_FRONTEND=noninteractive
-  if ! command -v apt-get >/dev/null 2>&1; then
-    log "apt-get is required."
-    exit 1
-  fi
-
   apt-get update
-  apt-get install -y ca-certificates curl git gnupg
+  apt-get install -y ca-certificates curl gnupg git nginx certbot python3-certbot-nginx postgresql postgresql-contrib
+}
 
-  install -m 0755 -d /etc/apt/keyrings
-  curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
-  chmod a+r /etc/apt/keyrings/docker.asc
-
-  . /etc/os-release
-  echo \
-    "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
-    $VERSION_CODENAME stable" > /etc/apt/sources.list.d/docker.list
-
-  apt-get update
-  apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-
-  if command -v systemctl >/dev/null 2>&1; then
-    systemctl enable --now docker >/dev/null 2>&1 || true
-  fi
+install_node() {
+  curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+  apt-get install -y nodejs
 }
 
 sync_repo() {
@@ -54,37 +71,156 @@ sync_repo() {
     return
   fi
 
-  if [ -d "$APP_DIR" ] && [ "$(ls -A "$APP_DIR" 2>/dev/null | wc -l)" -gt 0 ]; then
-    log "$APP_DIR exists and is not empty."
-    log "Set APP_DIR to an empty directory or remove it first."
-    exit 1
-  fi
-
+  rm -rf "$APP_DIR"
   git clone --branch "$BRANCH" "$REPO_URL" "$APP_DIR"
-  cd "$APP_DIR"
 }
 
 prepare_env() {
+  local app_url
+  local api_public_url
+
+  cd "$APP_DIR"
+
   if [ ! -f .env ]; then
     cp .env.example .env
   fi
+
+  if [ -n "$APP_DOMAIN" ]; then
+    app_url="https://$APP_DOMAIN"
+  else
+    app_url="http://$SERVER_IP"
+  fi
+
+  api_public_url="$app_url/api"
+
+  replace_env_key "NODE_ENV" "production"
+  replace_env_key "API_HOST" "127.0.0.1"
+  replace_env_key "API_PORT" "4000"
+  replace_env_key "API_BASE_URL" "http://127.0.0.1:4000"
+  replace_env_key "NEXT_PUBLIC_APP_URL" "$app_url"
+  replace_env_key "NEXT_PUBLIC_API_URL" "$api_public_url"
+  replace_env_key "NEXT_PUBLIC_TG_BOT_URL" "$NEXT_PUBLIC_TG_BOT_URL"
+  replace_env_key "NEXT_PUBLIC_TG_CHANNEL_URL" "$NEXT_PUBLIC_TG_CHANNEL_URL"
+  replace_env_key "DATABASE_URL" "postgresql://$DB_USER:$DB_PASSWORD@127.0.0.1:5432/$DB_NAME?schema=public"
+  replace_env_key "TG_BOT_URL" "$NEXT_PUBLIC_TG_BOT_URL"
+  replace_env_key "TG_CHANNEL_URL" "$NEXT_PUBLIC_TG_CHANNEL_URL"
+  replace_env_key "SUPPORT_CONTACT" "$SUPPORT_CONTACT"
 }
 
-start_stack() {
-  docker compose up -d --build
+setup_postgres() {
+  local db_user_escaped
+  local db_password_escaped
+  local db_name_escaped
+
+  db_user_escaped="$(sql_escape "$DB_USER")"
+  db_password_escaped="$(sql_escape "$DB_PASSWORD")"
+  db_name_escaped="$(sql_escape "$DB_NAME")"
+
+  systemctl enable --now postgresql
+
+  if ! sudo -u postgres psql -tAc "SELECT 1 FROM pg_roles WHERE rolname='${db_user_escaped}'" | grep -q 1; then
+    sudo -u postgres psql -c "CREATE ROLE \"$DB_USER\" LOGIN PASSWORD '${db_password_escaped}';"
+  else
+    sudo -u postgres psql -c "ALTER ROLE \"$DB_USER\" WITH LOGIN PASSWORD '${db_password_escaped}';"
+  fi
+
+  if ! sudo -u postgres psql -tAc "SELECT 1 FROM pg_database WHERE datname='${db_name_escaped}'" | grep -q 1; then
+    sudo -u postgres createdb -O "$DB_USER" "$DB_NAME"
+  fi
+}
+
+install_dependencies() {
+  cd "$APP_DIR"
+  npm ci
+  npm run db:generate
+  npm run build
+  npm run db:push
+}
+
+render_template() {
+  local source="$1"
+  local target="$2"
+  local npm_bin="$3"
+  local server_name="$4"
+
+  sed \
+    -e "s|__APP_DIR__|$(escape_sed "$APP_DIR")|g" \
+    -e "s|__NPM_BIN__|$(escape_sed "$npm_bin")|g" \
+    -e "s|__SERVER_NAME__|$(escape_sed "$server_name")|g" \
+    "$source" > "$target"
+}
+
+install_systemd_units() {
+  local npm_bin
+  npm_bin="$(command -v npm)"
+
+  render_template "$APP_DIR/deploy/systemd/foxpoint-api.service" "/etc/systemd/system/foxpoint-api.service" "$npm_bin" "_"
+  render_template "$APP_DIR/deploy/systemd/foxpoint-web.service" "/etc/systemd/system/foxpoint-web.service" "$npm_bin" "_"
+
+  systemctl daemon-reload
+  systemctl enable foxpoint-api foxpoint-web
+  systemctl restart foxpoint-api foxpoint-web
+}
+
+setup_nginx() {
+  local server_name
+
+  if [ -n "$APP_DOMAIN" ]; then
+    server_name="$APP_DOMAIN"
+  else
+    server_name="_"
+  fi
+
+  render_template "$APP_DIR/deploy/nginx/foxpoint.conf" "/etc/nginx/sites-available/foxpoint" "$(command -v npm)" "$server_name"
+
+  rm -f /etc/nginx/sites-enabled/default
+  ln -sf /etc/nginx/sites-available/foxpoint /etc/nginx/sites-enabled/foxpoint
+  nginx -t
+  systemctl reload nginx
+}
+
+enable_https_if_ready() {
+  if [ -z "$APP_DOMAIN" ] || [ -z "$CERTBOT_EMAIL" ]; then
+    log ""
+    log "HTTPS was skipped."
+    log "When DNS is ready, rerun with:"
+    log "  sudo APP_DOMAIN=panel.example.com CERTBOT_EMAIL=you@example.com bash install-vps.sh"
+    return
+  fi
+
+  certbot --nginx --non-interactive --agree-tos -m "$CERTBOT_EMAIL" -d "$APP_DOMAIN" --redirect
+}
+
+show_summary() {
+  log ""
+  log "FoxPoint is installed without Docker."
+  log "Project: $APP_DIR"
+  log "Web local: http://127.0.0.1:3000"
+  log "API local: http://127.0.0.1:4000/health"
+  log "Server IP: $SERVER_IP"
+
+  if [ -n "$APP_DOMAIN" ]; then
+    log "Public URL: https://$APP_DOMAIN"
+  else
+    log "Public URL: http://$SERVER_IP"
+  fi
+
+  log ""
+  log "Useful commands:"
+  log "  systemctl status foxpoint-api foxpoint-web"
+  log "  journalctl -u foxpoint-api -n 100 --no-pager"
+  log "  journalctl -u foxpoint-web -n 100 --no-pager"
+  log "  curl http://127.0.0.1:4000/health"
 }
 
 need_root
-install_packages
+install_base_packages
+install_node
 sync_repo
 prepare_env
-start_stack
-
-log ""
-log "FoxPoint is running."
-log "Project: $APP_DIR"
-log "Web: http://SERVER_IP:3000"
-log "API: http://SERVER_IP:4000/health"
-log ""
-log "Edit .env if you want custom Telegram links or support contact:"
-log "  $APP_DIR/.env"
+setup_postgres
+install_dependencies
+install_systemd_units
+setup_nginx
+enable_https_if_ready
+show_summary
