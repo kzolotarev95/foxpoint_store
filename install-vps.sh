@@ -22,6 +22,10 @@ log() {
   printf '%s\n' "$*"
 }
 
+get_free_space_mb() {
+  df -Pm / | awk 'NR==2 {print $4}'
+}
+
 tty_print() {
   if [ -e /dev/tty ]; then
     printf '%s' "$*" > /dev/tty
@@ -89,6 +93,26 @@ replace_env_key() {
   fi
 }
 
+ensure_free_space_mb() {
+  local required_mb="$1"
+  local free_mb
+  free_mb="$(get_free_space_mb)"
+
+  if [ "$free_mb" -lt "$required_mb" ]; then
+    log ""
+    log "Not enough free disk space."
+    log "Required: ${required_mb} MB"
+    log "Available: ${free_mb} MB"
+    log "Please free up disk space or move to a larger VPS before continuing."
+    exit 1
+  fi
+}
+
+cleanup_package_cache() {
+  apt-get clean
+  rm -rf /var/lib/apt/lists/* /var/cache/apt/archives/* /root/.npm/_cacache
+}
+
 prompt_runtime_config() {
   local target_input
   local email_input
@@ -124,11 +148,13 @@ install_base_packages() {
   export DEBIAN_FRONTEND=noninteractive
   apt-get update
   apt-get install -y ca-certificates curl gnupg git nginx certbot python3-certbot-nginx postgresql postgresql-contrib
+  cleanup_package_cache
 }
 
 install_node() {
   curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
   apt-get install -y nodejs
+  cleanup_package_cache
 }
 
 sync_repo() {
@@ -202,10 +228,15 @@ setup_postgres() {
 
 install_dependencies() {
   cd "$APP_DIR"
+  ensure_free_space_mb 1500
   npm ci
+  npm cache clean --force >/dev/null 2>&1 || true
   npm run db:generate
-  npm run build
+  systemctl restart postgresql
   npm run db:push
+  ensure_free_space_mb 900
+  npm run build
+  rm -rf "$APP_DIR/apps/web/.next/cache" /root/.npm/_cacache
 }
 
 render_template() {
