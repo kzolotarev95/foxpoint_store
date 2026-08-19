@@ -12,6 +12,7 @@ DB_PASSWORD="${DB_PASSWORD:-foxpoint}"
 APP_DOMAIN="${APP_DOMAIN:-}"
 CERTBOT_EMAIL="${CERTBOT_EMAIL:-}"
 SERVER_IP="${SERVER_IP:-$(hostname -I | awk '{print $1}')}"
+DEPLOY_TARGET="${DEPLOY_TARGET:-}"
 
 NEXT_PUBLIC_TG_BOT_URL="${NEXT_PUBLIC_TG_BOT_URL:-https://t.me/example_bot}"
 NEXT_PUBLIC_TG_CHANNEL_URL="${NEXT_PUBLIC_TG_CHANNEL_URL:-https://t.me/example_channel}"
@@ -19,6 +20,30 @@ SUPPORT_CONTACT="${SUPPORT_CONTACT:-@foxpoint_support}"
 
 log() {
   printf '%s\n' "$*"
+}
+
+tty_print() {
+  if [ -e /dev/tty ]; then
+    printf '%s' "$*" > /dev/tty
+  else
+    printf '%s' "$*"
+  fi
+}
+
+tty_read() {
+  local __var_name="$1"
+  local __prompt="$2"
+  local __value=""
+
+  tty_print "$__prompt"
+
+  if [ -e /dev/tty ]; then
+    IFS= read -r __value < /dev/tty || true
+  elif [ -t 0 ]; then
+    IFS= read -r __value || true
+  fi
+
+  printf -v "$__var_name" '%s' "$__value"
 }
 
 need_root() {
@@ -36,6 +61,21 @@ sql_escape() {
   printf '%s' "$1" | sed "s/'/''/g"
 }
 
+is_ip_address() {
+  case "$1" in
+    *:*)
+      return 0
+      ;;
+    *.*)
+      if printf '%s' "$1" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$'; then
+        return 0
+      fi
+      ;;
+  esac
+
+  return 1
+}
+
 replace_env_key() {
   local key="$1"
   local value="$2"
@@ -46,6 +86,37 @@ replace_env_key() {
     sed -i "s/^${key}=.*/${key}=${escaped}/" "$APP_DIR/.env"
   else
     printf '%s=%s\n' "$key" "$value" >> "$APP_DIR/.env"
+  fi
+}
+
+prompt_runtime_config() {
+  local target_input
+  local email_input
+
+  if [ -n "$APP_DOMAIN" ] || [ -n "$DEPLOY_TARGET" ]; then
+    return
+  fi
+
+  log ""
+  log "FoxPoint setup needs a public address."
+  log "You can enter a domain like panel.example.com or leave it empty to use this server IP."
+  log "Detected server IP: $SERVER_IP"
+  log ""
+
+  tty_read target_input "Domain or IP [$SERVER_IP]: "
+  target_input="${target_input:-$SERVER_IP}"
+  DEPLOY_TARGET="$target_input"
+
+  if is_ip_address "$DEPLOY_TARGET"; then
+    SERVER_IP="$DEPLOY_TARGET"
+    APP_DOMAIN=""
+    return
+  fi
+
+  APP_DOMAIN="$DEPLOY_TARGET"
+  if [ -z "$CERTBOT_EMAIL" ]; then
+    tty_read email_input "Email for Let's Encrypt (leave empty to skip HTTPS for now): "
+    CERTBOT_EMAIL="$email_input"
   fi
 }
 
@@ -214,6 +285,7 @@ show_summary() {
 }
 
 need_root
+prompt_runtime_config
 install_base_packages
 install_node
 sync_repo

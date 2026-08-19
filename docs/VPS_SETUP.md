@@ -11,13 +11,13 @@
 
 ## 2. Быстрый старт
 
-Если хочешь сначала поднять проект просто по IP:
+Обычный запуск теперь интерактивный: скрипт сам спросит домен или IP.
 
 ```bash
 curl -fsSL "https://raw.githubusercontent.com/kzolotarev95/foxpoint_store/main/install-vps.sh?v=$(date +%s)" | sudo bash
 ```
 
-Если домен уже указывает на сервер и нужен HTTPS сразу:
+Если домен уже указывает на сервер и не хочешь отвечать на вопросы вручную:
 
 ```bash
 curl -fsSL "https://raw.githubusercontent.com/kzolotarev95/foxpoint_store/main/install-vps.sh?v=$(date +%s)" | sudo APP_DOMAIN=panel.example.com CERTBOT_EMAIL=you@example.com bash
@@ -27,6 +27,7 @@ curl -fsSL "https://raw.githubusercontent.com/kzolotarev95/foxpoint_store/main/i
 
 - установит Node.js 20, PostgreSQL, Nginx и Certbot
 - клонирует проект в `/opt/foxpoint_store`
+- спросит публичный адрес: домен или IP
 - создаст `.env`
 - создаст БД и пользователя PostgreSQL
 - выполнит `npm ci`, `prisma generate`, `prisma db push`, `npm run build`
@@ -85,7 +86,13 @@ curl -fsSL "https://raw.githubusercontent.com/kzolotarev95/foxpoint_store/main/u
 
 ## 5. Подключение HTTPS позже
 
-Если сначала поднимал по IP, а домен подключил потом, просто заново запусти install-скрипт уже с доменом:
+Если сначала поднимал по IP, а домен подключил потом, просто заново запусти install-скрипт и укажи домен в вопросе скрипта:
+
+```bash
+curl -fsSL "https://raw.githubusercontent.com/kzolotarev95/foxpoint_store/main/install-vps.sh?v=$(date +%s)" | sudo bash
+```
+
+Или сразу без вопросов:
 
 ```bash
 curl -fsSL "https://raw.githubusercontent.com/kzolotarev95/foxpoint_store/main/install-vps.sh?v=$(date +%s)" | sudo APP_DOMAIN=panel.example.com CERTBOT_EMAIL=you@example.com bash
