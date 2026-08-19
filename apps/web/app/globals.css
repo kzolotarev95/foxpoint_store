@@ -1,0 +1,294 @@
+:root {
+  --bg: #f3efe5;
+  --surface: rgba(255, 251, 244, 0.84);
+  --surface-strong: #fffdf8;
+  --text: #1c2230;
+  --muted: #6b7280;
+  --line: rgba(28, 34, 48, 0.12);
+  --brand: #c45a23;
+  --brand-dark: #7a2f0b;
+  --accent: #1f6f78;
+  --shadow: 0 20px 50px rgba(28, 34, 48, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  color: var(--text);
+  background:
+    radial-gradient(circle at top left, rgba(196, 90, 35, 0.16), transparent 30%),
+    radial-gradient(circle at right 20%, rgba(31, 111, 120, 0.14), transparent 25%),
+    linear-gradient(180deg, #f9f5ea 0%, #efe8d9 100%);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+a.button {
+  cursor: pointer;
+}
+
+.shell {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto;
+}
+
+.panel {
+  background: var(--surface);
+  backdrop-filter: blur(18px);
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  box-shadow: var(--shadow);
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 14px;
+  letter-spacing: 0.02em;
+}
+
+.ctaRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.primaryButton,
+.secondaryButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 50px;
+  padding: 0 20px;
+  border-radius: 16px;
+  font-weight: 700;
+  transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
+}
+
+.primaryButton {
+  color: #fff7f0;
+  background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%);
+  box-shadow: 0 16px 32px rgba(122, 47, 11, 0.24);
+}
+
+.secondaryButton {
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.primaryButton:hover,
+.secondaryButton:hover {
+  transform: translateY(-2px);
+}
+
+.gridTwo {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.sectionTitle {
+  margin: 0 0 12px;
+  font-size: clamp(28px, 4vw, 42px);
+  line-height: 1.02;
+}
+
+.sectionLead {
+  margin: 0;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1.6;
+}
+
+.miniGrid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.metricCard,
+.featureCard,
+.routerCard,
+.ticketCard {
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.metricValue {
+  margin: 10px 0 4px;
+  font-size: 32px;
+  font-weight: 800;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.dashboardShell {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: 280px minmax(0, 1fr);
+  padding: 24px 0 48px;
+}
+
+.sideNav {
+  padding: 24px;
+  position: sticky;
+  top: 24px;
+  align-self: start;
+}
+
+.sideNav ul {
+  display: grid;
+  gap: 10px;
+  padding: 0;
+  margin: 20px 0 0;
+  list-style: none;
+}
+
+.sideNav a {
+  display: block;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid transparent;
+}
+
+.sideNav a:hover {
+  background: rgba(255, 255, 255, 0.72);
+  border-color: var(--line);
+}
+
+.contentStack {
+  display: grid;
+  gap: 20px;
+}
+
+.hero {
+  padding: 28px;
+}
+
+.hero h1 {
+  margin: 14px 0 18px;
+  max-width: 740px;
+  font-size: clamp(42px, 7vw, 76px);
+  line-height: 0.94;
+  letter-spacing: -0.04em;
+}
+
+.hero p {
+  max-width: 720px;
+  margin: 0 0 24px;
+  color: var(--muted);
+  font-size: 20px;
+  line-height: 1.6;
+}
+
+.heroGrid {
+  margin-top: 28px;
+}
+
+.entryCard {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-height: 280px;
+  padding: 28px;
+}
+
+.entryCard h2,
+.featureCard h3,
+.routerCard h3,
+.ticketCard h3 {
+  margin: 0;
+}
+
+.entryCard p,
+.featureCard p,
+.routerCard p,
+.ticketCard p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.statusTag {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(31, 111, 120, 0.12);
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.list {
+  display: grid;
+  gap: 10px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.list li {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.list li:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
+}
+
+@media (max-width: 980px) {
+  .gridTwo,
+  .miniGrid,
+  .dashboardShell {
+    grid-template-columns: 1fr;
+  }
+
+  .sideNav {
+    position: static;
+  }
+}
+
+@media (max-width: 640px) {
+  .shell {
+    width: min(100% - 20px, 1180px);
+  }
+
+  .hero,
+  .entryCard,
+  .metricCard,
+  .featureCard,
+  .routerCard,
+  .ticketCard,
+  .sideNav {
+    padding: 20px;
+  }
+
+  .hero p {
+    font-size: 17px;
+  }
+}
+

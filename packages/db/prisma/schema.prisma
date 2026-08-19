@@ -1,0 +1,312 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  ACTIVE
+  BLOCKED
+  PENDING
+}
+
+enum AuthProvider {
+  TELEGRAM
+  EMAIL
+  GOOGLE
+}
+
+enum RouterStatus {
+  DRAFT
+  ACTIVE
+  SUSPENDED
+  DISABLED
+}
+
+enum ConfigurationType {
+  BASIC
+  EXTENDED
+}
+
+enum SupportType {
+  NONE
+  BASIC
+  EXTENDED
+}
+
+enum SubscriptionStatus {
+  DRAFT
+  ACTIVE
+  EXPIRED
+  PENDING_ACTIVATION
+  PAUSED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  CREATED
+  PENDING
+  PAID
+  FAILED
+  CANCELED
+  REFUNDED
+}
+
+enum OrderStatus {
+  CREATED
+  WAITING_PAYMENT
+  PAID
+  CONFIGURING
+  READY_TO_SHIP
+  SHIPPED
+  RECEIVED
+  CANCELED
+  REFUND
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_CLIENT
+  RESOLVED
+  CLOSED
+}
+
+enum RewardStatus {
+  PENDING
+  AVAILABLE
+  CANCELED
+}
+
+enum BalanceTransactionType {
+  REFERRAL_REWARD
+  SUBSCRIPTION_PAYMENT
+  ORDER_PAYMENT
+  MANUAL_ADJUSTMENT
+  SPEND
+}
+
+enum BalanceTransactionStatus {
+  PENDING
+  COMPLETED
+  CANCELED
+}
+
+model User {
+  id             String               @id @default(cuid())
+  name           String?
+  status         UserStatus           @default(PENDING)
+  createdAt      DateTime             @default(now())
+  lastActivityAt DateTime?
+  balance        Decimal              @default(0) @db.Decimal(12, 2)
+  routers        Router[]
+  identities     AuthIdentity[]
+  payments       Payment[]
+  orders         RouterOrder[]
+  tickets        SupportTicket[]
+  referralsMade  Referral[]           @relation("Referrer")
+  referralsGot   Referral[]           @relation("Referred")
+  rewards        ReferralReward[]     @relation("RewardBeneficiary")
+  rewardEvents   ReferralReward[]     @relation("RewardReferred")
+  balanceOps     BalanceTransaction[]
+  notifications  Notification[]
+  adminActions   AdminAuditLog[]      @relation("AdminActor")
+}
+
+model AuthIdentity {
+  id             String       @id @default(cuid())
+  userId         String
+  provider       AuthProvider
+  providerUserId String
+  email          String?
+  verifiedAt     DateTime?
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerUserId])
+}
+
+model Router {
+  id                String                @id @default(cuid())
+  ownerUserId       String
+  displayName       String
+  model             String?
+  serialNumber      String?
+  configurationType ConfigurationType     @default(BASIC)
+  status            RouterStatus          @default(DRAFT)
+  createdAt         DateTime              @default(now())
+  adminNote         String?
+  owner             User                  @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  subscriptions     Subscription[]
+  template          SubscriptionTemplate?
+  trial             Trial?
+  payments          Payment[]
+  tickets           SupportTicket[]
+
+  @@index([ownerUserId])
+}
+
+model Subscription {
+  id                String             @id @default(cuid())
+  routerId          String
+  accessEnabled     Boolean            @default(false)
+  supportType       SupportType        @default(NONE)
+  status            SubscriptionStatus @default(DRAFT)
+  startAt           DateTime?
+  endAt             DateTime?
+  priceSnapshot     Decimal            @db.Decimal(12, 2)
+  pendingActivation Boolean            @default(false)
+  lastPaymentId     String?
+  router            Router             @relation(fields: [routerId], references: [id], onDelete: Cascade)
+  lastPayment       Payment?           @relation("SubscriptionLastPayment", fields: [lastPaymentId], references: [id], onDelete: SetNull)
+
+  @@index([routerId])
+}
+
+model SubscriptionTemplate {
+  routerId        String      @id
+  accessEnabled   Boolean     @default(false)
+  supportType     SupportType @default(NONE)
+  periodDays      Int         @default(30)
+  currentPrice    Decimal     @db.Decimal(12, 2)
+  updatedAt       DateTime    @updatedAt
+  router          Router      @relation(fields: [routerId], references: [id], onDelete: Cascade)
+}
+
+model Trial {
+  routerId         String   @id
+  used             Boolean  @default(false)
+  startAt          DateTime?
+  endAt            DateTime?
+  packageSnapshot  Json?
+  router           Router   @relation(fields: [routerId], references: [id], onDelete: Cascade)
+}
+
+model Payment {
+  id                String         @id @default(cuid())
+  userId            String
+  routerId          String?
+  orderId           String?        @unique
+  provider          String
+  providerPaymentId String?        @unique
+  amount            Decimal        @db.Decimal(12, 2)
+  status            PaymentStatus  @default(CREATED)
+  paymentUrl        String?
+  payloadSnapshot   Json?
+  createdAt         DateTime       @default(now())
+  paidAt            DateTime?
+  user              User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  router            Router?        @relation(fields: [routerId], references: [id], onDelete: SetNull)
+  order             RouterOrder?   @relation("OrderPayment", fields: [orderId], references: [id], onDelete: SetNull)
+  rewards           ReferralReward[]
+  subscriptionUsages Subscription[] @relation("SubscriptionLastPayment")
+
+  @@index([userId])
+  @@index([routerId])
+}
+
+model RouterOrder {
+  id             String      @id @default(cuid())
+  userId         String
+  routerPrice    Decimal     @db.Decimal(12, 2)
+  setupPrice     Decimal     @db.Decimal(12, 2)
+  totalPrice     Decimal     @db.Decimal(12, 2)
+  status         OrderStatus @default(CREATED)
+  trackingNumber String?
+  createdAt      DateTime    @default(now())
+  receivedAt     DateTime?
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payment        Payment?    @relation("OrderPayment")
+}
+
+
+model SupportTicket {
+  id          String       @id @default(cuid())
+  userId      String
+  routerId    String?
+  category    String
+  description String
+  status      TicketStatus @default(OPEN)
+  assigneeId  String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  router      Router?      @relation(fields: [routerId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([routerId])
+}
+
+model Referral {
+  id             String   @id @default(cuid())
+  referrerUserId String
+  referredUserId String   @unique
+  referralCode   String
+  source         String?
+  createdAt      DateTime @default(now())
+  referrer       User     @relation("Referrer", fields: [referrerUserId], references: [id], onDelete: Cascade)
+  referred       User     @relation("Referred", fields: [referredUserId], references: [id], onDelete: Cascade)
+}
+
+model ReferralReward {
+  id                      String       @id @default(cuid())
+  beneficiaryUserId       String
+  referredUserId          String
+  sourceType              String
+  sourceId                String
+  paymentId               String?
+  amount                  Decimal      @db.Decimal(12, 2)
+  calculationRuleSnapshot Json?
+  status                  RewardStatus @default(PENDING)
+  createdAt               DateTime     @default(now())
+  availableAt             DateTime?
+  beneficiary             User         @relation("RewardBeneficiary", fields: [beneficiaryUserId], references: [id], onDelete: Cascade)
+  referred                User         @relation("RewardReferred", fields: [referredUserId], references: [id], onDelete: Cascade)
+  payment                 Payment?     @relation(fields: [paymentId], references: [id], onDelete: SetNull)
+
+  @@index([beneficiaryUserId])
+  @@index([referredUserId])
+}
+
+model BalanceTransaction {
+  id         String                   @id @default(cuid())
+  userId     String
+  type       BalanceTransactionType
+  amount     Decimal                  @db.Decimal(12, 2)
+  status     BalanceTransactionStatus @default(PENDING)
+  sourceType String
+  sourceId   String
+  createdAt  DateTime                 @default(now())
+  user       User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String
+  type        String
+  relatedType String?
+  relatedId   String?
+  readAt      DateTime?
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model AdminAuditLog {
+  id         String   @id @default(cuid())
+  adminId    String
+  action     String
+  entityType String
+  entityId   String
+  beforeData Json?
+  afterData  Json?
+  createdAt  DateTime @default(now())
+  admin      User     @relation("AdminActor", fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId])
+}

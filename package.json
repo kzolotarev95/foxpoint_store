@@ -1,0 +1,21 @@
+{
+  "name": "foxpoint",
+  "version": "0.1.0",
+  "private": true,
+  "description": "VPS-ready starter for the FoxPoint customer site, cabinet and admin panel",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace @foxpoint/api && npm run build --workspace @foxpoint/web",
+    "dev:api": "npm run dev --workspace @foxpoint/api",
+    "dev:web": "npm run dev --workspace @foxpoint/web",
+    "db:generate": "npx prisma generate --schema packages/db/prisma/schema.prisma",
+    "db:push": "npx prisma db push --schema packages/db/prisma/schema.prisma",
+    "lint": "npm run lint --workspace @foxpoint/api && npm run lint --workspace @foxpoint/web"
+  },
+  "devDependencies": {
+    "prisma": "^6.14.0"
+  }
+}
+
