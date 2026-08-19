@@ -8,8 +8,10 @@ const configSchema = z.object({
   TG_BOT_URL: z.string().url().default("https://t.me/example_bot"),
   TG_CHANNEL_URL: z.string().url().default("https://t.me/example_channel"),
   SUPPORT_CONTACT: z.string().default("@foxpoint_support"),
-  DATABASE_URL: z.string().min(1).default("postgresql://foxpoint:foxpoint@localhost:5432/foxpoint?schema=public")
+  DATABASE_URL: z.string().min(1).default("postgresql://foxpoint:foxpoint@localhost:5432/foxpoint?schema=public"),
+  ADMIN_USERNAME: z.string().min(1).default("admin"),
+  ADMIN_PASSWORD: z.string().min(1).default("admin"),
+  ADMIN_SESSION_SECRET: z.string().min(16).default("foxpoint-admin-secret-change-me")
 });
 
 export const config = configSchema.parse(process.env);
-

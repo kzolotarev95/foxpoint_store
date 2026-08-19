@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { dashboardSections, entryLinks } from "../components/site-data";
+import { dashboardSections, getEntryLinks } from "../components/site-data";
 
 const features = [
   {
@@ -16,7 +16,9 @@ const features = [
   }
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  const entryLinks = await getEntryLinks();
+
   return (
     <main className="shell" style={{ padding: "24px 0 56px" }}>
       <section className="panel hero">
@@ -121,4 +123,3 @@ export default function HomePage() {
     </main>
   );
 }
-

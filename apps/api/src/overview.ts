@@ -1,4 +1,4 @@
-import { config } from "./config.js";
+import { getPublicSettingLinks } from "./admin-settings.js";
 
 export type OverviewResponse = {
   product: string;
@@ -14,16 +14,14 @@ export type OverviewResponse = {
   nextMilestones: string[];
 };
 
-export function buildOverview(): OverviewResponse {
+export async function buildOverview(): Promise<OverviewResponse> {
+  const links = await getPublicSettingLinks();
+
   return {
     product: "Интернет, как раньше",
     generatedAt: new Date().toISOString(),
     deploymentTarget: "VPS",
-    links: {
-      telegramBot: config.TG_BOT_URL,
-      telegramChannel: config.TG_CHANNEL_URL,
-      support: config.SUPPORT_CONTACT
-    },
+    links,
     corePrinciples: [
       "Сайт и Telegram-бот должны использовать единый backend и одну БД",
       "Один клиент может владеть несколькими роутерами",
@@ -45,4 +43,3 @@ export function buildOverview(): OverviewResponse {
     ]
   };
 }
-

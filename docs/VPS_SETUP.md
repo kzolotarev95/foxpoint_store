@@ -76,12 +76,22 @@ DATABASE_URL=postgresql://foxpoint:strong_password@127.0.0.1:5432/foxpoint?schem
 TG_BOT_URL=https://t.me/your_bot
 TG_CHANNEL_URL=https://t.me/your_channel
 SUPPORT_CONTACT=@your_support
+
+ADMIN_USERNAME=admin
+ADMIN_PASSWORD=change_me_now
+ADMIN_SESSION_SECRET=replace_with_a_long_random_secret
 ```
 
 Если меняешь публичные `NEXT_PUBLIC_*` значения, потом перезапусти обновление:
 
 ```bash
 curl -fsSL "https://raw.githubusercontent.com/kzolotarev95/foxpoint_store/main/update-vps.sh?v=$(date +%s)" | sudo bash
+```
+
+Если меняешь `ADMIN_*`, достаточно перезапустить сервисы:
+
+```bash
+sudo systemctl restart foxpoint-api foxpoint-web
 ```
 
 ## 5. Подключение HTTPS позже

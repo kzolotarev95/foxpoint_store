@@ -297,6 +297,12 @@ model Notification {
   @@index([userId])
 }
 
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
 model AdminAuditLog {
   id         String   @id @default(cuid())
   adminId    String

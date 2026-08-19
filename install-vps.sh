@@ -17,6 +17,9 @@ DEPLOY_TARGET="${DEPLOY_TARGET:-}"
 NEXT_PUBLIC_TG_BOT_URL="${NEXT_PUBLIC_TG_BOT_URL:-https://t.me/example_bot}"
 NEXT_PUBLIC_TG_CHANNEL_URL="${NEXT_PUBLIC_TG_CHANNEL_URL:-https://t.me/example_channel}"
 SUPPORT_CONTACT="${SUPPORT_CONTACT:-@foxpoint_support}"
+ADMIN_USERNAME="${ADMIN_USERNAME:-admin}"
+ADMIN_PASSWORD="${ADMIN_PASSWORD:-admin}"
+ADMIN_SESSION_SECRET="${ADMIN_SESSION_SECRET:-}"
 HTTPS_ENABLED=0
 
 log() {
@@ -176,6 +179,7 @@ sync_repo() {
 prepare_env() {
   local app_url
   local api_public_url
+  local admin_session_secret
 
   cd "$APP_DIR"
 
@@ -190,6 +194,11 @@ prepare_env() {
   fi
 
   api_public_url="$app_url/api"
+  admin_session_secret="$ADMIN_SESSION_SECRET"
+
+  if [ -z "$admin_session_secret" ]; then
+    admin_session_secret="$(cat /proc/sys/kernel/random/uuid)$(cat /proc/sys/kernel/random/uuid)"
+  fi
 
   replace_env_key "NODE_ENV" "production"
   replace_env_key "API_HOST" "127.0.0.1"
@@ -203,6 +212,9 @@ prepare_env() {
   replace_env_key "TG_BOT_URL" "$NEXT_PUBLIC_TG_BOT_URL"
   replace_env_key "TG_CHANNEL_URL" "$NEXT_PUBLIC_TG_CHANNEL_URL"
   replace_env_key "SUPPORT_CONTACT" "$SUPPORT_CONTACT"
+  replace_env_key "ADMIN_USERNAME" "$ADMIN_USERNAME"
+  replace_env_key "ADMIN_PASSWORD" "$ADMIN_PASSWORD"
+  replace_env_key "ADMIN_SESSION_SECRET" "$admin_session_secret"
 }
 
 setup_postgres() {

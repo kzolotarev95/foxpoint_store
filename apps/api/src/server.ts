@@ -1,6 +1,9 @@
 import cors from "@fastify/cors";
 import sensible from "@fastify/sensible";
 import Fastify from "fastify";
+import { z } from "zod";
+import { readAdminSession } from "./admin-auth.js";
+import { getAdminSettings, saveAdminSettings } from "./admin-settings.js";
 import { config } from "./config.js";
 import { buildOverview } from "./overview.js";
 import { prisma } from "./prisma.js";
@@ -58,6 +61,45 @@ app.get("/api/routes", async () => {
   };
 });
 
+app.get("/api/admin/settings", async (request, reply) => {
+  if (!readAdminSession(request.headers.cookie)) {
+    reply.code(401);
+    return {
+      error: "unauthorized"
+    };
+  }
+
+  return {
+    settings: await getAdminSettings()
+  };
+});
+
+app.put("/api/admin/settings", async (request, reply) => {
+  if (!readAdminSession(request.headers.cookie)) {
+    reply.code(401);
+    return {
+      error: "unauthorized"
+    };
+  }
+
+  const body = z
+    .object({
+      settings: z.record(z.string(), z.string())
+    })
+    .parse(request.body);
+
+  try {
+    return {
+      settings: await saveAdminSettings(body.settings)
+    };
+  } catch (error) {
+    reply.code(400);
+    return {
+      error: error instanceof Error ? error.message : "Unable to save settings."
+    };
+  }
+});
+
 const shutdown = async () => {
   await app.close();
   await prisma.$disconnect();
@@ -77,4 +119,3 @@ try {
   await prisma.$disconnect();
   process.exit(1);
 }
-

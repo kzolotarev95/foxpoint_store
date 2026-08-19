@@ -150,6 +150,18 @@ a.button {
   padding: 24px 0 48px;
 }
 
+.authShell {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 24px 0;
+}
+
+.authPanel {
+  width: min(560px, 100%);
+  padding: 32px;
+}
+
 .sideNav {
   padding: 24px;
   position: sticky;
@@ -175,6 +187,12 @@ a.button {
 .sideNav a:hover {
   background: rgba(255, 255, 255, 0.72);
   border-color: var(--line);
+}
+
+.navMeta {
+  margin: 16px 0 0;
+  color: var(--muted);
+  line-height: 1.6;
 }
 
 .contentStack {
@@ -260,10 +278,94 @@ a.button {
   border-bottom: none;
 }
 
+.authForm,
+.fieldStack {
+  display: grid;
+  gap: 10px;
+}
+
+.authForm {
+  margin-top: 24px;
+}
+
+.fieldLabel {
+  font-weight: 700;
+}
+
+.helperText {
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.textInput {
+  width: 100%;
+  min-height: 52px;
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--text);
+  font: inherit;
+}
+
+.settingsSection {
+  padding: 28px;
+}
+
+.settingsGrid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 24px;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.banner {
+  padding: 16px 18px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  font-weight: 600;
+}
+
+.successBanner {
+  background: rgba(47, 122, 81, 0.12);
+  color: #21593a;
+}
+
+.errorBanner {
+  background: rgba(168, 68, 46, 0.12);
+  color: #8a2d17;
+}
+
+.stickyActions {
+  position: sticky;
+  bottom: 16px;
+  display: flex;
+  justify-content: flex-end;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background: rgba(255, 251, 244, 0.92);
+  backdrop-filter: blur(18px);
+  box-shadow: var(--shadow);
+}
+
+.fullWidthButton {
+  width: 100%;
+}
+
 @media (max-width: 980px) {
   .gridTwo,
   .miniGrid,
-  .dashboardShell {
+  .dashboardShell,
+  .settingsGrid {
     grid-template-columns: 1fr;
   }
 
@@ -283,7 +385,9 @@ a.button {
   .featureCard,
   .routerCard,
   .ticketCard,
-  .sideNav {
+  .sideNav,
+  .settingsSection,
+  .authPanel {
     padding: 20px;
   }
 
@@ -291,4 +395,3 @@ a.button {
     font-size: 17px;
   }
 }
-
