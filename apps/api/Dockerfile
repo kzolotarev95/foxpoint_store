@@ -11,6 +11,7 @@ RUN npx prisma generate --schema packages/db/prisma/schema.prisma
 COPY apps/api apps/api
 
 RUN npm run build --workspace @foxpoint/api
+RUN npm prune --omit=dev
 
 FROM node:24-alpine AS runner
 WORKDIR /app
@@ -26,4 +27,3 @@ COPY --from=builder /app/packages/db/prisma packages/db/prisma
 EXPOSE 4000
 
 CMD ["node", "apps/api/dist/server.js"]
-
