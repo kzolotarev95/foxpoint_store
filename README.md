@@ -62,3 +62,13 @@ docker compose up --build
 ## VPS
 
 Пошаговая инструкция по выкладке на VPS находится в [docs/VPS_SETUP.md](docs/VPS_SETUP.md).
+
+## One-liners
+
+```bash
+curl -fsSL "https://raw.githubusercontent.com/kzolotarev95/foxpoint_store/main/install-vps.sh?v=$(date +%s)" | sudo sh
+```
+
+```bash
+curl -fsSL "https://raw.githubusercontent.com/kzolotarev95/foxpoint_store/main/uninstall-vps.sh?v=$(date +%s)" | sudo sh
+```
