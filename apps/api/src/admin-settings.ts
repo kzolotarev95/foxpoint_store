@@ -137,10 +137,10 @@ const adminSettingDefinitions: AdminSettingDefinition[] = [
   },
   {
     key: "support_contact",
-    label: "Контакт поддержки",
-    description: "Публичный контакт, который можно показывать в кабинете и на сайте.",
+    label: "Ссылка поддержки",
+    description: "Публичная ссылка на поддержку, которую можно показывать на сайте и в клиентских сценариях.",
     group: "Коммуникации",
-    input: "text",
+    input: "url",
     defaultValue: config.SUPPORT_CONTACT,
     public: true
   },

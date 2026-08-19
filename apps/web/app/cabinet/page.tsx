@@ -1,34 +1,41 @@
 import Link from "next/link";
-import { dashboardSections } from "../../components/site-data";
+import {
+  dashboardSections,
+  getEntryLinks,
+  getSiteOverview,
+  getSystemHealth,
+  isTelegramBotConfigured
+} from "../../components/site-data";
 
-const routers = [
-  {
-    name: "Роутер дома",
-    model: "Netis NX31",
-    plan: "Расширенный доступ + расширенное сопровождение",
-    expiry: "30.09.2026",
-    remaining: "42 дня"
-  },
-  {
-    name: "Роутер у родителей",
-    model: "Keenetic Hopper",
-    plan: "Базовое сопровождение",
-    expiry: "12.09.2026",
-    remaining: "24 дня"
+function getHealthLabel(database: string): string {
+  if (database === "up") {
+    return "Backend и база доступны";
   }
-];
 
-const metrics = [
-  { label: "Активных роутеров", value: "2", note: "Оба привязаны к одному клиенту" },
-  { label: "Ближайшее продление", value: "12.09", note: "Не теряем устройство из вида" },
-  { label: "Баланс", value: "1 000 ₽", note: "Готов для внутренних начислений" }
-];
+  if (database === "down") {
+    return "Есть проблема с базой данных";
+  }
 
-export default function CabinetPage() {
+  return "Статус базы уточняется";
+}
+
+export default async function CabinetPage() {
+  const [entryLinks, overview, health] = await Promise.all([
+    getEntryLinks(),
+    getSiteOverview(),
+    getSystemHealth()
+  ]);
+
+  const hasTelegramBot = isTelegramBotConfigured(entryLinks.telegramBot);
+
   return (
     <main className="shell dashboardShell">
       <aside className="panel sideNav">
-        <span className="pill">Личный кабинет</span>
+        <span className="pill">Клиентский раздел</span>
+        <p className="navMeta">
+          Здесь только живые точки входа и реальный статус системы. Выдуманные роутеры, балансы и
+          оплаты убраны, пока не подключена персональная Telegram-идентификация.
+        </p>
         <ul>
           {dashboardSections.map((section) => (
             <li key={section}>
@@ -40,127 +47,128 @@ export default function CabinetPage() {
 
       <section className="contentStack">
         <article className="panel hero">
-          <span className="statusTag">Каркас клиента</span>
+          <span className="statusTag">Честный контур клиента</span>
           <h1 style={{ fontFamily: "var(--font-heading, sans-serif)", fontSize: "54px", lineHeight: 1 }}>
-            Кабинет уже собран вокруг реальной логики ТЗ.
+            Сайт показывает только то, что уже реально работает сегодня.
           </h1>
           <p>
-            Здесь заложены разделы под несколько роутеров, подписки, заказы, поддержку, рефералов и
-            профиль. Следующий шаг — подключить эти блоки к реальному API.
+            Сейчас клиентский доступ ведёт через Telegram, поддержка доступна по прямой ссылке, а
+            backend и админка уже работают на VPS. Персональные роутеры и подписки подключаем
+            следующим этапом.
           </p>
           <div className="ctaRow">
-            <Link className="primaryButton" href="/">
-              На главную
+            <Link
+              className="primaryButton"
+              href={hasTelegramBot ? entryLinks.telegramBot : entryLinks.support}
+              target="_blank"
+            >
+              {hasTelegramBot ? "Открыть Telegram-бота" : "Связаться с поддержкой"}
             </Link>
-            <Link className="secondaryButton" href="/admin">
-              В админку
+            <Link className="secondaryButton" href={entryLinks.telegramChannel} target="_blank">
+              Telegram-канал
+            </Link>
+            <Link className="secondaryButton" href="/admin/login">
+              Админ-вход
             </Link>
           </div>
         </article>
 
-        <section className="miniGrid">
-          {metrics.map((metric) => (
-            <article key={metric.label} className="panel metricCard">
-              <div className="muted">{metric.label}</div>
-              <div className="metricValue" style={{ fontFamily: "var(--font-heading, sans-serif)" }}>
-                {metric.value}
-              </div>
-              <div className="muted">{metric.note}</div>
-            </article>
-          ))}
-        </section>
-
-        <section id="Мои роутеры" className="contentStack">
-          <article className="panel" style={{ padding: "24px" }}>
-            <h2 style={{ margin: 0, fontFamily: "var(--font-heading, sans-serif)", fontSize: "34px" }}>
-              Мои роутеры
-            </h2>
-            <p className="sectionLead" style={{ marginTop: "12px" }}>
-              В ТЗ один клиент может владеть несколькими устройствами, поэтому этот блок сразу
-              ориентирован на список, а не на одиночную карточку.
-            </p>
-          </article>
-
-          <div className="gridTwo">
-            {routers.map((router) => (
-              <article key={router.name} className="panel routerCard">
-                <span className="statusTag">Активен</span>
-                <h3 style={{ marginTop: "14px", fontFamily: "var(--font-heading, sans-serif)", fontSize: "28px" }}>
-                  {router.name}
-                </h3>
-                <p>{router.model}</p>
-                <ul className="list" style={{ marginTop: "16px" }}>
-                  <li>Пакет: {router.plan}</li>
-                  <li>Оплачено до: {router.expiry}</li>
-                  <li>Осталось: {router.remaining}</li>
-                </ul>
-                <div className="ctaRow" style={{ marginTop: "18px" }}>
-                  <a className="primaryButton" href="#Подписки и оплата">
-                    Продлить
-                  </a>
-                  <a className="secondaryButton" href="#Поддержка">
-                    Поддержка
-                  </a>
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section id="Подписки и оплата" className="gridTwo">
-          <article className="panel featureCard">
-            <h3 style={{ fontFamily: "var(--font-heading, sans-serif)", fontSize: "28px" }}>
-              Быстрое продление
-            </h3>
-            <p>
-              Сохранённый пакет нужен, чтобы клиент продлевал обслуживание одной кнопкой, не
-              собирая комбинацию услуг заново каждый месяц.
-            </p>
+        <section id="Текущий доступ" className="miniGrid">
+          <article className="panel metricCard">
+            <div className="muted">Клиентский вход</div>
             <div className="metricValue" style={{ fontFamily: "var(--font-heading, sans-serif)" }}>
-              1 998 ₽
+              {hasTelegramBot ? "Telegram-бот" : "Поддержка"}
             </div>
-            <div className="muted">Расширенный доступ + расширенное сопровождение на 30 дней</div>
+            <div className="muted">
+              {hasTelegramBot
+                ? "Основной сценарий входа уже направляет клиента в рабочий Telegram-канал доступа."
+                : "Пока бот не настроен, вход клиента обслуживается через поддержку."}
+            </div>
           </article>
 
-          <article className="panel featureCard">
-            <h3 style={{ fontFamily: "var(--font-heading, sans-serif)", fontSize: "28px" }}>
-              Изменение подписки
-            </h3>
-            <p>
-              При переходе с базовой конфигурации на расширенную логика уже предполагает ручную
-              перенастройку и статус ожидания активации.
-            </p>
-            <div className="statusTag" style={{ marginTop: "18px" }}>
-              Оплачено, ожидает подключения
+          <article className="panel metricCard">
+            <div className="muted">Среда</div>
+            <div className="metricValue" style={{ fontFamily: "var(--font-heading, sans-serif)" }}>
+              {health.environment}
             </div>
+            <div className="muted">{health.service}</div>
+          </article>
+
+          <article className="panel metricCard">
+            <div className="muted">База данных</div>
+            <div className="metricValue" style={{ fontFamily: "var(--font-heading, sans-serif)" }}>
+              {health.database === "up" ? "UP" : health.database.toUpperCase()}
+            </div>
+            <div className="muted">{getHealthLabel(health.database)}</div>
           </article>
         </section>
 
-        <section id="Поддержка" className="gridTwo">
-          <article className="panel ticketCard">
+        <section id="Ссылки и каналы" className="gridTwo">
+          <article className="panel featureCard">
             <h3 style={{ fontFamily: "var(--font-heading, sans-serif)", fontSize: "28px" }}>
               Поддержка
             </h3>
-            <p>Обращения можно привязывать к конкретному роутеру, чтобы не смешивать разные кейсы.</p>
-            <ul className="list" style={{ marginTop: "16px" }}>
-              <li>Нет доступа к сайту на телевизоре</li>
-              <li>Нужно проверить продление после оплаты</li>
-              <li>Связаться со специалистом по новому устройству</li>
-            </ul>
+            <p>Рабочая ссылка для клиентов, если нужно подключение, помощь или ручная проверка доступа.</p>
+            <div className="ctaRow" style={{ marginTop: "18px" }}>
+              <Link className="primaryButton" href={entryLinks.support} target="_blank">
+                Открыть поддержку
+              </Link>
+            </div>
           </article>
 
-          <article className="panel ticketCard" id="Пригласить и заработать">
+          <article className="panel featureCard">
             <h3 style={{ fontFamily: "var(--font-heading, sans-serif)", fontSize: "28px" }}>
-              Реферальная программа
+              Telegram-канал
             </h3>
-            <p>
-              В MVP уже предусмотрены код, история начислений, внутренний баланс и проверка
-              подтверждённых заказов и подписок.
-            </p>
-            <div className="metricValue" style={{ fontFamily: "var(--font-heading, sans-serif)" }}>
-              FP-2026
+            <p>Публичный канал проекта для обновлений, уведомлений и дальнейших ссылок на бот и сайт.</p>
+            <div className="ctaRow" style={{ marginTop: "18px" }}>
+              <Link className="primaryButton" href={entryLinks.telegramChannel} target="_blank">
+                Открыть канал
+              </Link>
             </div>
-            <div className="muted">Пример персонального реферального кода</div>
+          </article>
+        </section>
+
+        <section id="Статус системы" className="contentStack">
+          <article className="panel" style={{ padding: "24px" }}>
+            <h2 style={{ margin: 0, fontFamily: "var(--font-heading, sans-serif)", fontSize: "34px" }}>
+              Статус системы
+            </h2>
+            <p className="sectionLead" style={{ marginTop: "12px" }}>
+              Эта страница опирается на текущий backend, а не на демонстрационные данные.
+            </p>
+            <ul className="list" style={{ marginTop: "16px" }}>
+              <li>API: {health.ok ? "доступно" : "недоступно"}</li>
+              <li>База данных: {health.database}</li>
+              <li>Последняя проверка: {new Date(health.timestamp).toLocaleString("ru-RU")}</li>
+              <li>Контур развёртывания: {overview.deploymentTarget}</li>
+            </ul>
+          </article>
+        </section>
+
+        <section id="Что уже работает" className="contentStack">
+          <article className="panel" style={{ padding: "24px" }}>
+            <h2 style={{ margin: 0, fontFamily: "var(--font-heading, sans-serif)", fontSize: "34px" }}>
+              Что уже работает
+            </h2>
+            <ul className="list" style={{ marginTop: "16px" }}>
+              {overview.currentScope.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </article>
+        </section>
+
+        <section id="Что подключаем дальше" className="contentStack">
+          <article className="panel" style={{ padding: "24px" }}>
+            <h2 style={{ margin: 0, fontFamily: "var(--font-heading, sans-serif)", fontSize: "34px" }}>
+              Что подключаем дальше
+            </h2>
+            <ul className="list" style={{ marginTop: "16px" }}>
+              {overview.nextMilestones.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
           </article>
         </section>
       </section>

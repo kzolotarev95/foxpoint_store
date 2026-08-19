@@ -69,13 +69,13 @@ API_BASE_URL=http://127.0.0.1:4000
 NEXT_PUBLIC_APP_URL=https://panel.example.com
 NEXT_PUBLIC_API_URL=https://panel.example.com/api
 NEXT_PUBLIC_TG_BOT_URL=https://t.me/your_bot
-NEXT_PUBLIC_TG_CHANNEL_URL=https://t.me/your_channel
+NEXT_PUBLIC_TG_CHANNEL_URL=https://t.me/fox_point_net
 
 DATABASE_URL=postgresql://foxpoint:strong_password@127.0.0.1:5432/foxpoint?schema=public
 
 TG_BOT_URL=https://t.me/your_bot
-TG_CHANNEL_URL=https://t.me/your_channel
-SUPPORT_CONTACT=@your_support
+TG_CHANNEL_URL=https://t.me/fox_point_net
+SUPPORT_CONTACT=https://t.me/Fox_point_support
 
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=change_me_now
