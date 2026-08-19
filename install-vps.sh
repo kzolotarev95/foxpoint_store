@@ -17,6 +17,7 @@ DEPLOY_TARGET="${DEPLOY_TARGET:-}"
 NEXT_PUBLIC_TG_BOT_URL="${NEXT_PUBLIC_TG_BOT_URL:-https://t.me/example_bot}"
 NEXT_PUBLIC_TG_CHANNEL_URL="${NEXT_PUBLIC_TG_CHANNEL_URL:-https://t.me/example_channel}"
 SUPPORT_CONTACT="${SUPPORT_CONTACT:-@foxpoint_support}"
+HTTPS_ENABLED=0
 
 log() {
   printf '%s\n' "$*"
@@ -290,7 +291,19 @@ enable_https_if_ready() {
     return
   fi
 
-  certbot --nginx --non-interactive --agree-tos -m "$CERTBOT_EMAIL" -d "$APP_DOMAIN" --redirect
+  if certbot --nginx --non-interactive --agree-tos -m "$CERTBOT_EMAIL" -d "$APP_DOMAIN" --redirect; then
+    HTTPS_ENABLED=1
+    return
+  fi
+
+  log ""
+  log "HTTPS setup failed for $APP_DOMAIN."
+  log "FoxPoint is still installed and available over HTTP."
+  log "Most common causes: port 80 is blocked, port 80 is used by another service, or DNS is not pointing to this server yet."
+  log "Check listeners with: ss -ltnp | grep -E ':(80|443)\\b'"
+  log "Check firewall with: ufw status"
+  log "Retry HTTPS later with:"
+  log "  certbot --nginx --non-interactive --agree-tos -m $CERTBOT_EMAIL -d $APP_DOMAIN --redirect"
 }
 
 show_summary() {
@@ -301,8 +314,10 @@ show_summary() {
   log "API local: http://127.0.0.1:4000/health"
   log "Server IP: $SERVER_IP"
 
-  if [ -n "$APP_DOMAIN" ]; then
+  if [ -n "$APP_DOMAIN" ] && [ "$HTTPS_ENABLED" -eq 1 ]; then
     log "Public URL: https://$APP_DOMAIN"
+  elif [ -n "$APP_DOMAIN" ]; then
+    log "Public URL: http://$APP_DOMAIN"
   else
     log "Public URL: http://$SERVER_IP"
   fi
