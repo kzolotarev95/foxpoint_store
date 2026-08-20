@@ -217,10 +217,6 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
     <main className="shell dashboardShell adminDashboardShell">
       <aside className="panel sideNav">
         <span className="pill">Админ-панель</span>
-        <p className="navMeta">
-          Вход защищён cookie-сессией. Здесь собраны живые настройки, обзор клиентов и ручная
-          привязка роутеров для ежедневной работы с сервисом.
-        </p>
         <ul>
           <li>
             <a href="#overview">Сводка</a>
