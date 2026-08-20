@@ -129,7 +129,8 @@ textarea {
   height: 0.6rem;
   border-radius: 999px;
   background: #46d46f;
-  box-shadow: 0 0 0 0.18rem rgba(70, 212, 111, 0.18);
+  box-shadow: 0 0 0 0 rgba(70, 212, 111, 0.34);
+  animation: pulseGreen 1.8s ease-out infinite;
 }
 
 .statusTag {
@@ -283,7 +284,7 @@ textarea {
 .heroStage {
   display: grid;
   gap: 1.25rem;
-  grid-template-columns: minmax(0, 1.05fr) minmax(320px, 0.95fr);
+  grid-template-columns: minmax(0, 1.38fr) minmax(280px, 0.62fr);
   padding: 1.45rem;
 }
 
@@ -330,7 +331,7 @@ textarea {
 .heroMetaGrid {
   display: grid;
   gap: 1rem;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(12.5rem, 1fr));
 }
 
 .compactGrid {
@@ -341,6 +342,8 @@ textarea {
   position: relative;
   overflow: hidden;
   min-height: 100%;
+  width: min(100%, 22rem);
+  justify-self: end;
   border-radius: 1.7rem;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: #100b14;
@@ -619,6 +622,21 @@ textarea {
 .adminAuthPanel {
   width: min(360px, 100%);
   padding: 1.15rem;
+  justify-items: center;
+  text-align: center;
+}
+
+.adminAuthPanel .authForm {
+  width: 100%;
+  max-width: 17.5rem;
+}
+
+.adminAuthPanel .fieldStack {
+  justify-items: center;
+}
+
+.adminAuthPanel .fieldLabel {
+  text-align: center;
 }
 
 .divider {
@@ -755,6 +773,23 @@ textarea {
   background: rgba(14, 10, 20, 0.88);
   backdrop-filter: blur(14px);
   box-shadow: var(--shadow);
+}
+
+@keyframes pulseGreen {
+  0% {
+    transform: scale(0.96);
+    box-shadow: 0 0 0 0 rgba(70, 212, 111, 0.42);
+  }
+
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0.45rem rgba(70, 212, 111, 0);
+  }
+
+  100% {
+    transform: scale(0.96);
+    box-shadow: 0 0 0 0 rgba(70, 212, 111, 0);
+  }
 }
 
 @media (max-width: 1100px) {
