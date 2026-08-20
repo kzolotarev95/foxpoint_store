@@ -626,6 +626,59 @@ textarea {
   text-align: center;
 }
 
+.clientAuthPanel {
+  width: min(430px, 100%);
+  padding: 1rem;
+  gap: 1rem;
+}
+
+.clientAuthHero {
+  overflow: hidden;
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 1.5rem;
+  background: #100b14;
+}
+
+.clientAuthBody {
+  display: grid;
+  gap: 1rem;
+  width: 100%;
+}
+
+.clientAuthImage {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 4 / 5;
+  object-fit: cover;
+  object-position: center top;
+}
+
+.clientAuthActions,
+.clientAuthForm {
+  width: 100%;
+  max-width: 18.75rem;
+  margin: 0 auto;
+}
+
+.clientAuthActions {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.clientAuthForm {
+  justify-items: center;
+}
+
+.clientAuthForm .fieldStack {
+  width: 100%;
+  justify-items: center;
+}
+
+.clientAuthForm .fieldLabel {
+  text-align: center;
+}
+
 .adminAuthPanel .authForm {
   width: 100%;
   max-width: 17.5rem;
@@ -903,6 +956,11 @@ textarea {
   .heroContent p,
   .sectionLead {
     font-size: 0.98rem;
+  }
+
+  .clientAuthPanel {
+    width: min(390px, 100%);
+    padding: 0.9rem;
   }
 
   .authPreviewMedia {
