@@ -170,7 +170,7 @@ export type AdminOverview = {
     defaultValue: string;
     description: string;
     group: string;
-    input: "number" | "text" | "url";
+    input: "number" | "password" | "text" | "url";
     key: string;
     label: string;
     public: boolean;

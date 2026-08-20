@@ -1,7 +1,7 @@
 import { config } from "./config.js";
 import { prisma } from "./prisma.js";
 
-export type AdminSettingInput = "number" | "text" | "url";
+export type AdminSettingInput = "number" | "password" | "text" | "url";
 
 export type AdminSettingDefinition = {
   defaultValue: string;
@@ -175,6 +175,15 @@ const adminSettingDefinitions: AdminSettingDefinition[] = [
     public: true
   },
   {
+    key: "tg_bot_token",
+    label: "Токен Telegram-бота",
+    description: "Секретный токен бота для Telegram Login. Хранится только для административных сценариев и не публикуется на сайте.",
+    group: "Коммуникации",
+    input: "password",
+    defaultValue: config.TG_BOT_TOKEN,
+    public: false
+  },
+  {
     key: "tg_channel_url",
     label: "Ссылка на Telegram-канал",
     description: "Публичный канал проекта для новостей и уведомлений.",
@@ -255,6 +264,18 @@ export async function getAdminSettings(): Promise<AdminSettingRecord[]> {
     ...definition,
     value: valueByKey.get(definition.key) ?? definition.defaultValue
   }));
+}
+
+export async function getAdminSettingValue(key: string, fallback: string): Promise<string> {
+  await ensureSettingsSeeded();
+
+  const setting = (await (prisma as any).appSetting.findUnique({
+    where: {
+      key
+    }
+  })) as AppSettingRow | null;
+
+  return setting?.value?.trim() || fallback;
 }
 
 export async function getPublicSettingLinks(): Promise<{

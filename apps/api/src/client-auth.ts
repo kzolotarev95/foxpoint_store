@@ -1,5 +1,6 @@
 import { createHash, createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import type { FastifyRequest } from "fastify";
+import { getAdminSettingValue } from "./admin-settings.js";
 import { config } from "./config.js";
 import { prisma } from "./prisma.js";
 
@@ -184,7 +185,7 @@ function buildTelegramDisplayName(input: TelegramAuthInput): string | null {
   return normalizeTelegramUsername(input.username);
 }
 
-function validateTelegramAuth(input: TelegramAuthInput) {
+async function validateTelegramAuth(input: TelegramAuthInput) {
   const normalizedId = normalizeTelegramUserId(input.id);
   const normalizedUsername = normalizeTelegramUsername(input.username);
   const authDate = Number.parseInt(input.authDate, 10);
@@ -212,7 +213,8 @@ function validateTelegramAuth(input: TelegramAuthInput) {
     .sort((left, right) => left.localeCompare(right))
     .join("\n");
 
-  const secret = createHash("sha256").update(config.TG_BOT_TOKEN).digest();
+  const botToken = await getAdminSettingValue("tg_bot_token", config.TG_BOT_TOKEN);
+  const secret = createHash("sha256").update(botToken).digest();
   const expectedHash = createHmac("sha256", secret).update(dataCheckString).digest("hex");
   if (!safeEqual(expectedHash, input.hash)) {
     throw new Error("Не удалось подтвердить Telegram-авторизацию.");
@@ -598,7 +600,7 @@ export async function upsertLocalCredentialsForUser(input: {
 }
 
 export async function bindTelegramIdentityForUser(input: TelegramAuthInput & { userId: string }) {
-  const verified = validateTelegramAuth(input);
+  const verified = await validateTelegramAuth(input);
 
   const [user, existingIdentity, conflictingIdentity] = await Promise.all([
     prisma.user.findUnique({
@@ -696,7 +698,7 @@ async function resolveReferrerByCode(referralCode: string) {
 }
 
 export async function loginClientFromTelegram(input: TelegramAuthInput & { referralCode?: string; request: FastifyRequest }) {
-  const verified = validateTelegramAuth(input);
+  const verified = await validateTelegramAuth(input);
   const referralCode = input.referralCode?.trim() || "";
 
   const existingIdentity = await prisma.authIdentity.findFirst({

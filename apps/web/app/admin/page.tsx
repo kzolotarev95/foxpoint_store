@@ -11,7 +11,7 @@ type AdminSettingRecord = {
   defaultValue: string;
   description: string;
   group: string;
-  input: "number" | "text" | "url";
+  input: "number" | "password" | "text" | "url";
   key: string;
   label: string;
   public: boolean;
@@ -494,7 +494,15 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                       defaultValue={setting.value}
                       inputMode={getFieldInputMode(setting.input)}
                       name={setting.key}
-                      type={setting.input === "number" ? "number" : setting.input === "url" ? "url" : "text"}
+                      type={
+                        setting.input === "number"
+                          ? "number"
+                          : setting.input === "url"
+                            ? "url"
+                            : setting.input === "password"
+                              ? "password"
+                              : "text"
+                      }
                     />
                     <span className="helperText">
                       {setting.description}
