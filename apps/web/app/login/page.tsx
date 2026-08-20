@@ -31,7 +31,7 @@ export default async function LoginPage(props: { searchParams: PageSearchParams 
   const primaryClientLink = hasTelegramBot ? site.links.telegramBot : site.links.support;
 
   return (
-    <main className="shell authExperience">
+    <main className="shell authExperience authLoginExperience">
       <PortalHeader
         rightSlot={
           <>
@@ -43,46 +43,32 @@ export default async function LoginPage(props: { searchParams: PageSearchParams 
             </Link>
           </>
         }
-        subtitle="Свободный интернет"
       />
 
-      <section className="authStage panel">
-        <div className="authStageBackdrop">
-          <Image
-            alt=""
-            aria-hidden
-            className="authStageImage"
-            fill
-            priority
-            sizes="100vw"
-            src="/images/foxpoint-hero-welcome.jpg"
-          />
-        </div>
-
-        <div className="authStageOverlay" />
-
+      <section className="authStage panel authLoginStage">
         <div className="panel authStageCard">
           {signedOutMessage ? <div className="banner successBanner">{signedOutMessage}</div> : null}
           {errorMessage ? <div className="banner errorBanner">{errorMessage}</div> : null}
 
-          <div className="authBrandMark">
+          <div className="authBrandMark authLoginMark">
             <Image alt="" aria-hidden height={56} src="/apple-touch-icon.png" width={56} />
           </div>
 
-          <span className="statusTag">Авторизация</span>
           <h1>Свободный интернет</h1>
           <p>Личный кабинет для управления роутерами и технической поддержкой.</p>
 
-          <div className="clientAuthActions">
+          <div className="clientAuthActions authLoginActions">
             <Link className="primaryButton fullWidthButton portalActionButton" href={primaryClientLink} target="_blank">
               {hasTelegramBot ? "Войти через Telegram" : "Открыть поддержку"}
             </Link>
-            <Link className="secondaryButton fullWidthButton portalGhostButton" href={site.links.telegramChannel} target="_blank">
-              Telegram-канал
+            <Link className="secondaryButton fullWidthButton portalGhostButton" href={primaryClientLink} target="_blank">
+              {hasTelegramBot ? "Войти через бота" : "Открыть поддержку"}
             </Link>
           </div>
 
-          <div className="divider" />
+          <div className="authDivider">
+            <span>или</span>
+          </div>
 
           <div className="authTabs">
             <button className="authTab isActive" type="button">
@@ -95,37 +81,34 @@ export default async function LoginPage(props: { searchParams: PageSearchParams 
 
           <form action={loginWithEmailAction} className="authForm clientAuthForm">
             <label className="fieldStack">
-              <span className="fieldLabel">Имя</span>
-              <input className="textInput" name="name" placeholder="Владислав" type="text" />
-            </label>
-
-            <label className="fieldStack">
-              <span className="fieldLabel">Email</span>
+              <span className="fieldLabel">Email или логин</span>
               <input
                 autoComplete="email"
                 className="textInput"
                 name="email"
-                placeholder="example@mail.com"
+                placeholder="Введите email или логин"
                 required
                 type="email"
               />
             </label>
 
             <label className="fieldStack">
-              <span className="fieldLabel">Реферальный код</span>
-              <input
-                className="textInput"
-                defaultValue={referralCode}
-                name="referralCode"
-                placeholder="FOX-ABCD1234"
-                type="text"
-              />
+              <span className="fieldLabel">Пароль</span>
+              <input className="textInput" name="password" placeholder="Введите пароль" type="password" />
             </label>
+
+            {referralCode ? <input name="referralCode" type="hidden" value={referralCode} /> : null}
 
             <button className="primaryButton fullWidthButton portalActionButton" type="submit">
               Войти
             </button>
+
+            <p className="authHint">Если забыли пароль, войдите через Telegram и восстановите доступ в профиле.</p>
           </form>
+
+          <Link className="authInlineLink authFooterLink" href={site.links.telegramChannel} target="_blank">
+            Как работает сервис
+          </Link>
         </div>
       </section>
     </main>

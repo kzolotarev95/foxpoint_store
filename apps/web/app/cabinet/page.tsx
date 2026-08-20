@@ -1,15 +1,8 @@
-import Image from "next/image";
 import Link from "next/link";
 import { PortalHeader } from "../../components/portal-header";
 import { fetchClientApi } from "../../lib/client-auth";
 import type { ClientOverview } from "../../lib/portal-types";
-import {
-  createRouterOrderAction,
-  createSupportTicketAction,
-  logoutClientAction,
-  renewRouterAction,
-  saveRouterTemplateAction
-} from "../../lib/client-actions";
+import { createRouterOrderAction, logoutClientAction } from "../../lib/client-actions";
 
 type PageSearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -21,23 +14,12 @@ function getSingleParam(value: string | string[] | undefined): string | null {
   return Array.isArray(value) ? value[0] ?? null : null;
 }
 
-function formatDate(value: string | null | undefined): string {
-  if (!value) {
-    return "—";
-  }
-
-  return new Intl.DateTimeFormat("ru-RU", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric"
-  }).format(new Date(value));
-}
-
 export default async function CabinetPage(props: { searchParams: PageSearchParams }) {
   const [overview, searchParams] = await Promise.all([
     fetchClientApi<ClientOverview>("/api/me/overview"),
     props.searchParams
   ]);
+
   const successMessage = getSingleParam(searchParams.success);
   const errorMessage = getSingleParam(searchParams.error);
   const paymentUrl = getSingleParam(searchParams.payment);
@@ -57,13 +39,22 @@ export default async function CabinetPage(props: { searchParams: PageSearchParam
         ]}
         rightSlot={
           <>
-            <Link className="portalGhostButton secondaryButton" href="#order">
-              Заказать роутер
-            </Link>
-            <span className="portalIconButton" aria-hidden="true">
-              ◦
+            <form action={createRouterOrderAction}>
+              <button className="primaryButton portalActionButton" type="submit">
+                Заказать роутер
+              </button>
+            </form>
+            <span className="portalBellButton" aria-hidden="true">
+              <svg viewBox="0 0 24 24" role="presentation">
+                <path d="M12 22a2.2 2.2 0 0 0 2.18-2h-4.36A2.2 2.2 0 0 0 12 22Zm8-5.6c-1.4-1.1-2.2-2.7-2.2-5V9a5.8 5.8 0 0 0-4.7-5.7V2.7a1.1 1.1 0 0 0-2.2 0v.6A5.8 5.8 0 0 0 6.2 9v2.4c0 2.3-.8 3.9-2.2 5V18h16v-1.6Z" />
+              </svg>
             </span>
-            <span className="portalUserChip">{overview.profile.name}</span>
+            <span className="portalUserChip">
+              <span className="portalUserAvatar" aria-hidden="true">
+                {overview.profile.name.slice(0, 1).toUpperCase()}
+              </span>
+              <span>{overview.profile.name}</span>
+            </span>
             <form action={logoutClientAction}>
               <button className="portalGhostButton secondaryButton" type="submit">
                 Выйти
@@ -71,41 +62,11 @@ export default async function CabinetPage(props: { searchParams: PageSearchParam
             </form>
           </>
         }
-        subtitle="Личный кабинет"
-      />
+      /> 
 
-      <section id="overview" className="panel portalHero dashboardHero">
-        <div className="heroCopy dashboardHeroCopy">
-          <span className="statusTag">Клиентский кабинет</span>
-          <h1>Интернет должен просто работать.</h1>
-          <p>
-            {overview.profile.name}, здесь можно управлять роутерами, продлевать сервис, создавать
-            заказы и писать в поддержку.
-          </p>
-
-          <div className="ctaRow">
-            <Link className="primaryButton portalActionButton" href={overview.links.telegramBot} target="_blank">
-              Управление
-            </Link>
-            <Link className="secondaryButton portalGhostButton" href="#routers">
-              Мои роутеры
-            </Link>
-            <Link className="secondaryButton portalGhostButton" href={overview.links.support} target="_blank">
-              Нужна помощь
-            </Link>
-          </div>
-        </div>
-
-        <div className="dashboardHeroVisual panel">
-          <Image
-            alt="FoxPoint кабинет"
-            className="heroImage"
-            height={720}
-            priority
-            src="/images/foxpoint-hero-welcome.jpg"
-            width={960}
-          />
-        </div>
+      <section id="profile" className="profileIntro">
+        <h1>Профиль и безопасность</h1>
+        <p>Управляйте доступом, роутерами и поддержкой в одном месте.</p>
       </section>
 
       {welcomeMessage ? <div className="banner successBanner">{welcomeMessage}</div> : null}
@@ -120,334 +81,137 @@ export default async function CabinetPage(props: { searchParams: PageSearchParam
         </div>
       ) : null}
 
-      <section className="miniGrid dashboardSummaryGrid">
+      <section className="miniGrid profileSummaryGrid">
         <article className="metricCard panel">
-          <div className="muted">Роутеров</div>
-          <div className="metricValue">{overview.stats.routerCount}</div>
-          <p>Всего подключенных устройств в кабинете.</p>
-        </article>
-        <article className="metricCard panel">
-          <div className="muted">Активных устройств</div>
-          <div className="metricValue">{overview.stats.activeRouterCount}</div>
-          <p>Устройства, которые сейчас в работе.</p>
-        </article>
-        <article className="metricCard panel">
-          <div className="muted">Баланс</div>
-          <div className="metricValue">{overview.profile.balanceLabel}</div>
-          <p>Средства на аккаунте и доступные операции.</p>
-        </article>
-      </section>
-
-      {!overview.routers.length ? (
-        <section className="panel emptyState">
-          <span className="pill">Пустой кабинет</span>
-          <h2>К вашему аккаунту пока не добавлен роутер.</h2>
-          <p>
-            Если устройство уже у вас, напишите в поддержку и мы проверим привязку. Если роутера
-            еще нет, можно сразу оформить заказ и перейти к доставке.
-          </p>
-          <div className="ctaRow">
-            <form action={createRouterOrderAction}>
-              <button className="primaryButton portalActionButton" type="submit">
-                Заказать роутер
-              </button>
-            </form>
-            <Link className="secondaryButton portalGhostButton" href={overview.links.support} target="_blank">
-              Написать в поддержку
-            </Link>
-            <Link className="secondaryButton portalGhostButton" href="/">
-              Как работает сервис
-            </Link>
-          </div>
-        </section>
-      ) : null}
-
-      <section id="routers" className="panel sectionPanel">
-        <span className="pill">Мои роутеры</span>
-        <h2 className="sectionTitle">Все устройства и сроки в одном месте.</h2>
-        <div className="routerList">
-          {overview.routers.map((router) => (
-            <article key={router.id} className="panel routerPanel">
-              <div className="sectionHeader">
-                <div>
-                  <h3>{router.displayName}</h3>
-                  <p className="sectionLead">
-                    {router.model ?? "Модель уточняется"} · ID {router.id.slice(0, 8)} · статус {router.status}
-                  </p>
-                </div>
-                <span className="statusTag">{router.currentSubscription?.status ?? "Без подписки"}</span>
-              </div>
-
-              <div className="detailGrid">
-                <div className="metricCard">
-                  <div className="muted">Текущий пакет</div>
-                  <div className="metricValue">{router.currentPackage}</div>
-                  <p>
-                    До {formatDate(router.currentSubscription?.endAt)} · осталось{" "}
-                    {router.currentSubscription?.daysRemaining ?? 0} дней
-                  </p>
-                </div>
-
-                <div className="metricCard">
-                  <div className="muted">Следующее продление</div>
-                  <div className="metricValue">{router.savedTemplate.nextPriceLabel}</div>
-                  <p>{router.savedTemplate.label}</p>
-                </div>
-
-                <div className="metricCard">
-                  <div className="muted">Конфигурация</div>
-                  <div className="metricValue">{router.configurationType}</div>
-                  <p>Серийный номер: {router.serialNumber ?? "не указан"}</p>
-                </div>
-              </div>
-
-              {router.trial ? (
-                <div className="banner successBanner">
-                  Пробный период: до {formatDate(router.trial.endAt)}. Осталось{" "}
-                  {router.trial.daysRemaining ?? 0} дней.
-                </div>
-              ) : null}
-
-              {router.currentSubscription?.pendingActivation ? (
-                <div className="banner errorBanner">
-                  Для этого пакета потребуется ручная перенастройка. До подтверждения админом
-                  услуга остается в статусе ожидания.
-                </div>
-              ) : null}
-
-              <div className="dashboardSectionGrid">
-                <form action={saveRouterTemplateAction} className="panel formCard">
-                  <input name="routerId" type="hidden" value={router.id} />
-                  <div className="sectionBlock compactBlock">
-                    <span className="pill">Изменить пакет</span>
-                    <h4>Сохранить пакет для продления</h4>
-                  </div>
-
-                  <label className="checkboxRow">
-                    <input defaultChecked={router.savedTemplate.accessEnabled} name="accessEnabled" type="checkbox" />
-                    <span>Расширенный доступ за {overview.catalog.extendedAccessPrice} ₽</span>
-                  </label>
-
-                  <label className="fieldStack">
-                    <span className="fieldLabel">Сопровождение</span>
-                    <select className="textInput" defaultValue={router.savedTemplate.supportType} name="supportType">
-                      <option value="NONE">Без сопровождения</option>
-                      <option value="BASIC">Базовое сопровождение</option>
-                      <option value="EXTENDED">Расширенное сопровождение</option>
-                    </select>
-                  </label>
-
-                  <button className="secondaryButton" type="submit">
-                    Сохранить пакет
-                  </button>
-                </form>
-
-                <div className="panel formCard">
-                  <div className="sectionBlock compactBlock">
-                    <span className="pill">Быстрое продление</span>
-                    <h4>Продлить на {overview.catalog.periodDays} дней</h4>
-                  </div>
-                  <p className="sectionLead">
-                    Система использует сохраненный пакет и создает отдельный платеж для этого
-                    роутера.
-                  </p>
-
-                  <form action={renewRouterAction} className="stackedActions">
-                    <input name="routerId" type="hidden" value={router.id} />
-                    <button className="primaryButton portalActionButton" type="submit">
-                      Продлить за {router.savedTemplate.nextPriceLabel}
-                    </button>
-                  </form>
-                </div>
-              </div>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section id="order" className="panel sectionPanel">
-        <span className="pill">Заказать роутер</span>
-        <h2 className="sectionTitle">Готовый роутер под ключ</h2>
-        <p className="sectionLead">
-          Получаете настроенное устройство, подключаете дома и не тратите время на ручную
-          настройку каждого телефона, телевизора и компьютера.
-        </p>
-
-        <div className="detailGrid">
-          <div className="metricCard">
-            <div className="muted">Роутер</div>
-            <div className="metricValue">{overview.orderOffer.routerPriceLabel}</div>
-          </div>
-          <div className="metricCard">
-            <div className="muted">Прошивка и настройка</div>
-            <div className="metricValue">{overview.orderOffer.setupPriceLabel}</div>
-          </div>
-          <div className="metricCard">
-            <div className="muted">Итого</div>
-            <div className="metricValue">{overview.orderOffer.totalPriceLabel}</div>
-          </div>
-        </div>
-
-        <div className="ctaRow">
-          <form action={createRouterOrderAction}>
-            <button className="primaryButton portalActionButton" type="submit">
-              Создать заказ
-            </button>
-          </form>
-          <Link className="secondaryButton portalGhostButton" href={overview.links.support} target="_blank">
-            Задать вопрос
-          </Link>
-        </div>
-      </section>
-
-      <section id="support" className="panel sectionPanel">
-        <span className="pill">Поддержка</span>
-        <h2 className="sectionTitle">Создать обращение</h2>
-        <form action={createSupportTicketAction} className="contentStack">
-          <label className="fieldStack">
-            <span className="fieldLabel">Категория</span>
-            <input
-              className="textInput"
-              name="category"
-              placeholder="Например: Продление, настройка, доставка"
-              required
-              type="text"
-            />
-          </label>
-
-          <label className="fieldStack">
-            <span className="fieldLabel">Роутер</span>
-            <select className="textInput" name="routerId">
-              <option value="">Без привязки к роутеру</option>
-              {overview.routers.map((router) => (
-                <option key={router.id} value={router.id}>
-                  {router.displayName}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <label className="fieldStack">
-            <span className="fieldLabel">Описание</span>
-            <textarea
-              className="textAreaInput"
-              name="description"
-              placeholder="Опишите ситуацию и что именно нужно сделать."
-              required
-            />
-          </label>
-
-          <div className="ctaRow">
-            <button className="primaryButton portalActionButton" type="submit">
-              Отправить обращение
-            </button>
-            <Link className="secondaryButton portalGhostButton" href={overview.links.support} target="_blank">
-              Открыть поддержку в Telegram
-            </Link>
-          </div>
-        </form>
-
-        {!!overview.tickets.length ? (
-          <div className="timelineGrid compactTimeline">
-            {overview.tickets.map((ticket) => (
-              <article key={ticket.id} className="timelineCard">
-                <div className="timelineIndex">{ticket.status}</div>
-                <p>
-                  {ticket.category}
-                  <br />
-                  Обновлено: {formatDate(ticket.updatedAt)}
-                </p>
-              </article>
-            ))}
-          </div>
-        ) : null}
-      </section>
-
-      <section id="payments" className="gridTwo sectionSplit">
-        <article className="panel sectionPanel">
-          <span className="pill">История платежей</span>
-          <h2 className="sectionTitle">Последние оплаты</h2>
-          <ul className="list">
-            {overview.payments.length ? (
-              overview.payments.map((payment) => (
-                <li key={payment.id}>
-                  {payment.amountLabel} · {payment.status} · {payment.routerName ?? "Заказ роутера"} ·{" "}
-                  {formatDate(payment.createdAt)}
-                </li>
-              ))
-            ) : (
-              <li>Пока нет платежей.</li>
-            )}
-          </ul>
-        </article>
-
-        <article className="panel sectionPanel">
-          <span className="pill">Заказы</span>
-          <h2 className="sectionTitle">Готовые роутеры</h2>
-          <ul className="list">
-            {overview.orders.length ? (
-              overview.orders.map((order) => (
-                <li key={order.id}>
-                  {order.totalPriceLabel} · {order.status} · создан {formatDate(order.createdAt)}
-                </li>
-              ))
-            ) : (
-              <li>Пока нет оформленных заказов.</li>
-            )}
-          </ul>
-        </article>
-      </section>
-
-      <section id="referrals" className="gridTwo sectionSplit">
-        <article className="panel sectionPanel">
-          <span className="pill">Пригласить и заработать</span>
-          <h2 className="sectionTitle">Реферальный код</h2>
-          <div className="metricValue">{overview.profile.referralCode}</div>
-          <p className="sectionLead">
-            Приглашено клиентов: {overview.referrals.invitedCount}. Доступно:{" "}
-            {overview.referrals.availableRewardsLabel}. В ожидании:{" "}
-            {overview.referrals.pendingRewardsLabel}.
-          </p>
-          <a className="secondaryButton portalGhostButton" href={overview.profile.referralLink}>
-            Открыть реферальную ссылку
-          </a>
-        </article>
-
-        <article className="panel sectionPanel">
-          <span className="pill">Уведомления</span>
-          <h2 className="sectionTitle">Последние события</h2>
-          <ul className="list">
-            {overview.notifications.length ? (
-              overview.notifications.map((notification) => (
-                <li key={notification.id}>
-                  {notification.type} · {formatDate(notification.createdAt)}
-                </li>
-              ))
-            ) : (
-              <li>Пока нет уведомлений.</li>
-            )}
-          </ul>
-        </article>
-      </section>
-
-      <section id="profile" className="panel sectionPanel">
-        <span className="pill">Профиль</span>
-        <h2 className="sectionTitle">Данные клиента</h2>
-        <div className="detailGrid">
-          <div className="metricCard">
+          <div className="profileStatTop">
+            <span className="profileStatGlyph">👤</span>
             <div className="muted">Имя</div>
-            <div className="metricValue">{overview.profile.name}</div>
           </div>
-          <div className="metricCard">
+          <div className="metricValue">{overview.profile.name}</div>
+          <p>Ваш профиль в системе FOX POINT.</p>
+        </article>
+        <article className="metricCard panel">
+          <div className="profileStatTop">
+            <span className="profileStatGlyph">✉</span>
             <div className="muted">Email</div>
-            <div className="metricValue">{overview.profile.email ?? "Не привязан"}</div>
           </div>
-          <div className="metricCard">
+          <div className="metricValue">{overview.profile.email ?? "example@mail.com"}</div>
+          <p>Используется для входа и уведомлений.</p>
+        </article>
+        <article className="metricCard panel">
+          <div className="profileStatTop">
+            <span className="profileStatGlyph">✈</span>
             <div className="muted">Telegram</div>
-            <div className="metricValue">{overview.profile.telegram ?? "Еще не привязан"}</div>
+          </div>
+          <div className="metricValue">{overview.profile.telegram ?? "@MrFoxClient"}</div>
+          <p>Привязка для быстрого входа и поддержки.</p>
+        </article>
+      </section>
+
+      <section id="routers" className="panel profileSecurityPanel">
+        <div className="sectionHeader profileSectionHeader">
+          <h2>Вход и безопасность</h2>
+        </div>
+
+        <div className="profileSecurityList">
+          <div className="profileSecurityRow">
+            <div className="profileSecurityIcon">🔒</div>
+            <div className="profileSecurityText">
+              <strong>Пароль</strong>
+              <span>Используется для входа в личный кабинет</span>
+            </div>
+            <button className="secondaryButton profileMiniButton" type="button">
+              Сменить пароль
+            </button>
+          </div>
+          <div className="profileSecurityRow">
+            <div className="profileSecurityIcon">✈</div>
+            <div className="profileSecurityText">
+              <strong>Telegram привязан</strong>
+              <span>Аккаунт Telegram привязан к вашему профилю</span>
+            </div>
+            <span className="profileState profileStateLinked">{overview.profile.telegram ? "Привязан" : "Не привязан"}</span>
+          </div>
+          <div className="profileSecurityRow">
+            <div className="profileSecurityIcon">🔐</div>
+            <div className="profileSecurityText">
+              <strong>Двухфакторная защита</strong>
+              <span>Дополнительный уровень безопасности для вашего аккаунта</span>
+            </div>
+            <div className="profileInlineActions">
+              <span className="profileState profileStateEnabled">Включена</span>
+              <button className="secondaryButton profileMiniButton" type="button">
+                Управлять 2FA
+              </button>
+            </div>
           </div>
         </div>
-        <p className="helperText">Дата регистрации: {formatDate(overview.profile.createdAt)}</p>
+      </section>
+
+      <section className="panel profileSessionsPanel">
+        <div className="sectionHeader profileSectionHeader">
+          <h2>Активные сессии</h2>
+        </div>
+
+        <div className="profileSessionList">
+          <div className="profileSessionRow">
+            <div className="profileSecurityIcon">🪟</div>
+            <div className="profileSessionText">
+              <strong>Windows 11 / Firefox</strong>
+              <span>Россия · Москва · 24.08.2025, 12:45</span>
+            </div>
+            <span className="profileState profileStateCurrent">это устройство</span>
+            <button className="secondaryButton profileMiniButton" type="button">
+              Завершить
+            </button>
+          </div>
+          <div className="profileSessionRow">
+            <div className="profileSecurityIcon">📱</div>
+            <div className="profileSessionText">
+              <strong>iPhone / Safari</strong>
+              <span>Россия · Санкт-Петербург · 23.08.2025, 21:12</span>
+            </div>
+            <span className="profileState"> </span>
+            <button className="secondaryButton profileMiniButton" type="button">
+              Завершить
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <section className="panel profileReferralPanel">
+        <div className="sectionHeader profileSectionHeader">
+          <h2>Реферальная программа</h2>
+        </div>
+        <div className="profileReferralGrid">
+          <div className="profileReferralCodeBlock">
+            <span className="fieldLabel">Ваш реферальный код</span>
+            <strong>{overview.profile.referralCode}</strong>
+          </div>
+          <div className="profileReferralMetric">
+            <span className="fieldLabel">Приглашено клиентов</span>
+            <strong>{overview.referrals.invitedCount}</strong>
+          </div>
+          <div className="profileReferralMetric">
+            <span className="fieldLabel">Начислено</span>
+            <strong>{overview.referrals.availableRewardsLabel}</strong>
+          </div>
+          <div className="profileReferralAction">
+            <Link className="secondaryButton portalGhostButton" href={overview.profile.referralLink}>
+              Открыть реферальную ссылку
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section className="panel profileDeletePanel">
+        <div className="sectionHeader profileSectionHeader">
+          <h2>Удаление аккаунта</h2>
+          <button className="secondaryButton portalGhostButton dangerButton" type="button">
+            Удалить аккаунт
+          </button>
+        </div>
+        <p className="sectionLead">Удаление аккаунта невозможно отменить. Будут удалены все ваши данные и настройки.</p>
       </section>
     </main>
   );
