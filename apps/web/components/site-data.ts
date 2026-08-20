@@ -1,5 +1,7 @@
 import { fetchApiJson } from "../lib/api";
 
+const FOXPOINT_SUPPORT_URL = "https://t.me/Fox_point_support";
+
 export type PublicLinks = {
   support: string;
   telegramBot: string;
@@ -65,7 +67,7 @@ function normalizeTelegramUrl(value: string, fallback: string): string {
 export const defaultPublicLinks: PublicLinks = {
   telegramBot: normalizeTelegramUrl(process.env.NEXT_PUBLIC_TG_BOT_URL ?? "", "https://t.me/example_bot"),
   telegramChannel: normalizeTelegramUrl(process.env.NEXT_PUBLIC_TG_CHANNEL_URL ?? "", "https://t.me/fox_point_net"),
-  support: normalizeTelegramUrl(process.env.SUPPORT_CONTACT ?? "", "https://t.me/Fox_point_support")
+  support: FOXPOINT_SUPPORT_URL
 };
 
 const defaultSiteSnapshot: SiteSnapshot = {
@@ -119,7 +121,7 @@ export async function getSiteSnapshot(): Promise<SiteSnapshot> {
       links: {
         telegramBot: normalizeTelegramUrl(snapshot.links.telegramBot, defaultPublicLinks.telegramBot),
         telegramChannel: normalizeTelegramUrl(snapshot.links.telegramChannel, defaultPublicLinks.telegramChannel),
-        support: normalizeTelegramUrl(snapshot.links.support, defaultPublicLinks.support)
+        support: FOXPOINT_SUPPORT_URL
       }
     };
   } catch {

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import {
@@ -59,15 +58,8 @@ export default async function AdminLoginPage(props: { searchParams: PageSearchPa
 
   return (
     <main className="shell authShell">
-      <section className="panel authPanel">
+      <section className="panel authPanel adminAuthPanel">
         <span className="pill">Вход в админку</span>
-        <h1 className="sectionTitle" style={{ fontFamily: "var(--font-heading, sans-serif)", marginTop: "16px" }}>
-          Управление настройками FoxPoint
-        </h1>
-        <p className="sectionLead">
-          После входа будут доступны цены, Telegram-ссылки, контакт поддержки и параметры
-          реферальной программы.
-        </p>
 
         {signedOutMessage ? <div className="banner successBanner">{signedOutMessage}</div> : null}
         {errorMessage ? <div className="banner errorBanner">{errorMessage}</div> : null}
@@ -75,31 +67,19 @@ export default async function AdminLoginPage(props: { searchParams: PageSearchPa
         <form action={loginAction} className="authForm">
           <label className="fieldStack">
             <span className="fieldLabel">Логин</span>
-            <input autoComplete="username" className="textInput" name="username" placeholder="admin" type="text" />
+            <input autoComplete="username" className="textInput" name="username" type="text" />
           </label>
 
           <label className="fieldStack">
             <span className="fieldLabel">Пароль</span>
-            <input
-              autoComplete="current-password"
-              className="textInput"
-              name="password"
-              placeholder="admin"
-              type="password"
-            />
+            <input autoComplete="current-password" className="textInput" name="password" type="password" />
           </label>
 
-          <div className="ctaRow">
-            <button className="primaryButton" type="submit">
-              Войти
-            </button>
-            <Link className="secondaryButton" href="/">
-              На главную
-            </Link>
-          </div>
+          <button className="primaryButton fullWidthButton" type="submit">
+            Войти
+          </button>
         </form>
       </section>
     </main>
   );
 }
-

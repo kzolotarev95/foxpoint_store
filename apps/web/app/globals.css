@@ -124,6 +124,14 @@ textarea {
   text-transform: uppercase;
 }
 
+.statusIndicator {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 999px;
+  background: #46d46f;
+  box-shadow: 0 0 0 0.18rem rgba(70, 212, 111, 0.18);
+}
+
 .statusTag {
   display: inline-flex;
   align-items: center;
@@ -606,6 +614,11 @@ textarea {
   gap: 1rem;
   width: min(520px, 100%);
   margin: 0 auto;
+}
+
+.adminAuthPanel {
+  width: min(360px, 100%);
+  padding: 1.15rem;
 }
 
 .divider {

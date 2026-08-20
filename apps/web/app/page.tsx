@@ -10,7 +10,10 @@ export default async function HomePage() {
     <main className="shell siteShell">
       <header className="topBar">
         <div className="brandLockup">
-          <span className="pill">FoxPoint</span>
+          <span className="pill">
+            FoxPoint
+            <span aria-hidden="true" className="statusIndicator" />
+          </span>
         </div>
         <div className="ctaRow">
           <Link className="secondaryButton" href={site.links.telegramChannel} target="_blank">
