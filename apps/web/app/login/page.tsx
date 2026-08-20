@@ -1,7 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { PortalHeader } from "../../components/portal-header";
 import { getSiteSnapshot, isTelegramBotConfigured } from "../../components/site-data";
+import authLoginBg from "../../components/assets/auth-login-bg.jpg";
 import { loginWithEmailAction } from "../../lib/client-actions";
 import { getClientSessionToken } from "../../lib/client-auth";
 
@@ -30,37 +32,64 @@ export default async function LoginPage(props: { searchParams: PageSearchParams 
   const primaryClientLink = hasTelegramBot ? site.links.telegramBot : site.links.support;
 
   return (
-    <main className="shell authShell">
-      <section className="panel authPanel clientAuthPanel">
-        <div className="clientAuthHero">
-          <Image
-            alt="FoxPoint приветствие"
-            className="clientAuthImage"
-            height={720}
-            src="/images/foxpoint-hero-welcome.jpg"
-            width={1280}
-          />
+    <main className="shell authExperience">
+      <PortalHeader
+        rightSlot={
+          <>
+            <Link className="secondaryButton portalGhostButton" href={site.links.telegramChannel} target="_blank">
+              Telegram-канал
+            </Link>
+            <Link className="primaryButton portalActionButton" href={primaryClientLink} target="_blank">
+              {hasTelegramBot ? "Войти в кабинет" : "Открыть поддержку"}
+            </Link>
+          </>
+        }
+        subtitle="Свободный интернет"
+      />
+
+      <section className="authStage panel">
+        <div className="authStageBackdrop">
+          <Image alt="" aria-hidden className="authStageImage" fill priority sizes="100vw" src={authLoginBg} />
         </div>
 
-        <div className="clientAuthBody">
+        <div className="authStageOverlay" />
+
+        <div className="panel authStageCard">
           {signedOutMessage ? <div className="banner successBanner">{signedOutMessage}</div> : null}
           {errorMessage ? <div className="banner errorBanner">{errorMessage}</div> : null}
 
+          <div className="authBrandMark">
+            <Image alt="" aria-hidden height={56} src="/apple-touch-icon.png" width={56} />
+          </div>
+
+          <span className="statusTag">Авторизация</span>
+          <h1>Свободный интернет</h1>
+          <p>Личный кабинет для управления роутерами и технической поддержкой.</p>
+
           <div className="clientAuthActions">
-            <Link className="primaryButton fullWidthButton" href={primaryClientLink} target="_blank">
+            <Link className="primaryButton fullWidthButton portalActionButton" href={primaryClientLink} target="_blank">
               {hasTelegramBot ? "Войти через Telegram" : "Открыть поддержку"}
             </Link>
-            <Link className="secondaryButton fullWidthButton" href={site.links.telegramChannel} target="_blank">
+            <Link className="secondaryButton fullWidthButton portalGhostButton" href={site.links.telegramChannel} target="_blank">
               Telegram-канал
             </Link>
           </div>
 
           <div className="divider" />
 
+          <div className="authTabs">
+            <button className="authTab isActive" type="button">
+              Вход
+            </button>
+            <button className="authTab" type="button">
+              Регистрация
+            </button>
+          </div>
+
           <form action={loginWithEmailAction} className="authForm clientAuthForm">
             <label className="fieldStack">
               <span className="fieldLabel">Имя</span>
-              <input className="textInput" name="name" placeholder="Иван" type="text" />
+              <input className="textInput" name="name" placeholder="Владислав" type="text" />
             </label>
 
             <label className="fieldStack">
@@ -69,7 +98,7 @@ export default async function LoginPage(props: { searchParams: PageSearchParams 
                 autoComplete="email"
                 className="textInput"
                 name="email"
-                placeholder="client@example.com"
+                placeholder="example@mail.com"
                 required
                 type="email"
               />
@@ -86,14 +115,9 @@ export default async function LoginPage(props: { searchParams: PageSearchParams 
               />
             </label>
 
-            <div className="stackedActions clientAuthActions">
-              <button className="primaryButton fullWidthButton" type="submit">
-                Войти в кабинет
-              </button>
-              <Link className="secondaryButton fullWidthButton" href="/">
-                На главную
-              </Link>
-            </div>
+            <button className="primaryButton fullWidthButton portalActionButton" type="submit">
+              Войти
+            </button>
           </form>
         </div>
       </section>

@@ -1,10 +1,15 @@
 import type { Metadata } from "next";
-import { Manrope } from "next/font/google";
+import { Manrope, Rubik } from "next/font/google";
 import "./globals.css";
 
 const manrope = Manrope({
   subsets: ["latin", "cyrillic"],
   variable: "--font-body"
+});
+
+const rubik = Rubik({
+  subsets: ["latin", "cyrillic"],
+  variable: "--font-heading"
 });
 
 export const metadata: Metadata = {
@@ -41,7 +46,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         style={{
           fontFamily: "var(--font-body, sans-serif)"
         }}
-        className={manrope.variable}
+        className={`${manrope.variable} ${rubik.variable}`}
       >
         {children}
       </body>
