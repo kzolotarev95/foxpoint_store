@@ -493,8 +493,9 @@ export default async function CabinetPage(props: { searchParams: PageSearchParam
         <div className="clientRoutersLead">
           <h1>Все ваши роутеры в одном месте.</h1>
           <p>
-            Смотрите оборудование, сроки обслуживания и работу серверов без лишней
-            путаницы.
+            Смотрите оборудование, сроки обслуживания
+            <br />
+            и работу серверов без лишней путаницы.
           </p>
         </div>
 
