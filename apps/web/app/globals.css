@@ -264,6 +264,14 @@ textarea {
   padding: 1.4rem 0 2.5rem;
 }
 
+.siteFooter {
+  color: var(--muted);
+  text-align: center;
+  font-size: 0.9rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
 .topBar {
   display: flex;
   align-items: center;

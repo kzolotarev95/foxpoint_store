@@ -63,6 +63,10 @@ export default async function HomePage() {
           />
         </div>
       </section>
+
+      <footer className="siteFooter">
+        FOX POINT by Stikol © 2026 All rights reserved.
+      </footer>
     </main>
   );
 }
