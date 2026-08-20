@@ -3,6 +3,7 @@ import { fetchApiJson } from "../lib/api";
 const FOXPOINT_SUPPORT_URL = "https://t.me/Fox_point_support";
 
 export type PublicLinks = {
+  appUrl: string;
   support: string;
   telegramBot: string;
   telegramChannel: string;
@@ -64,7 +65,21 @@ function normalizeTelegramUrl(value: string, fallback: string): string {
   return trimmed;
 }
 
+function normalizeAppUrl(value: string, fallback: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return fallback;
+  }
+
+  try {
+    return new URL(trimmed).toString().replace(/\/+$/, "");
+  } catch {
+    return fallback;
+  }
+}
+
 export const defaultPublicLinks: PublicLinks = {
+  appUrl: normalizeAppUrl(process.env.NEXT_PUBLIC_APP_URL ?? "", "http://localhost:3000"),
   telegramBot: normalizeTelegramUrl(process.env.NEXT_PUBLIC_TG_BOT_URL ?? "", "https://t.me/example_bot"),
   telegramChannel: normalizeTelegramUrl(process.env.NEXT_PUBLIC_TG_CHANNEL_URL ?? "", "https://t.me/fox_point_net"),
   support: FOXPOINT_SUPPORT_URL
@@ -119,6 +134,7 @@ export async function getSiteSnapshot(): Promise<SiteSnapshot> {
     return {
       ...snapshot,
       links: {
+        appUrl: normalizeAppUrl(snapshot.links.appUrl, defaultPublicLinks.appUrl),
         telegramBot: normalizeTelegramUrl(snapshot.links.telegramBot, defaultPublicLinks.telegramBot),
         telegramChannel: normalizeTelegramUrl(snapshot.links.telegramChannel, defaultPublicLinks.telegramChannel),
         support: FOXPOINT_SUPPORT_URL

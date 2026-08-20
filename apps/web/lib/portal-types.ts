@@ -26,6 +26,7 @@ export type ClientOverview = {
     ipAddress: string | null;
   }>;
   links: {
+    appUrl: string;
     support: string;
     telegramBot: string;
     telegramChannel: string;

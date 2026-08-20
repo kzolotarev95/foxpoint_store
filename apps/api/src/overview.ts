@@ -5,6 +5,7 @@ export type OverviewResponse = {
   generatedAt: string;
   deploymentTarget: string;
   links: {
+    appUrl: string;
     telegramBot: string;
     telegramChannel: string;
     support: string;

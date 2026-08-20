@@ -462,12 +462,13 @@ export async function buildClientOverview(input: { currentSessionId?: string; us
       balance: toNumber(user.balance),
       balanceLabel: formatMoney(toNumber(user.balance)),
       referralCode: buildReferralCode(user.id),
-      referralLink: `${config.NEXT_PUBLIC_APP_URL}/login?ref=${encodeURIComponent(buildReferralCode(user.id))}`,
+      referralLink: `${links.appUrl}/login?ref=${encodeURIComponent(buildReferralCode(user.id))}`,
       hasOpenTwoFactorRequest: Boolean(openTwoFactorRequest),
       hasOpenDeletionRequest: Boolean(openDeletionRequest)
     },
     sessions: clientSessions,
     links: {
+      appUrl: links.appUrl,
       support: links.support,
       telegramBot: links.telegramBot,
       telegramChannel: links.telegramChannel

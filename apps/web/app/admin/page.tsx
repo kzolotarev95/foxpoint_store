@@ -314,6 +314,9 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
   }, {});
 
   const groupNames = Object.keys(settingsByGroup);
+  const communicationSettings = settingsByGroup["Коммуникации"] ?? [];
+  const appUrlSetting = communicationSettings.find((setting) => setting.key === "app_url") ?? null;
+  const appLoginUrl = appUrlSetting ? `${appUrlSetting.value.replace(/\/+$/, "")}/login` : null;
   const successMessage = getSingleParam(searchParams.success);
   const errorMessage = getSingleParam(searchParams.error);
 
@@ -478,9 +481,26 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                 <div>
                   <h2 className="adminSectionTitle">{groupName}</h2>
                   {groupName === "Коммуникации" ? (
-                    <p className="sectionLead" style={{ marginTop: "10px" }}>
-                      Эти значения уже можно показывать на публичной части сайта.
-                    </p>
+                    <>
+                      <p className="sectionLead" style={{ marginTop: "10px" }}>
+                        Эти значения уже можно показывать на публичной части сайта.
+                      </p>
+                      <div className="panel" style={{ marginTop: "14px", padding: "16px" }}>
+                        <div className="settingsGrid">
+                          <div className="fieldStack">
+                            <span className="fieldLabel">Текущий домен сайта</span>
+                            <strong>{appUrlSetting?.value ?? "Не задан"}</strong>
+                          </div>
+                          <div className="fieldStack">
+                            <span className="fieldLabel">Ссылка входа</span>
+                            <strong>{appLoginUrl ?? "Не задана"}</strong>
+                          </div>
+                        </div>
+                        <p className="helperText" style={{ marginTop: "12px" }}>
+                          Меняйте `NEXT_PUBLIC_APP_URL` здесь, чтобы управлять публичным доменом для ссылок и видеть текущий адрес сайта прямо в админке.
+                        </p>
+                      </div>
+                    </>
                   ) : null}
                 </div>
               </div>

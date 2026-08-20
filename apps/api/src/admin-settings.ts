@@ -47,6 +47,23 @@ function normalizeTelegramUrl(value: string, fallback: string): string {
   }
 }
 
+function normalizeUrl(value: string, fallback: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return fallback;
+  }
+
+  try {
+    return new URL(trimmed).toString();
+  } catch {
+    return fallback;
+  }
+}
+
+function normalizeBaseUrl(value: string, fallback: string): string {
+  return normalizeUrl(value, fallback).replace(/\/+$/, "");
+}
+
 const adminSettingDefinitions: AdminSettingDefinition[] = [
   {
     key: "router_price",
@@ -157,6 +174,15 @@ const adminSettingDefinitions: AdminSettingDefinition[] = [
     public: false
   },
   {
+    key: "app_url",
+    label: "NEXT_PUBLIC_APP_URL",
+    description: "Базовый публичный адрес сайта. Используется для реферальных ссылок и других переходов с доменом.",
+    group: "Коммуникации",
+    input: "url",
+    defaultValue: config.NEXT_PUBLIC_APP_URL,
+    public: true
+  },
+  {
     key: "support_contact",
     label: "Ссылка поддержки",
     description: "Публичная ссылка на поддержку, которую можно показывать на сайте и в клиентских сценариях.",
@@ -210,7 +236,15 @@ function normalizeValue(definition: AdminSettingDefinition, rawValue: string | u
   }
 
   if (definition.input === "url") {
-    return normalizeTelegramUrl(nextValue, definition.defaultValue);
+    if (definition.key === "app_url") {
+      return normalizeBaseUrl(nextValue, definition.defaultValue);
+    }
+
+    if (definition.key === "tg_bot_url" || definition.key === "tg_channel_url") {
+      return normalizeTelegramUrl(nextValue, definition.defaultValue);
+    }
+
+    return normalizeUrl(nextValue, definition.defaultValue);
   }
 
   return nextValue;
@@ -279,6 +313,7 @@ export async function getAdminSettingValue(key: string, fallback: string): Promi
 }
 
 export async function getPublicSettingLinks(): Promise<{
+  appUrl: string;
   support: string;
   telegramBot: string;
   telegramChannel: string;
@@ -287,12 +322,13 @@ export async function getPublicSettingLinks(): Promise<{
   const valueByKey = new Map(settings.map((setting) => [setting.key, setting.value]));
 
   return {
+    appUrl: normalizeBaseUrl(valueByKey.get("app_url") ?? "", config.NEXT_PUBLIC_APP_URL),
     telegramBot: normalizeTelegramUrl(valueByKey.get("tg_bot_url") ?? "", config.TG_BOT_URL),
     telegramChannel: normalizeTelegramUrl(
       valueByKey.get("tg_channel_url") ?? "",
       config.TG_CHANNEL_URL
     ),
-    support: normalizeTelegramUrl(valueByKey.get("support_contact") ?? "", config.SUPPORT_CONTACT)
+    support: normalizeUrl(valueByKey.get("support_contact") ?? "", config.SUPPORT_CONTACT)
   };
 }
 
