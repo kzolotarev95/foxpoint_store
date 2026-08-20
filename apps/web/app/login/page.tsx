@@ -3,7 +3,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { PortalHeader } from "../../components/portal-header";
 import { getSiteSnapshot, isTelegramBotConfigured } from "../../components/site-data";
-import authLoginBg from "../../components/assets/auth-login-bg.jpg";
 import { loginWithEmailAction } from "../../lib/client-actions";
 import { getClientSessionToken } from "../../lib/client-auth";
 
@@ -49,7 +48,15 @@ export default async function LoginPage(props: { searchParams: PageSearchParams 
 
       <section className="authStage panel">
         <div className="authStageBackdrop">
-          <Image alt="" aria-hidden className="authStageImage" fill priority sizes="100vw" src={authLoginBg} />
+          <Image
+            alt=""
+            aria-hidden
+            className="authStageImage"
+            fill
+            priority
+            sizes="100vw"
+            src="/images/foxpoint-hero-welcome.jpg"
+          />
         </div>
 
         <div className="authStageOverlay" />

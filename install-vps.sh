@@ -242,7 +242,8 @@ setup_postgres() {
 install_dependencies() {
   cd "$APP_DIR"
   ensure_free_space_mb 1500
-  npm ci
+  npm ci --include=optional
+  npm rebuild sharp >/dev/null 2>&1 || npm install --include=optional sharp
   npm cache clean --force >/dev/null 2>&1 || true
   npm run db:generate
   systemctl restart postgresql

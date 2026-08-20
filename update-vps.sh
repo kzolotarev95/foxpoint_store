@@ -13,7 +13,8 @@ cd "$APP_DIR"
 git fetch origin "$BRANCH"
 git reset --hard "origin/$BRANCH"
 
-npm ci
+npm ci --include=optional
+npm rebuild sharp >/dev/null 2>&1 || npm install --include=optional sharp
 npm run db:generate
 npm run build
 npm run db:push
