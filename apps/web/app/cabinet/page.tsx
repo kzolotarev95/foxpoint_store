@@ -256,7 +256,13 @@ function HomeIcon() {
 function RouterIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M6 16h12a2 2 0 0 1 2 2v1H4v-1a2 2 0 0 1 2-2Zm2-7v7m8-7v7M9 12h6" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+      <path d="M5 15.5h14a2 2 0 0 1 2 2V19H3v-1.5a2 2 0 0 1 2-2Z" fill="none" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M8 6.5v9m8-9v9" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.7" />
+      <path d="M8 8.5c.8-.9 1.9-1.4 4-1.4s3.2.5 4 1.4" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.7" />
+      <path d="M9.5 15.5h5" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.7" />
+      <circle cx="15.8" cy="17.2" r=".55" fill="currentColor" />
+      <circle cx="17.6" cy="17.2" r=".55" fill="currentColor" />
+      <circle cx="19.4" cy="17.2" r=".55" fill="currentColor" />
     </svg>
   );
 }
