@@ -494,7 +494,7 @@ textarea {
 }
 
 .adminContentStack {
-  gap: 1rem;
+  gap: 1.3rem;
 }
 
 .adminDashboardShell .sideNav {
@@ -536,14 +536,22 @@ textarea {
 
 .adminOverviewGrid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.7rem;
 }
 
 .adminDashboardShell .metricCard {
-  padding: 1rem;
+  padding: 0.78rem 0.85rem;
+  gap: 0.3rem;
 }
 
 .adminDashboardShell .metricValue {
-  font-size: clamp(1.45rem, 2.5vw, 2rem);
+  font-size: clamp(1.18rem, 2vw, 1.6rem);
+  line-height: 1;
+}
+
+.adminDashboardShell .metricCard .muted {
+  font-size: 0.76rem;
+  line-height: 1.35;
 }
 
 .adminSectionTitle {
@@ -613,6 +621,10 @@ textarea {
 
 .adminDashboardShell .stickyActions {
   padding: 0.85rem 1rem;
+}
+
+.adminDashboardShell #assign {
+  padding-bottom: 2rem;
 }
 
 .dashboardMain {
