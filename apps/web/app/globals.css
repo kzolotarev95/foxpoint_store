@@ -766,14 +766,9 @@ textarea {
   display: grid;
   place-items: center;
   overflow: visible;
-  min-height: calc(100vh - 7.75rem);
+  min-height: calc(100dvh - 2.7rem);
   padding: 1.5rem;
   background: transparent;
-}
-
-.authLoginExperience .portalTopBar {
-  width: min(920px, 100%);
-  margin-inline: auto;
 }
 
 .authStageBackdrop,
@@ -933,6 +928,7 @@ textarea {
   background: rgba(18, 13, 27, 0.96);
   color: #fff7ef;
   -webkit-text-fill-color: #fff7ef;
+  text-align: center;
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
 }
 
@@ -951,6 +947,10 @@ textarea {
   color: var(--muted);
   text-align: center;
   line-height: 1.6;
+}
+
+.banner {
+  text-align: center;
 }
 
 .siteFooter {
@@ -1794,7 +1794,7 @@ textarea {
   }
 
   .authStage {
-    min-height: 40rem;
+    min-height: calc(100dvh - 3rem);
     padding: 1rem;
   }
 
@@ -1870,11 +1870,51 @@ textarea {
 
   .authStage {
     padding: 0.75rem;
-    min-height: 34rem;
+    min-height: calc(100dvh - 3rem);
   }
 
   .authStageCard {
-    padding: 1rem;
+    width: min(100%, 26rem);
+    padding: 0.95rem;
+    gap: 0.7rem;
+  }
+
+  .authLoginCard {
+    width: min(100%, 26rem);
+    padding: 1.15rem 1rem 1rem;
+    gap: 0.6rem;
+  }
+
+  .authBrandTitle {
+    font-size: 1.48rem;
+  }
+
+  .authStageCard h1 {
+    font-size: clamp(1.9rem, 9vw, 2.5rem);
+  }
+
+  .authLoginActions {
+    gap: 0.55rem;
+  }
+
+  .authTabs {
+    gap: 0.28rem;
+    padding: 0.22rem;
+  }
+
+  .authTab {
+    min-height: 2.35rem;
+    border-radius: 0.75rem;
+  }
+
+  .authStageCard .fieldLabel {
+    font-size: 0.76rem;
+  }
+
+  .authStageCard .textInput {
+    min-height: 2.8rem;
+    padding: 0.65rem 0.9rem;
+    font-size: 0.98rem;
   }
 
   .heroContent,

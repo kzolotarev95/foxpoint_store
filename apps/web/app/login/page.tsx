@@ -1,7 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { PortalHeader } from "../../components/portal-header";
 import { getSiteSnapshot } from "../../components/site-data";
 import { loginWithEmailAction } from "../../lib/client-actions";
 import { getClientSessionToken } from "../../lib/client-auth";
@@ -31,19 +30,6 @@ export default async function LoginPage(props: { searchParams: PageSearchParams 
 
   return (
     <main className="shell authExperience authLoginExperience">
-      <PortalHeader
-        rightSlot={
-          <>
-            <Link className="secondaryButton portalGhostButton" href={site.links.telegramChannel} target="_blank">
-              Telegram-канал
-            </Link>
-            <Link className="primaryButton portalActionButton" href={supportLink} target="_blank">
-              Открыть поддержку
-            </Link>
-          </>
-        }
-      />
-
       <section className="authStage authLoginStage">
         <div className="panel authStageCard authLoginCard">
           {signedOutMessage ? <div className="banner successBanner">{signedOutMessage}</div> : null}
@@ -68,10 +54,6 @@ export default async function LoginPage(props: { searchParams: PageSearchParams 
             <Link className="primaryButton fullWidthButton portalActionButton" href={supportLink} target="_blank">
               Открыть поддержку
             </Link>
-          </div>
-
-          <div className="authDivider">
-            <span>или</span>
           </div>
 
           <div className="authTabs">
