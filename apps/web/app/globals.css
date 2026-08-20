@@ -787,9 +787,11 @@ textarea {
 .authLoginExperience::before {
   z-index: -2;
   background:
-    radial-gradient(circle at 0% 0%, rgba(255, 161, 74, 0.92) 0%, rgba(177, 78, 23, 0.62) 14%, rgba(87, 28, 14, 0.34) 28%, rgba(16, 7, 18, 0) 52%),
-    radial-gradient(circle at 16% 22%, rgba(180, 70, 23, 0.22) 0%, rgba(113, 42, 19, 0.14) 18%, rgba(9, 5, 13, 0) 42%),
-    linear-gradient(180deg, #2a0f15 0%, #130916 48%, #06030a 100%);
+    radial-gradient(circle at 0% 42%, rgba(255, 146, 64, 0.78) 0%, rgba(170, 65, 20, 0.5) 20%, rgba(57, 17, 14, 0) 52%),
+    radial-gradient(circle at 100% 52%, rgba(169, 71, 255, 0.72) 0%, rgba(74, 24, 133, 0.46) 18%, rgba(18, 8, 36, 0) 52%),
+    radial-gradient(circle at 18% 10%, rgba(255, 161, 74, 0.58) 0%, rgba(177, 78, 23, 0.3) 16%, rgba(16, 7, 18, 0) 38%),
+    radial-gradient(circle at 86% 84%, rgba(141, 88, 255, 0.34) 0%, rgba(43, 16, 84, 0.18) 18%, rgba(9, 5, 13, 0) 46%),
+    linear-gradient(180deg, #2b1015 0%, #160a17 54%, #06030a 100%);
 }
 
 .authLoginExperience::after {
@@ -797,9 +799,11 @@ textarea {
   opacity: 0.95;
   background:
     radial-gradient(circle at 7% 13%, rgba(255, 251, 244, 0.95) 0 1px, transparent 1.7px),
+    radial-gradient(circle at 4% 58%, rgba(255, 238, 220, 0.9) 0 0.95px, transparent 1.6px),
     radial-gradient(circle at 10% 84%, rgba(255, 247, 238, 0.9) 0 0.9px, transparent 1.5px),
     radial-gradient(circle at 13% 52%, rgba(255, 214, 164, 0.88) 0 1.2px, transparent 1.9px),
     radial-gradient(circle at 16% 7%, rgba(255, 241, 229, 0.82) 0 0.85px, transparent 1.45px),
+    radial-gradient(circle at 18% 38%, rgba(255, 242, 233, 0.88) 0 0.9px, transparent 1.45px),
     radial-gradient(circle at 21% 31%, rgba(255, 244, 231, 0.88) 0 0.95px, transparent 1.6px),
     radial-gradient(circle at 23% 93%, rgba(239, 225, 255, 0.75) 0 0.8px, transparent 1.35px),
     radial-gradient(circle at 26% 72%, rgba(240, 227, 255, 0.7) 0 0.85px, transparent 1.5px),
@@ -810,6 +814,7 @@ textarea {
     radial-gradient(circle at 42% 39%, rgba(241, 229, 255, 0.78) 0 0.85px, transparent 1.4px),
     radial-gradient(circle at 46% 64%, rgba(237, 226, 255, 0.72) 0 0.85px, transparent 1.45px),
     radial-gradient(circle at 49% 10%, rgba(255, 239, 219, 0.8) 0 0.9px, transparent 1.5px),
+    radial-gradient(circle at 52% 47%, rgba(255, 245, 238, 0.8) 0 0.85px, transparent 1.4px),
     radial-gradient(circle at 57% 28%, rgba(255, 244, 235, 0.9) 0 0.95px, transparent 1.6px),
     radial-gradient(circle at 59% 90%, rgba(255, 245, 235, 0.82) 0 0.85px, transparent 1.45px),
     radial-gradient(circle at 64% 56%, rgba(241, 230, 255, 0.72) 0 0.85px, transparent 1.45px),
@@ -821,6 +826,7 @@ textarea {
     radial-gradient(circle at 84% 19%, rgba(255, 246, 239, 0.82) 0 0.95px, transparent 1.6px),
     radial-gradient(circle at 86% 4%, rgba(255, 236, 211, 0.72) 0 0.75px, transparent 1.3px),
     radial-gradient(circle at 88% 62%, rgba(233, 221, 255, 0.68) 0 0.85px, transparent 1.45px),
+    radial-gradient(circle at 89% 43%, rgba(255, 240, 228, 0.84) 0 0.85px, transparent 1.4px),
     radial-gradient(circle at 91% 30%, rgba(255, 249, 243, 0.86) 0 0.85px, transparent 1.4px),
     radial-gradient(circle at 93% 83%, rgba(255, 246, 239, 0.82) 0 0.9px, transparent 1.5px);
 }
@@ -1005,8 +1011,11 @@ textarea {
   color: #fff7ef;
   -webkit-text-fill-color: #fff7ef;
   text-align: center;
-  border-color: rgba(141, 88, 255, 0.2);
-  box-shadow: inset 0 0 0 1px rgba(141, 88, 255, 0.1);
+  border-color: transparent;
+  box-shadow: inset 0 0 0 1px rgba(141, 88, 255, 0.15);
+  -webkit-appearance: none;
+  appearance: none;
+  background-clip: padding-box;
 }
 
 .authStageCard .textInput:-webkit-autofill,
@@ -1015,13 +1024,13 @@ textarea {
 .authStageCard .textInput:-webkit-autofill:active {
   -webkit-text-fill-color: #fff7ef;
   caret-color: #fff7ef;
-  box-shadow: 0 0 0 1000px rgba(18, 13, 27, 0.98) inset, 0 0 0 1px rgba(141, 88, 255, 0.1) inset;
+  box-shadow: 0 0 0 1000px rgba(18, 13, 27, 0.98) inset, 0 0 0 1px rgba(141, 88, 255, 0.15) inset;
   transition: background-color 9999s ease-in-out 0s;
 }
 
 .authStageCard .textInput:focus {
-  border-color: rgba(141, 88, 255, 0.34);
-  box-shadow: 0 0 0 2px rgba(141, 88, 255, 0.12);
+  border-color: transparent;
+  box-shadow: inset 0 0 0 1px rgba(141, 88, 255, 0.26), 0 0 0 2px rgba(141, 88, 255, 0.1);
 }
 
 .authHint {
