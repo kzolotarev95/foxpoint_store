@@ -1,5 +1,14 @@
-import { SupportType, type Prisma } from "@prisma/client";
-import { buildReferralCode } from "./client-auth.js";
+import {
+  ConfigurationType,
+  OrderStatus,
+  RewardStatus,
+  RouterStatus,
+  SubscriptionStatus,
+  SupportType,
+  TicketStatus,
+  type Prisma
+} from "@prisma/client";
+import { bindEmailIdentityForUser, buildReferralCode, normalizeClientLogin, upsertLocalCredentialsForUser } from "./client-auth.js";
 import { getAdminSettings, getPublicSettingLinks } from "./admin-settings.js";
 import { config } from "./config.js";
 import { prisma } from "./prisma.js";
@@ -170,6 +179,12 @@ function getTelegramIdentity(
   return telegramIdentity ? `@${telegramIdentity.providerUserId}` : null;
 }
 
+function getLocalIdentity(
+  identities: Array<{ provider: string; providerUserId: string }>
+): string | null {
+  return identities.find((identity) => identity.provider === "LOCAL")?.providerUserId ?? null;
+}
+
 export async function buildSiteSnapshot() {
   const [links, settings] = await Promise.all([getPublicSettingLinks(), getSettingMap()]);
   const routerPrice = getNumericSetting(settings, "router_price", 4499);
@@ -221,7 +236,7 @@ export async function buildSiteSnapshot() {
 }
 
 export async function buildClientOverview(userId: string) {
-  const [links, settings, user] = await Promise.all([
+  const [links, settings, user, openTwoFactorRequest, openDeletionRequest] = await Promise.all([
     getPublicSettingLinks(),
     getSettingMap(),
     prisma.user.findUnique({
@@ -307,6 +322,30 @@ export async function buildClientOverview(userId: string) {
           take: 8
         }
       }
+    }),
+    prisma.supportTicket.findFirst({
+      where: {
+        userId,
+        category: "2FA",
+        status: {
+          in: ["OPEN", "IN_PROGRESS", "WAITING_CLIENT"]
+        }
+      },
+      orderBy: {
+        updatedAt: "desc"
+      }
+    }),
+    prisma.supportTicket.findFirst({
+      where: {
+        userId,
+        category: "Удаление аккаунта",
+        status: {
+          in: ["OPEN", "IN_PROGRESS", "WAITING_CLIENT"]
+        }
+      },
+      orderBy: {
+        updatedAt: "desc"
+      }
     })
   ]);
 
@@ -316,6 +355,7 @@ export async function buildClientOverview(userId: string) {
 
   const recommendedTemplate = getRecommendedTemplate();
   const recommendedPrice = calculateBundlePrice(settings, recommendedTemplate);
+  const localLogin = getLocalIdentity(user.identities);
   const routerCards = user.routers.map((router) => {
     const currentSubscription =
       router.subscriptions.find((subscription) => subscription.status === "ACTIVE") ??
@@ -395,12 +435,16 @@ export async function buildClientOverview(userId: string) {
       name: user.name ?? "Клиент FoxPoint",
       email: getPrimaryEmail(user.identities),
       telegram: getTelegramIdentity(user.identities),
+      localLogin,
       createdAt: user.createdAt.toISOString(),
+      lastActivityAt: user.lastActivityAt?.toISOString() ?? null,
       status: user.status,
       balance: toNumber(user.balance),
       balanceLabel: formatMoney(toNumber(user.balance)),
       referralCode: buildReferralCode(user.id),
-      referralLink: `${config.NEXT_PUBLIC_APP_URL}/login?ref=${encodeURIComponent(buildReferralCode(user.id))}`
+      referralLink: `${config.NEXT_PUBLIC_APP_URL}/login?ref=${encodeURIComponent(buildReferralCode(user.id))}`,
+      hasOpenTwoFactorRequest: Boolean(openTwoFactorRequest),
+      hasOpenDeletionRequest: Boolean(openDeletionRequest)
     },
     links: {
       support: links.support,
@@ -571,6 +615,114 @@ export async function createSupportTicketForUser(input: {
 
   return {
     ticketId: ticket.id
+  };
+}
+
+export async function createProfileRequestForUser(input: {
+  kind: "DELETE_ACCOUNT" | "TWO_FACTOR";
+  userId: string;
+}) {
+  const requestMeta =
+    input.kind === "TWO_FACTOR"
+      ? {
+          action: "two_factor_request_created",
+          category: "2FA",
+          description: "Клиент запросил подключение или настройку двухфакторной защиты через личный кабинет."
+        }
+      : {
+          action: "account_delete_request_created",
+          category: "Удаление аккаунта",
+          description: "Клиент запросил удаление аккаунта через личный кабинет."
+        };
+
+  const existingRequest = await prisma.supportTicket.findFirst({
+    where: {
+      userId: input.userId,
+      category: requestMeta.category,
+      status: {
+        in: ["OPEN", "IN_PROGRESS", "WAITING_CLIENT"]
+      }
+    },
+    orderBy: {
+      updatedAt: "desc"
+    }
+  });
+
+  if (existingRequest) {
+    return {
+      created: false,
+      ticketId: existingRequest.id
+    };
+  }
+
+  const ticket = await prisma.supportTicket.create({
+    data: {
+      userId: input.userId,
+      category: requestMeta.category,
+      description: requestMeta.description
+    }
+  });
+
+  await recordAdminAction({
+    action: requestMeta.action,
+    entityType: "SupportTicket",
+    entityId: ticket.id,
+    afterData: {
+      userId: input.userId,
+      category: requestMeta.category
+    }
+  });
+
+  return {
+    created: true,
+    ticketId: ticket.id
+  };
+}
+
+export async function attachEmailForUser(input: {
+  email: string;
+  userId: string;
+}) {
+  const user = await prisma.user.findUnique({
+    where: {
+      id: input.userId
+    },
+    include: {
+      identities: true
+    }
+  });
+
+  if (!user) {
+    throw new Error("Клиент не найден.");
+  }
+
+  if (getPrimaryEmail(user.identities)) {
+    throw new Error("Email уже привязан к этому аккаунту.");
+  }
+
+  const identity = await bindEmailIdentityForUser({
+    userId: input.userId,
+    email: input.email
+  });
+
+  return {
+    email: identity.email ?? input.email
+  };
+}
+
+export async function saveLocalCredentialsForUser(input: {
+  login: string;
+  password: string;
+  userId: string;
+}) {
+  const identity = await upsertLocalCredentialsForUser({
+    userId: input.userId,
+    login: input.login,
+    password: input.password
+  });
+
+  return {
+    login: normalizeClientLogin(identity.providerUserId)
   };
 }
 
@@ -809,7 +961,8 @@ export async function buildAdminOverview() {
       balanceLabel: formatMoney(toNumber(user.balance)),
       routerCount: user.routers.length,
       referralCode: buildReferralCode(user.id),
-      createdAt: user.createdAt.toISOString()
+      createdAt: user.createdAt.toISOString(),
+      lastActivityAt: user.lastActivityAt?.toISOString() ?? null
     })),
     routers: routers.map((router) => ({
       id: router.id,
@@ -818,35 +971,48 @@ export async function buildAdminOverview() {
       serialNumber: router.serialNumber,
       configurationType: router.configurationType,
       status: router.status,
+      ownerId: router.owner.id,
       ownerName: router.owner.name ?? router.owner.id,
       savedTemplate: router.template ? describeBundle(router.template) : "Не выбран",
+      adminNote: router.adminNote,
       createdAt: router.createdAt.toISOString()
     })),
     subscriptions: subscriptions.map((subscription) => ({
       id: subscription.id,
+      routerId: subscription.routerId,
       routerName: subscription.router.displayName,
       bundleLabel: describeBundle(subscription),
       status: subscription.status,
+      startAt: subscription.startAt?.toISOString() ?? null,
       endAt: subscription.endAt?.toISOString() ?? null,
       price: toNumber(subscription.priceSnapshot),
       priceLabel: formatMoney(toNumber(subscription.priceSnapshot)),
+      accessEnabled: subscription.accessEnabled,
+      supportType: subscription.supportType,
       pendingActivation: subscription.pendingActivation
     })),
     orders: orders.map((order) => ({
       id: order.id,
+      userId: order.userId,
       customerName: order.user.name ?? order.user.id,
       status: order.status,
       totalPrice: toNumber(order.totalPrice),
       totalPriceLabel: formatMoney(toNumber(order.totalPrice)),
       trackingNumber: order.trackingNumber,
-      createdAt: order.createdAt.toISOString()
+      createdAt: order.createdAt.toISOString(),
+      receivedAt: order.receivedAt?.toISOString() ?? null
     })),
     tickets: tickets.map((ticket) => ({
       id: ticket.id,
+      userId: ticket.userId,
+      routerId: ticket.routerId,
       customerName: ticket.user.name ?? "Клиент",
       routerName: ticket.router?.displayName ?? "Без роутера",
       category: ticket.category,
+      description: ticket.description,
       status: ticket.status,
+      assigneeId: ticket.assigneeId,
+      createdAt: ticket.createdAt.toISOString(),
       updatedAt: ticket.updatedAt.toISOString()
     })),
     rewards: rewards.map((reward) => ({
@@ -864,6 +1030,268 @@ export async function buildAdminOverview() {
       entityId: log.entityId,
       createdAt: log.createdAt.toISOString()
     }))
+  };
+}
+
+export async function updateAdminTicket(input: {
+  assigneeId?: string | null;
+  status: TicketStatus;
+  ticketId: string;
+}) {
+  const ticket = await prisma.supportTicket.findUnique({
+    where: {
+      id: input.ticketId
+    }
+  });
+
+  if (!ticket) {
+    throw new Error("Обращение не найдено.");
+  }
+
+  const updated = await prisma.supportTicket.update({
+    where: {
+      id: input.ticketId
+    },
+    data: {
+      status: input.status,
+      assigneeId: input.assigneeId?.trim() || null
+    }
+  });
+
+  await recordAdminAction({
+    action: "ticket_updated",
+    entityType: "SupportTicket",
+    entityId: updated.id,
+    beforeData: {
+      status: ticket.status,
+      assigneeId: ticket.assigneeId
+    },
+    afterData: {
+      status: updated.status,
+      assigneeId: updated.assigneeId
+    }
+  });
+
+  return {
+    ticketId: updated.id
+  };
+}
+
+export async function updateAdminOrder(input: {
+  orderId: string;
+  status: OrderStatus;
+  trackingNumber?: string | null;
+}) {
+  const order = await prisma.routerOrder.findUnique({
+    where: {
+      id: input.orderId
+    }
+  });
+
+  if (!order) {
+    throw new Error("Заказ не найден.");
+  }
+
+  const nextTrackingNumber = input.trackingNumber?.trim() || null;
+  const shouldMarkReceived = input.status === "RECEIVED";
+  const updated = await prisma.routerOrder.update({
+    where: {
+      id: input.orderId
+    },
+    data: {
+      status: input.status,
+      trackingNumber: nextTrackingNumber,
+      receivedAt: shouldMarkReceived ? order.receivedAt ?? new Date() : order.receivedAt
+    }
+  });
+
+  await recordAdminAction({
+    action: "order_updated",
+    entityType: "RouterOrder",
+    entityId: updated.id,
+    beforeData: {
+      status: order.status,
+      trackingNumber: order.trackingNumber,
+      receivedAt: order.receivedAt?.toISOString() ?? null
+    },
+    afterData: {
+      status: updated.status,
+      trackingNumber: updated.trackingNumber,
+      receivedAt: updated.receivedAt?.toISOString() ?? null
+    }
+  });
+
+  return {
+    orderId: updated.id
+  };
+}
+
+export async function updateAdminRouter(input: {
+  adminNote?: string | null;
+  configurationType: ConfigurationType;
+  ownerUserId: string;
+  routerId: string;
+  status: RouterStatus;
+}) {
+  const [router, owner] = await Promise.all([
+    prisma.router.findUnique({
+      where: {
+        id: input.routerId
+      }
+    }),
+    prisma.user.findUnique({
+      where: {
+        id: input.ownerUserId
+      }
+    })
+  ]);
+
+  if (!router) {
+    throw new Error("Роутер не найден.");
+  }
+
+  if (!owner) {
+    throw new Error("Новый владелец не найден.");
+  }
+
+  const updated = await prisma.router.update({
+    where: {
+      id: input.routerId
+    },
+    data: {
+      ownerUserId: input.ownerUserId,
+      configurationType: input.configurationType,
+      status: input.status,
+      adminNote: input.adminNote?.trim() || null
+    }
+  });
+
+  await recordAdminAction({
+    action: "router_updated",
+    entityType: "Router",
+    entityId: updated.id,
+    beforeData: {
+      ownerUserId: router.ownerUserId,
+      configurationType: router.configurationType,
+      status: router.status,
+      adminNote: router.adminNote
+    },
+    afterData: {
+      ownerUserId: updated.ownerUserId,
+      configurationType: updated.configurationType,
+      status: updated.status,
+      adminNote: updated.adminNote
+    }
+  });
+
+  return {
+    routerId: updated.id
+  };
+}
+
+export async function updateAdminSubscription(input: {
+  endAt?: string | null;
+  pendingActivation: boolean;
+  startAt?: string | null;
+  status: SubscriptionStatus;
+  subscriptionId: string;
+}) {
+  const subscription = await prisma.subscription.findUnique({
+    where: {
+      id: input.subscriptionId
+    }
+  });
+
+  if (!subscription) {
+    throw new Error("Подписка не найдена.");
+  }
+
+  const nextStartAt = input.startAt?.trim() ? new Date(input.startAt) : null;
+  const nextEndAt = input.endAt?.trim() ? new Date(input.endAt) : null;
+
+  if (nextStartAt && Number.isNaN(nextStartAt.getTime())) {
+    throw new Error("Некорректная дата начала.");
+  }
+
+  if (nextEndAt && Number.isNaN(nextEndAt.getTime())) {
+    throw new Error("Некорректная дата окончания.");
+  }
+
+  const updated = await prisma.subscription.update({
+    where: {
+      id: input.subscriptionId
+    },
+    data: {
+      status: input.status,
+      startAt: nextStartAt,
+      endAt: nextEndAt,
+      pendingActivation: input.pendingActivation
+    }
+  });
+
+  await recordAdminAction({
+    action: "subscription_updated",
+    entityType: "Subscription",
+    entityId: updated.id,
+    beforeData: {
+      status: subscription.status,
+      startAt: subscription.startAt?.toISOString() ?? null,
+      endAt: subscription.endAt?.toISOString() ?? null,
+      pendingActivation: subscription.pendingActivation
+    },
+    afterData: {
+      status: updated.status,
+      startAt: updated.startAt?.toISOString() ?? null,
+      endAt: updated.endAt?.toISOString() ?? null,
+      pendingActivation: updated.pendingActivation
+    }
+  });
+
+  return {
+    subscriptionId: updated.id
+  };
+}
+
+export async function updateAdminReward(input: {
+  rewardId: string;
+  status: RewardStatus;
+}) {
+  const reward = await prisma.referralReward.findUnique({
+    where: {
+      id: input.rewardId
+    }
+  });
+
+  if (!reward) {
+    throw new Error("Начисление не найдено.");
+  }
+
+  const updated = await prisma.referralReward.update({
+    where: {
+      id: input.rewardId
+    },
+    data: {
+      status: input.status,
+      availableAt: input.status === "AVAILABLE" ? reward.availableAt ?? new Date() : reward.availableAt
+    }
+  });
+
+  await recordAdminAction({
+    action: "reward_updated",
+    entityType: "ReferralReward",
+    entityId: updated.id,
+    beforeData: {
+      status: reward.status,
+      availableAt: reward.availableAt?.toISOString() ?? null
+    },
+    afterData: {
+      status: updated.status,
+      availableAt: updated.availableAt?.toISOString() ?? null
+    }
+  });
+
+  return {
+    rewardId: updated.id
   };
 }
 

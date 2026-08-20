@@ -142,6 +142,162 @@ export function normalizeClientLogin(login: string): string {
   return normalizeLogin(login);
 }
 
+export async function bindEmailIdentityForUser(input: { email: string; userId: string }) {
+  const email = normalizeEmail(input.email);
+
+  const [user, existingIdentity, conflictingIdentity] = await Promise.all([
+    prisma.user.findUnique({
+      where: {
+        id: input.userId
+      }
+    }),
+    prisma.authIdentity.findFirst({
+      where: {
+        userId: input.userId,
+        provider: "EMAIL"
+      }
+    }),
+    prisma.authIdentity.findFirst({
+      where: {
+        provider: "EMAIL",
+        email
+      }
+    })
+  ]);
+
+  if (!user) {
+    throw new Error("Клиент не найден.");
+  }
+
+  if (conflictingIdentity && conflictingIdentity.userId !== input.userId) {
+    throw new Error("Этот email уже используется в другом аккаунте.");
+  }
+
+  if (existingIdentity) {
+    return prisma.authIdentity.update({
+      where: {
+        id: existingIdentity.id
+      },
+      data: {
+        providerUserId: email,
+        email,
+        verifiedAt: existingIdentity.verifiedAt ?? new Date()
+      }
+    });
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const identity = await tx.authIdentity.create({
+      data: {
+        userId: input.userId,
+        provider: "EMAIL",
+        providerUserId: email,
+        email,
+        verifiedAt: new Date()
+      }
+    });
+
+    await tx.user.update({
+      where: {
+        id: input.userId
+      },
+      data: {
+        lastActivityAt: new Date()
+      }
+    });
+
+    return identity;
+  });
+}
+
+export async function upsertLocalCredentialsForUser(input: {
+  login: string;
+  password: string;
+  userId: string;
+}) {
+  const login = normalizeLogin(input.login);
+  const passwordHash = createPasswordHash(input.password);
+
+  const [user, existingIdentity, conflictingIdentity] = await Promise.all([
+    prisma.user.findUnique({
+      where: {
+        id: input.userId
+      }
+    }),
+    prisma.authIdentity.findFirst({
+      where: {
+        userId: input.userId,
+        provider: "LOCAL"
+      }
+    }),
+    prisma.authIdentity.findFirst({
+      where: {
+        provider: "LOCAL",
+        providerUserId: login
+      }
+    })
+  ]);
+
+  if (!user) {
+    throw new Error("Клиент не найден.");
+  }
+
+  if (conflictingIdentity && conflictingIdentity.userId !== input.userId) {
+    throw new Error("Такой логин уже занят.");
+  }
+
+  if (existingIdentity) {
+    return prisma.$transaction(async (tx) => {
+      const identity = await tx.authIdentity.update({
+        where: {
+          id: existingIdentity.id
+        },
+        data: {
+          providerUserId: login,
+          passwordHash,
+          verifiedAt: existingIdentity.verifiedAt ?? new Date()
+        }
+      });
+
+      await tx.user.update({
+        where: {
+          id: input.userId
+        },
+        data: {
+          name: user.name ?? login,
+          lastActivityAt: new Date()
+        }
+      });
+
+      return identity;
+    });
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const identity = await tx.authIdentity.create({
+      data: {
+        userId: input.userId,
+        provider: "LOCAL",
+        providerUserId: login,
+        passwordHash,
+        verifiedAt: new Date()
+      }
+    });
+
+    await tx.user.update({
+      where: {
+        id: input.userId
+      },
+      data: {
+        name: user.name ?? login,
+        lastActivityAt: new Date()
+      }
+    });
+
+    return identity;
+  });
+}
+
 async function resolveReferrerByCode(referralCode: string) {
   if (!referralCode) {
     return null;

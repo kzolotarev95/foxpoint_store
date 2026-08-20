@@ -11,10 +11,18 @@ import {
   buildAdminOverview,
   buildClientOverview,
   buildSiteSnapshot,
+  createProfileRequestForUser,
   createAdminRouterAssignment,
   createRenewalPaymentForUser,
   createRouterOrderForUser,
   createSupportTicketForUser,
+  attachEmailForUser,
+  saveLocalCredentialsForUser,
+  updateAdminOrder,
+  updateAdminReward,
+  updateAdminRouter,
+  updateAdminSubscription,
+  updateAdminTicket,
   updateRouterTemplateForUser
 } from "./portal.js";
 import { prisma } from "./prisma.js";
@@ -154,6 +162,97 @@ app.get("/api/me/overview", async (request, reply) => {
   }
 
   return buildClientOverview(userId);
+});
+
+app.post("/api/me/profile/email", async (request, reply) => {
+  const userId = getAuthorizedUserId(request);
+  if (!userId) {
+    reply.code(401);
+    return {
+      error: "unauthorized"
+    };
+  }
+
+  const body = z
+    .object({
+      email: z.string().trim().email()
+    })
+    .parse(request.body);
+
+  try {
+    return await attachEmailForUser({
+      userId,
+      email: body.email
+    });
+  } catch (error) {
+    reply.code(400);
+    return {
+      error: error instanceof Error ? error.message : "Не удалось привязать email."
+    };
+  }
+});
+
+app.post("/api/me/profile/password", async (request, reply) => {
+  const userId = getAuthorizedUserId(request);
+  if (!userId) {
+    reply.code(401);
+    return {
+      error: "unauthorized"
+    };
+  }
+
+  const body = z
+    .object({
+      login: z
+        .string()
+        .trim()
+        .min(3)
+        .max(32)
+        .regex(/^[a-zA-Z0-9._-]+$/),
+      password: z.string().min(6).max(128)
+    })
+    .parse(request.body);
+
+  try {
+    return await saveLocalCredentialsForUser({
+      userId,
+      login: body.login,
+      password: body.password
+    });
+  } catch (error) {
+    reply.code(400);
+    return {
+      error: error instanceof Error ? error.message : "Не удалось сохранить логин и пароль."
+    };
+  }
+});
+
+app.post("/api/me/profile/request", async (request, reply) => {
+  const userId = getAuthorizedUserId(request);
+  if (!userId) {
+    reply.code(401);
+    return {
+      error: "unauthorized"
+    };
+  }
+
+  const body = z
+    .object({
+      kind: z.enum(["DELETE_ACCOUNT", "TWO_FACTOR"])
+    })
+    .parse(request.body);
+
+  try {
+    return await createProfileRequestForUser({
+      userId,
+      kind: body.kind
+    });
+  } catch (error) {
+    reply.code(400);
+    return {
+      error: error instanceof Error ? error.message : "Не удалось создать запрос."
+    };
+  }
 });
 
 app.post("/api/orders", async (request, reply) => {
@@ -334,6 +433,162 @@ app.post("/api/admin/routers", async (request, reply) => {
     reply.code(400);
     return {
       error: error instanceof Error ? error.message : "Не удалось привязать роутер."
+    };
+  }
+});
+
+app.post("/api/admin/tickets/:ticketId", async (request, reply) => {
+  if (!isAuthorizedAdminRequest(request)) {
+    reply.code(401);
+    return {
+      error: "unauthorized"
+    };
+  }
+
+  const params = z.object({ ticketId: z.string().trim().min(1) }).parse(request.params);
+  const body = z
+    .object({
+      status: z.enum(["OPEN", "IN_PROGRESS", "WAITING_CLIENT", "RESOLVED", "CLOSED"]),
+      assigneeId: z.string().trim().max(120).optional()
+    })
+    .parse(request.body);
+
+  try {
+    return await updateAdminTicket({
+      ticketId: params.ticketId,
+      status: body.status,
+      assigneeId: body.assigneeId
+    });
+  } catch (error) {
+    reply.code(400);
+    return {
+      error: error instanceof Error ? error.message : "Не удалось обновить обращение."
+    };
+  }
+});
+
+app.post("/api/admin/orders/:orderId", async (request, reply) => {
+  if (!isAuthorizedAdminRequest(request)) {
+    reply.code(401);
+    return {
+      error: "unauthorized"
+    };
+  }
+
+  const params = z.object({ orderId: z.string().trim().min(1) }).parse(request.params);
+  const body = z
+    .object({
+      status: z.enum(["CREATED", "WAITING_PAYMENT", "PAID", "CONFIGURING", "READY_TO_SHIP", "SHIPPED", "RECEIVED", "CANCELED", "REFUND"]),
+      trackingNumber: z.string().trim().max(120).optional()
+    })
+    .parse(request.body);
+
+  try {
+    return await updateAdminOrder({
+      orderId: params.orderId,
+      status: body.status,
+      trackingNumber: body.trackingNumber
+    });
+  } catch (error) {
+    reply.code(400);
+    return {
+      error: error instanceof Error ? error.message : "Не удалось обновить заказ."
+    };
+  }
+});
+
+app.post("/api/admin/routers/:routerId", async (request, reply) => {
+  if (!isAuthorizedAdminRequest(request)) {
+    reply.code(401);
+    return {
+      error: "unauthorized"
+    };
+  }
+
+  const params = z.object({ routerId: z.string().trim().min(1) }).parse(request.params);
+  const body = z
+    .object({
+      ownerUserId: z.string().trim().min(1),
+      configurationType: z.enum(["BASIC", "EXTENDED"]),
+      status: z.enum(["DRAFT", "ACTIVE", "SUSPENDED", "DISABLED"]),
+      adminNote: z.string().trim().max(1000).optional()
+    })
+    .parse(request.body);
+
+  try {
+    return await updateAdminRouter({
+      routerId: params.routerId,
+      ownerUserId: body.ownerUserId,
+      configurationType: body.configurationType,
+      status: body.status,
+      adminNote: body.adminNote
+    });
+  } catch (error) {
+    reply.code(400);
+    return {
+      error: error instanceof Error ? error.message : "Не удалось обновить роутер."
+    };
+  }
+});
+
+app.post("/api/admin/subscriptions/:subscriptionId", async (request, reply) => {
+  if (!isAuthorizedAdminRequest(request)) {
+    reply.code(401);
+    return {
+      error: "unauthorized"
+    };
+  }
+
+  const params = z.object({ subscriptionId: z.string().trim().min(1) }).parse(request.params);
+  const body = z
+    .object({
+      status: z.enum(["DRAFT", "ACTIVE", "EXPIRED", "PENDING_ACTIVATION", "PAUSED", "CANCELLED"]),
+      startAt: z.string().trim().max(40).optional(),
+      endAt: z.string().trim().max(40).optional(),
+      pendingActivation: z.boolean()
+    })
+    .parse(request.body);
+
+  try {
+    return await updateAdminSubscription({
+      subscriptionId: params.subscriptionId,
+      status: body.status,
+      startAt: body.startAt,
+      endAt: body.endAt,
+      pendingActivation: body.pendingActivation
+    });
+  } catch (error) {
+    reply.code(400);
+    return {
+      error: error instanceof Error ? error.message : "Не удалось обновить подписку."
+    };
+  }
+});
+
+app.post("/api/admin/rewards/:rewardId", async (request, reply) => {
+  if (!isAuthorizedAdminRequest(request)) {
+    reply.code(401);
+    return {
+      error: "unauthorized"
+    };
+  }
+
+  const params = z.object({ rewardId: z.string().trim().min(1) }).parse(request.params);
+  const body = z
+    .object({
+      status: z.enum(["PENDING", "AVAILABLE", "CANCELED"])
+    })
+    .parse(request.body);
+
+  try {
+    return await updateAdminReward({
+      rewardId: params.rewardId,
+      status: body.status
+    });
+  } catch (error) {
+    reply.code(400);
+    return {
+      error: error instanceof Error ? error.message : "Не удалось обновить начисление."
     };
   }
 });

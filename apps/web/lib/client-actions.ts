@@ -134,6 +134,102 @@ export async function createSupportTicketAction(formData: FormData) {
   redirect(`${returnTo}?success=Обращение%20создано.`);
 }
 
+export async function attachProfileEmailAction(formData: FormData) {
+  const returnTo = getReturnToPath(formData, "/cabinet/profile");
+  const email = String(formData.get("email") ?? "").trim();
+
+  try {
+    await fetchClientApi("/api/me/profile/email", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        email
+      })
+    });
+  } catch (error) {
+    redirect(`${returnTo}?error=${encodeMessage(error instanceof Error ? error.message : "Не удалось привязать email.")}`);
+  }
+
+  redirect(`${returnTo}?success=Email%20привязан.`);
+}
+
+export async function saveProfileCredentialsAction(formData: FormData) {
+  const returnTo = getReturnToPath(formData, "/cabinet/profile");
+  const login = String(formData.get("login") ?? "").trim();
+  const password = String(formData.get("password") ?? "");
+
+  try {
+    await fetchClientApi("/api/me/profile/password", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        login,
+        password
+      })
+    });
+  } catch (error) {
+    redirect(
+      `${returnTo}?error=${encodeMessage(error instanceof Error ? error.message : "Не удалось сохранить логин и пароль.")}`
+    );
+  }
+
+  redirect(`${returnTo}?success=Логин%20и%20пароль%20сохранены.`);
+}
+
+export async function requestTwoFactorSetupAction(formData: FormData) {
+  const returnTo = getReturnToPath(formData, "/cabinet/profile");
+
+  try {
+    const payload = await fetchClientApi<{ created: boolean }>("/api/me/profile/request", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        kind: "TWO_FACTOR"
+      })
+    });
+
+    if (!payload.created) {
+      redirect(`${returnTo}?success=Запрос%20на%202FA%20уже%20открыт.`);
+    }
+  } catch (error) {
+    redirect(`${returnTo}?error=${encodeMessage(error instanceof Error ? error.message : "Не удалось отправить запрос на 2FA.")}`);
+  }
+
+  redirect(`${returnTo}?success=Запрос%20на%202FA%20отправлен%20в%20поддержку.`);
+}
+
+export async function requestAccountDeletionAction(formData: FormData) {
+  const returnTo = getReturnToPath(formData, "/cabinet/profile");
+
+  try {
+    const payload = await fetchClientApi<{ created: boolean }>("/api/me/profile/request", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        kind: "DELETE_ACCOUNT"
+      })
+    });
+
+    if (!payload.created) {
+      redirect(`${returnTo}?success=Запрос%20на%20удаление%20уже%20создан.`);
+    }
+  } catch (error) {
+    redirect(
+      `${returnTo}?error=${encodeMessage(error instanceof Error ? error.message : "Не удалось отправить запрос на удаление.")}`
+    );
+  }
+
+  redirect(`${returnTo}?success=Запрос%20на%20удаление%20аккаунта%20отправлен.`);
+}
+
 export async function saveRouterTemplateAction(formData: FormData) {
   const returnTo = getReturnToPath(formData, "/cabinet/routers");
   const routerId = String(formData.get("routerId") ?? "").trim();

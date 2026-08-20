@@ -20,6 +20,10 @@ type AdminSettingRecord = {
 
 type PageSearchParams = Promise<Record<string, string | string[] | undefined>>;
 
+function encodeMessage(message: string): string {
+  return encodeURIComponent(message);
+}
+
 function getSingleParam(value: string | string[] | undefined): string | null {
   if (typeof value === "string") {
     return value;
@@ -28,7 +32,7 @@ function getSingleParam(value: string | string[] | undefined): string | null {
   return Array.isArray(value) ? value[0] ?? null : null;
 }
 
-function getFieldInputMode(input: AdminSettingRecord["input"]): React.HTMLAttributes<HTMLInputElement>["inputMode"] {
+function getFieldInputMode(input: AdminSettingRecord["input"]) {
   if (input === "number") {
     return "decimal";
   }
@@ -52,9 +56,32 @@ function formatDate(value: string | null | undefined): string {
   }).format(new Date(value));
 }
 
-async function saveSettingsAction(formData: FormData) {
-  "use server";
+function formatDateTime(value: string | null | undefined): string {
+  if (!value) {
+    return "—";
+  }
 
+  return new Intl.DateTimeFormat("ru-RU", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(new Date(value));
+}
+
+function formatDateTimeInputValue(value: string | null | undefined): string {
+  if (!value) {
+    return "";
+  }
+
+  const date = new Date(value);
+  const offset = date.getTimezoneOffset();
+  const normalized = new Date(date.getTime() - offset * 60_000);
+  return normalized.toISOString().slice(0, 16);
+}
+
+async function getAdminRequestHeadersOrRedirect(): Promise<Headers> {
   const cookieStore = await cookies();
   const token = cookieStore.get(getAdminCookieName())?.value;
 
@@ -62,11 +89,8 @@ async function saveSettingsAction(formData: FormData) {
     redirect("/admin/login");
   }
 
-  const settings = Object.fromEntries(
-    Array.from(formData.entries()).map(([key, value]) => [key, typeof value === "string" ? value : ""])
-  );
   const requestHeaders = new Headers({
-    "content-type": "application/json",
+    Accept: "application/json",
     cookie: cookieStore.toString()
   });
 
@@ -74,9 +98,79 @@ async function saveSettingsAction(formData: FormData) {
     requestHeaders.set("x-admin-session", token);
   }
 
+  return requestHeaders;
+}
+
+async function parseAdminError(response: Response, fallback: string): Promise<string> {
+  const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+  return payload?.error ?? fallback;
+}
+
+async function fetchAdminApi<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(`${getApiBaseUrl()}${path}`, {
+    ...init,
+    headers: {
+      ...(Object.fromEntries((await getAdminRequestHeadersOrRedirect()).entries()) ?? {}),
+      ...(init?.headers ?? {})
+    },
+    cache: "no-store"
+  });
+
+  if (response.status === 401) {
+    redirect("/admin/login?error=Сессия%20истекла.%20Войдите%20снова.");
+  }
+
+  if (!response.ok) {
+    throw new Error(await parseAdminError(response, `Failed to load admin data: ${response.status}`));
+  }
+
+  return (await response.json()) as T;
+}
+
+async function submitAdminMutation(input: {
+  body: Record<string, boolean | string | undefined>;
+  fallbackError: string;
+  path: string;
+  successMessage: string;
+}) {
+  const response = await fetch(`${getApiBaseUrl()}${input.path}`, {
+    method: "POST",
+    headers: {
+      ...(Object.fromEntries((await getAdminRequestHeadersOrRedirect()).entries()) ?? {}),
+      "content-type": "application/json"
+    },
+    body: JSON.stringify(input.body),
+    cache: "no-store"
+  });
+
+  if (response.status === 401) {
+    redirect("/admin/login?error=Сессия%20истекла.%20Войдите%20снова.");
+  }
+
+  if (!response.ok) {
+    const errorMessage = await parseAdminError(response, input.fallbackError);
+    redirect(`/admin?error=${encodeMessage(errorMessage)}`);
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/cabinet");
+  revalidatePath("/cabinet/profile");
+  revalidatePath("/cabinet/support");
+  redirect(`/admin?success=${encodeMessage(input.successMessage)}`);
+}
+
+async function saveSettingsAction(formData: FormData) {
+  "use server";
+
+  const settings = Object.fromEntries(
+    Array.from(formData.entries()).map(([key, value]) => [key, typeof value === "string" ? value : ""])
+  );
   const response = await fetch(`${getApiBaseUrl()}/api/admin/settings`, {
     method: "PUT",
-    headers: requestHeaders,
+    headers: {
+      ...(Object.fromEntries((await getAdminRequestHeadersOrRedirect()).entries()) ?? {}),
+      "content-type": "application/json"
+    },
     body: JSON.stringify({ settings }),
     cache: "no-store"
   });
@@ -86,39 +180,24 @@ async function saveSettingsAction(formData: FormData) {
   }
 
   if (!response.ok) {
-    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-    redirect(`/admin?error=${encodeURIComponent(payload?.error ?? "Не удалось сохранить настройки.")}`);
+    const errorMessage = await parseAdminError(response, "Не удалось сохранить настройки.");
+    redirect(`/admin?error=${encodeMessage(errorMessage)}`);
   }
 
   revalidatePath("/");
   revalidatePath("/admin");
   revalidatePath("/login");
-  redirect("/admin?saved=1");
+  redirect("/admin?success=Настройки%20сохранены.");
 }
 
 async function createRouterAction(formData: FormData) {
   "use server";
 
-  const cookieStore = await cookies();
-  const token = cookieStore.get(getAdminCookieName())?.value;
-
-  if (!readAdminSession(token)) {
-    redirect("/admin/login");
-  }
-
-  const requestHeaders = new Headers({
-    "content-type": "application/json",
-    cookie: cookieStore.toString()
-  });
-
-  if (token) {
-    requestHeaders.set("x-admin-session", token);
-  }
-
-  const response = await fetch(`${getApiBaseUrl()}/api/admin/routers`, {
-    method: "POST",
-    headers: requestHeaders,
-    body: JSON.stringify({
+  await submitAdminMutation({
+    path: "/api/admin/routers",
+    fallbackError: "Не удалось привязать роутер.",
+    successMessage: "Роутер успешно привязан.",
+    body: {
       userId: String(formData.get("userId") ?? "").trim(),
       displayName: String(formData.get("displayName") ?? "").trim(),
       model: String(formData.get("model") ?? "").trim() || undefined,
@@ -128,22 +207,86 @@ async function createRouterAction(formData: FormData) {
       supportType: String(formData.get("supportType") ?? "NONE"),
       startTrial: formData.get("startTrial") === "on",
       adminNote: String(formData.get("adminNote") ?? "").trim() || undefined
-    }),
-    cache: "no-store"
+    }
   });
+}
 
-  if (response.status === 401) {
-    redirect("/admin/login?error=Сессия%20истекла.%20Войдите%20снова.");
-  }
+async function updateTicketAction(formData: FormData) {
+  "use server";
 
-  if (!response.ok) {
-    const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-    redirect(`/admin?error=${encodeURIComponent(payload?.error ?? "Не удалось привязать роутер.")}`);
-  }
+  const ticketId = String(formData.get("ticketId") ?? "").trim();
+  await submitAdminMutation({
+    path: `/api/admin/tickets/${ticketId}`,
+    fallbackError: "Не удалось обновить обращение.",
+    successMessage: "Обращение обновлено.",
+    body: {
+      status: String(formData.get("status") ?? "OPEN"),
+      assigneeId: String(formData.get("assigneeId") ?? "").trim() || undefined
+    }
+  });
+}
 
-  revalidatePath("/admin");
-  revalidatePath("/cabinet");
-  redirect("/admin?success=Роутер%20успешно%20привязан.");
+async function updateOrderAction(formData: FormData) {
+  "use server";
+
+  const orderId = String(formData.get("orderId") ?? "").trim();
+  await submitAdminMutation({
+    path: `/api/admin/orders/${orderId}`,
+    fallbackError: "Не удалось обновить заказ.",
+    successMessage: "Заказ обновлен.",
+    body: {
+      status: String(formData.get("status") ?? "CREATED"),
+      trackingNumber: String(formData.get("trackingNumber") ?? "").trim() || undefined
+    }
+  });
+}
+
+async function updateRouterAction(formData: FormData) {
+  "use server";
+
+  const routerId = String(formData.get("routerId") ?? "").trim();
+  await submitAdminMutation({
+    path: `/api/admin/routers/${routerId}`,
+    fallbackError: "Не удалось обновить роутер.",
+    successMessage: "Роутер обновлен.",
+    body: {
+      ownerUserId: String(formData.get("ownerUserId") ?? "").trim(),
+      configurationType: String(formData.get("configurationType") ?? "BASIC"),
+      status: String(formData.get("status") ?? "ACTIVE"),
+      adminNote: String(formData.get("adminNote") ?? "").trim() || undefined
+    }
+  });
+}
+
+async function updateSubscriptionAction(formData: FormData) {
+  "use server";
+
+  const subscriptionId = String(formData.get("subscriptionId") ?? "").trim();
+  await submitAdminMutation({
+    path: `/api/admin/subscriptions/${subscriptionId}`,
+    fallbackError: "Не удалось обновить подписку.",
+    successMessage: "Подписка обновлена.",
+    body: {
+      status: String(formData.get("status") ?? "DRAFT"),
+      startAt: String(formData.get("startAt") ?? "").trim() || undefined,
+      endAt: String(formData.get("endAt") ?? "").trim() || undefined,
+      pendingActivation: formData.get("pendingActivation") === "on"
+    }
+  });
+}
+
+async function updateRewardAction(formData: FormData) {
+  "use server";
+
+  const rewardId = String(formData.get("rewardId") ?? "").trim();
+  await submitAdminMutation({
+    path: `/api/admin/rewards/${rewardId}`,
+    fallbackError: "Не удалось обновить начисление.",
+    successMessage: "Начисление обновлено.",
+    body: {
+      status: String(formData.get("status") ?? "PENDING")
+    }
+  });
 }
 
 async function logoutAction() {
@@ -159,58 +302,19 @@ async function logoutAction() {
 
 export default async function AdminPage(props: { searchParams: PageSearchParams }) {
   const searchParams = await props.searchParams;
-  const cookieStore = await cookies();
-  const token = cookieStore.get(getAdminCookieName())?.value;
+  const [settingsPayload, overview] = await Promise.all([
+    fetchAdminApi<{ settings: AdminSettingRecord[] }>("/api/admin/settings"),
+    fetchAdminApi<AdminOverview>("/api/admin/overview")
+  ]);
 
-  if (!readAdminSession(token)) {
-    redirect("/admin/login");
-  }
-  const requestHeaders = new Headers({
-    cookie: cookieStore.toString()
-  });
-
-  if (token) {
-    requestHeaders.set("x-admin-session", token);
-  }
-
-  const response = await fetch(`${getApiBaseUrl()}/api/admin/settings`, {
-    cache: "no-store",
-    headers: requestHeaders
-  });
-
-  if (response.status === 401) {
-    redirect("/admin/login?error=Сессия%20истекла.%20Войдите%20снова.");
-  }
-
-  if (!response.ok) {
-    throw new Error(`Failed to load admin settings: ${response.status}`);
-  }
-
-  const overviewResponse = await fetch(`${getApiBaseUrl()}/api/admin/overview`, {
-    cache: "no-store",
-    headers: requestHeaders
-  });
-
-  if (overviewResponse.status === 401) {
-    redirect("/admin/login?error=Сессия%20истекла.%20Войдите%20снова.");
-  }
-
-  if (!overviewResponse.ok) {
-    throw new Error(`Failed to load admin overview: ${overviewResponse.status}`);
-  }
-
-  const payload = (await response.json()) as { settings: AdminSettingRecord[] };
-  const overview = (await overviewResponse.json()) as AdminOverview;
-
-  const settingsByGroup = payload.settings.reduce<Record<string, AdminSettingRecord[]>>((groups, setting) => {
+  const settingsByGroup = settingsPayload.settings.reduce<Record<string, AdminSettingRecord[]>>((groups, setting) => {
     groups[setting.group] ??= [];
     groups[setting.group].push(setting);
     return groups;
   }, {});
 
   const groupNames = Object.keys(settingsByGroup);
-  const successMessage = getSingleParam(searchParams.saved) ? "Настройки сохранены." : null;
-  const createSuccessMessage = getSingleParam(searchParams.success);
+  const successMessage = getSingleParam(searchParams.success);
   const errorMessage = getSingleParam(searchParams.error);
 
   return (
@@ -223,11 +327,6 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
           <li>
             <a href="#assign">Привязать роутер</a>
           </li>
-          {groupNames.map((groupName) => (
-            <li key={groupName}>
-              <a href={`#${groupName}`}>{groupName}</a>
-            </li>
-          ))}
           <li>
             <a href="#clients">Клиенты</a>
           </li>
@@ -235,8 +334,25 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
             <a href="#routers">Роутеры</a>
           </li>
           <li>
-            <a href="#ops">Операции</a>
+            <a href="#subscriptions">Подписки</a>
           </li>
+          <li>
+            <a href="#orders">Заказы</a>
+          </li>
+          <li>
+            <a href="#tickets">Обращения</a>
+          </li>
+          <li>
+            <a href="#rewards">Рефералки</a>
+          </li>
+          <li>
+            <a href="#audit">Аудит</a>
+          </li>
+          {groupNames.map((groupName) => (
+            <li key={groupName}>
+              <a href={`#${groupName}`}>{groupName}</a>
+            </li>
+          ))}
         </ul>
         <div className="contentStack" style={{ marginTop: "18px" }}>
           <Link className="secondaryButton" href="/">
@@ -281,7 +397,6 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
         </article>
 
         {successMessage ? <div className="banner successBanner">{successMessage}</div> : null}
-        {createSuccessMessage ? <div className="banner successBanner">{createSuccessMessage}</div> : null}
         {errorMessage ? <div className="banner errorBanner">{errorMessage}</div> : null}
 
         <section id="assign" className="panel sectionPanel adminSectionPanel">
@@ -398,75 +513,339 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
           </div>
         </form>
 
-        <section id="clients" className="gridTwo sectionSplit adminDataGrid">
-          <article className="panel sectionPanel adminSectionPanel">
-            <span className="pill">Клиенты</span>
-            <h2 className="adminSectionTitle">Последние профили</h2>
-            <ul className="list adminList">
-              {overview.users.map((user) => (
-                <li key={user.id}>
-                  {user.name} · {user.email} · роутеров {user.routerCount} · код {user.referralCode}
-                </li>
-              ))}
-            </ul>
-          </article>
-
-          <article id="routers" className="panel sectionPanel adminSectionPanel">
-            <span className="pill">Роутеры</span>
-            <h2 className="adminSectionTitle">Недавние назначения</h2>
-            <ul className="list adminList">
-              {overview.routers.map((router) => (
-                <li key={router.id}>
-                  {router.displayName} · {router.ownerName} · {router.savedTemplate} · {formatDate(router.createdAt)}
-                </li>
-              ))}
-            </ul>
-          </article>
+        <section id="clients" className="panel sectionPanel adminSectionPanel">
+          <span className="pill">Клиенты</span>
+          <h2 className="adminSectionTitle">Последние профили</h2>
+          <div className="contentStack">
+            {overview.users.map((user) => (
+              <article key={user.id} className="panel" style={{ padding: "18px" }}>
+                <div className="settingsGrid">
+                  <div className="fieldStack">
+                    <span className="fieldLabel">Клиент</span>
+                    <strong>
+                      {user.name} · {user.email}
+                    </strong>
+                  </div>
+                  <div className="fieldStack">
+                    <span className="fieldLabel">Статус</span>
+                    <strong>{user.status}</strong>
+                  </div>
+                  <div className="fieldStack">
+                    <span className="fieldLabel">Баланс</span>
+                    <strong>{user.balanceLabel}</strong>
+                  </div>
+                  <div className="fieldStack">
+                    <span className="fieldLabel">Telegram</span>
+                    <strong>{user.telegram ?? "Не привязан"}</strong>
+                  </div>
+                  <div className="fieldStack">
+                    <span className="fieldLabel">Роутеров</span>
+                    <strong>{user.routerCount}</strong>
+                  </div>
+                  <div className="fieldStack">
+                    <span className="fieldLabel">Последняя активность</span>
+                    <strong>{formatDateTime(user.lastActivityAt)}</strong>
+                  </div>
+                </div>
+                <p className="helperText" style={{ marginTop: "12px" }}>
+                  ID: {user.id} · Код: {user.referralCode} · Регистрация: {formatDate(user.createdAt)}
+                </p>
+              </article>
+            ))}
+          </div>
         </section>
 
-        <section id="ops" className="gridTwo sectionSplit adminDataGrid">
-          <article className="panel sectionPanel adminSectionPanel">
-            <span className="pill">Операции</span>
-            <h2 className="adminSectionTitle">Подписки, заказы и тикеты</h2>
-            <ul className="list adminList">
-              {overview.subscriptions.map((subscription) => (
-                <li key={subscription.id}>
-                  {subscription.routerName} · {subscription.bundleLabel} · {subscription.priceLabel} · до{" "}
-                  {formatDate(subscription.endAt)}
-                </li>
-              ))}
-            </ul>
-            <ul className="list adminList" style={{ marginTop: "20px" }}>
-              {overview.orders.map((order) => (
-                <li key={order.id}>
-                  Заказ {order.totalPriceLabel} · {order.customerName} · {order.status}
-                </li>
-              ))}
-            </ul>
-            <ul className="list adminList" style={{ marginTop: "20px" }}>
-              {overview.tickets.map((ticket) => (
-                <li key={ticket.id}>
-                  {ticket.customerName} · {ticket.category} · {ticket.status} · {ticket.routerName}
-                </li>
-              ))}
-            </ul>
-          </article>
+        <section id="routers" className="panel sectionPanel adminSectionPanel">
+          <span className="pill">Роутеры</span>
+          <h2 className="adminSectionTitle">Управление назначениями</h2>
+          <div className="contentStack">
+            {overview.routers.map((router) => (
+              <form key={router.id} action={updateRouterAction} className="panel" style={{ padding: "18px" }}>
+                <input name="routerId" type="hidden" value={router.id} />
+                <div className="sectionHeader">
+                  <div>
+                    <h3 className="adminSectionTitle">{router.displayName}</h3>
+                    <p className="helperText">
+                      {router.ownerName} · {router.model ?? "Без модели"} · {router.serialNumber ?? "Без серийника"}
+                    </p>
+                  </div>
+                </div>
+                <div className="settingsGrid">
+                  <label className="fieldStack">
+                    <span className="fieldLabel">Владелец</span>
+                    <select className="textInput" defaultValue={router.ownerId} name="ownerUserId">
+                      {overview.users.map((user) => (
+                        <option key={user.id} value={user.id}>
+                          {user.name} · {user.email}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="fieldStack">
+                    <span className="fieldLabel">Статус</span>
+                    <select className="textInput" defaultValue={router.status} name="status">
+                      <option value="DRAFT">DRAFT</option>
+                      <option value="ACTIVE">ACTIVE</option>
+                      <option value="SUSPENDED">SUSPENDED</option>
+                      <option value="DISABLED">DISABLED</option>
+                    </select>
+                  </label>
+                  <label className="fieldStack">
+                    <span className="fieldLabel">Конфигурация</span>
+                    <select className="textInput" defaultValue={router.configurationType} name="configurationType">
+                      <option value="BASIC">BASIC</option>
+                      <option value="EXTENDED">EXTENDED</option>
+                    </select>
+                  </label>
+                  <div className="fieldStack">
+                    <span className="fieldLabel">Текущий шаблон</span>
+                    <strong>{router.savedTemplate}</strong>
+                  </div>
+                </div>
+                <label className="fieldStack" style={{ marginTop: "16px" }}>
+                  <span className="fieldLabel">Заметка администратора</span>
+                  <textarea className="textAreaInput" defaultValue={router.adminNote ?? ""} name="adminNote" />
+                </label>
+                <div className="ctaRow" style={{ marginTop: "16px" }}>
+                  <button className="primaryButton" type="submit">
+                    Сохранить роутер
+                  </button>
+                </div>
+              </form>
+            ))}
+          </div>
+        </section>
 
-          <article className="panel sectionPanel adminSectionPanel">
-            <span className="pill">Аудит</span>
-            <h2 className="adminSectionTitle">Последние действия</h2>
-            <ul className="list adminList">
-              {overview.logs.length ? (
-                overview.logs.map((log) => (
-                  <li key={log.id}>
-                    {log.action} · {log.entityType} · {log.entityId.slice(0, 8)} · {formatDate(log.createdAt)}
-                  </li>
-                ))
-              ) : (
-                <li>Пока нет записей аудита.</li>
-              )}
-            </ul>
-          </article>
+        <section id="subscriptions" className="panel sectionPanel adminSectionPanel">
+          <span className="pill">Подписки</span>
+          <h2 className="adminSectionTitle">Продления и активации</h2>
+          <div className="contentStack">
+            {overview.subscriptions.map((subscription) => (
+              <form key={subscription.id} action={updateSubscriptionAction} className="panel" style={{ padding: "18px" }}>
+                <input name="subscriptionId" type="hidden" value={subscription.id} />
+                <div className="sectionHeader">
+                  <div>
+                    <h3 className="adminSectionTitle">{subscription.routerName}</h3>
+                    <p className="helperText">
+                      {subscription.bundleLabel} · {subscription.priceLabel}
+                    </p>
+                  </div>
+                </div>
+                <div className="settingsGrid">
+                  <label className="fieldStack">
+                    <span className="fieldLabel">Статус</span>
+                    <select className="textInput" defaultValue={subscription.status} name="status">
+                      <option value="DRAFT">DRAFT</option>
+                      <option value="ACTIVE">ACTIVE</option>
+                      <option value="EXPIRED">EXPIRED</option>
+                      <option value="PENDING_ACTIVATION">PENDING_ACTIVATION</option>
+                      <option value="PAUSED">PAUSED</option>
+                      <option value="CANCELLED">CANCELLED</option>
+                    </select>
+                  </label>
+                  <label className="fieldStack">
+                    <span className="fieldLabel">Начало</span>
+                    <input
+                      className="textInput"
+                      defaultValue={formatDateTimeInputValue(subscription.startAt)}
+                      name="startAt"
+                      type="datetime-local"
+                    />
+                  </label>
+                  <label className="fieldStack">
+                    <span className="fieldLabel">Окончание</span>
+                    <input
+                      className="textInput"
+                      defaultValue={formatDateTimeInputValue(subscription.endAt)}
+                      name="endAt"
+                      type="datetime-local"
+                    />
+                  </label>
+                  <div className="fieldStack">
+                    <span className="fieldLabel">Пакет</span>
+                    <strong>
+                      {subscription.accessEnabled ? "Доступ включен" : "Доступ выключен"} · {subscription.supportType}
+                    </strong>
+                  </div>
+                </div>
+                <label className="checkboxRow" style={{ marginTop: "16px" }}>
+                  <input defaultChecked={subscription.pendingActivation} name="pendingActivation" type="checkbox" />
+                  <span>Оставить в очереди на активацию</span>
+                </label>
+                <div className="ctaRow" style={{ marginTop: "16px" }}>
+                  <button className="primaryButton" type="submit">
+                    Сохранить подписку
+                  </button>
+                </div>
+              </form>
+            ))}
+          </div>
+        </section>
+
+        <section id="orders" className="panel sectionPanel adminSectionPanel">
+          <span className="pill">Заказы</span>
+          <h2 className="adminSectionTitle">Магазин и доставка</h2>
+          <div className="contentStack">
+            {overview.orders.map((order) => (
+              <form key={order.id} action={updateOrderAction} className="panel" style={{ padding: "18px" }}>
+                <input name="orderId" type="hidden" value={order.id} />
+                <div className="sectionHeader">
+                  <div>
+                    <h3 className="adminSectionTitle">{order.customerName}</h3>
+                    <p className="helperText">
+                      {order.totalPriceLabel} · создан {formatDateTime(order.createdAt)} · получен {formatDateTime(order.receivedAt)}
+                    </p>
+                  </div>
+                </div>
+                <div className="settingsGrid">
+                  <label className="fieldStack">
+                    <span className="fieldLabel">Статус</span>
+                    <select className="textInput" defaultValue={order.status} name="status">
+                      <option value="CREATED">CREATED</option>
+                      <option value="WAITING_PAYMENT">WAITING_PAYMENT</option>
+                      <option value="PAID">PAID</option>
+                      <option value="CONFIGURING">CONFIGURING</option>
+                      <option value="READY_TO_SHIP">READY_TO_SHIP</option>
+                      <option value="SHIPPED">SHIPPED</option>
+                      <option value="RECEIVED">RECEIVED</option>
+                      <option value="CANCELED">CANCELED</option>
+                      <option value="REFUND">REFUND</option>
+                    </select>
+                  </label>
+                  <label className="fieldStack">
+                    <span className="fieldLabel">Трек-номер</span>
+                    <input
+                      className="textInput"
+                      defaultValue={order.trackingNumber ?? ""}
+                      name="trackingNumber"
+                      placeholder="TRACK-001"
+                      type="text"
+                    />
+                  </label>
+                  <div className="fieldStack">
+                    <span className="fieldLabel">ID клиента</span>
+                    <strong>{order.userId}</strong>
+                  </div>
+                </div>
+                <div className="ctaRow" style={{ marginTop: "16px" }}>
+                  <button className="primaryButton" type="submit">
+                    Сохранить заказ
+                  </button>
+                </div>
+              </form>
+            ))}
+          </div>
+        </section>
+
+        <section id="tickets" className="panel sectionPanel adminSectionPanel">
+          <span className="pill">Поддержка</span>
+          <h2 className="adminSectionTitle">Обращения клиентов</h2>
+          <div className="contentStack">
+            {overview.tickets.map((ticket) => (
+              <form key={ticket.id} action={updateTicketAction} className="panel" style={{ padding: "18px" }}>
+                <input name="ticketId" type="hidden" value={ticket.id} />
+                <div className="sectionHeader">
+                  <div>
+                    <h3 className="adminSectionTitle">
+                      {ticket.customerName} · {ticket.category}
+                    </h3>
+                    <p className="helperText">
+                      Создано {formatDateTime(ticket.createdAt)} · обновлено {formatDateTime(ticket.updatedAt)} · роутер {ticket.routerName}
+                    </p>
+                  </div>
+                </div>
+                <p className="helperText" style={{ marginBottom: "16px" }}>
+                  {ticket.description}
+                </p>
+                <div className="settingsGrid">
+                  <label className="fieldStack">
+                    <span className="fieldLabel">Статус</span>
+                    <select className="textInput" defaultValue={ticket.status} name="status">
+                      <option value="OPEN">OPEN</option>
+                      <option value="IN_PROGRESS">IN_PROGRESS</option>
+                      <option value="WAITING_CLIENT">WAITING_CLIENT</option>
+                      <option value="RESOLVED">RESOLVED</option>
+                      <option value="CLOSED">CLOSED</option>
+                    </select>
+                  </label>
+                  <label className="fieldStack">
+                    <span className="fieldLabel">Исполнитель</span>
+                    <input
+                      className="textInput"
+                      defaultValue={ticket.assigneeId ?? ""}
+                      name="assigneeId"
+                      placeholder="admin_1"
+                      type="text"
+                    />
+                  </label>
+                  <div className="fieldStack">
+                    <span className="fieldLabel">ID клиента</span>
+                    <strong>{ticket.userId}</strong>
+                  </div>
+                </div>
+                <div className="ctaRow" style={{ marginTop: "16px" }}>
+                  <button className="primaryButton" type="submit">
+                    Сохранить обращение
+                  </button>
+                </div>
+              </form>
+            ))}
+          </div>
+        </section>
+
+        <section id="rewards" className="panel sectionPanel adminSectionPanel">
+          <span className="pill">Рефералки</span>
+          <h2 className="adminSectionTitle">Начисления по приглашениям</h2>
+          <div className="contentStack">
+            {overview.rewards.map((reward) => (
+              <form key={reward.id} action={updateRewardAction} className="panel" style={{ padding: "18px" }}>
+                <input name="rewardId" type="hidden" value={reward.id} />
+                <div className="settingsGrid">
+                  <div className="fieldStack">
+                    <span className="fieldLabel">Источник</span>
+                    <strong>{reward.sourceType}</strong>
+                  </div>
+                  <div className="fieldStack">
+                    <span className="fieldLabel">Сумма</span>
+                    <strong>{reward.amountLabel}</strong>
+                  </div>
+                  <div className="fieldStack">
+                    <span className="fieldLabel">Создано</span>
+                    <strong>{formatDateTime(reward.createdAt)}</strong>
+                  </div>
+                  <label className="fieldStack">
+                    <span className="fieldLabel">Статус</span>
+                    <select className="textInput" defaultValue={reward.status} name="status">
+                      <option value="PENDING">PENDING</option>
+                      <option value="AVAILABLE">AVAILABLE</option>
+                      <option value="CANCELED">CANCELED</option>
+                    </select>
+                  </label>
+                </div>
+                <div className="ctaRow" style={{ marginTop: "16px" }}>
+                  <button className="primaryButton" type="submit">
+                    Сохранить начисление
+                  </button>
+                </div>
+              </form>
+            ))}
+          </div>
+        </section>
+
+        <section id="audit" className="panel sectionPanel adminSectionPanel">
+          <span className="pill">Аудит</span>
+          <h2 className="adminSectionTitle">Последние действия</h2>
+          <ul className="list adminList">
+            {overview.logs.length ? (
+              overview.logs.map((log) => (
+                <li key={log.id}>
+                  {log.action} · {log.entityType} · {log.entityId.slice(0, 8)} · {formatDateTime(log.createdAt)}
+                </li>
+              ))
+            ) : (
+              <li>Пока нет записей аудита.</li>
+            )}
+          </ul>
         </section>
       </section>
     </main>

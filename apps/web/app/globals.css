@@ -855,6 +855,19 @@ textarea {
   justify-content: flex-end;
 }
 
+.profileInlineForm {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.profileInlineInput {
+  min-width: 11rem;
+  max-width: 14rem;
+}
+
 .profileState {
   display: inline-flex;
   align-items: center;

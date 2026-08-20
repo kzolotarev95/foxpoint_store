@@ -3,10 +3,14 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { PortalHeader } from "../../components/portal-header";
 import {
+  attachProfileEmailAction,
   createRouterOrderAction,
   createSupportTicketAction,
   logoutClientAction,
+  requestAccountDeletionAction,
+  requestTwoFactorSetupAction,
   renewRouterAction,
+  saveProfileCredentialsAction,
   saveRouterTemplateAction
 } from "../../lib/client-actions";
 import { fetchClientApi } from "../../lib/client-auth";
@@ -675,14 +679,14 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
     : null;
   const nearestDeadline = getNearestSubscriptionEnd(overview.routers);
   const userInitials = buildUserInitials(overview.profile.name);
-  const featuredTickets = overview.tickets.slice(0, 3);
+  const supportTickets = overview.tickets;
   const isOverviewTab = props.activeTab === "overview";
   const isRoutersTab = props.activeTab === "routers";
   const isSupportTab = props.activeTab === "support";
   const isPaymentsTab = props.activeTab === "payments";
   const isProfileTab = props.activeTab === "profile";
   const telegramHandle = formatTelegramHandle(overview.profile.telegram);
-  const latestProfileActivity = getProfileLastActivity(overview);
+  const latestProfileActivity = overview.profile.lastActivityAt ?? getProfileLastActivity(overview);
   const hasTelegram = Boolean(overview.profile.telegram);
   const profileSessions = [
     {
@@ -1012,10 +1016,10 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
           <article className="panel clientSupportTicketsCard">
             <h2>Мои обращения</h2>
 
-            {featuredTickets.length ? (
+            {supportTickets.length ? (
               <>
                 <div className="clientSupportTicketList">
-                  {featuredTickets.map((ticket) => {
+                  {supportTickets.map((ticket) => {
                     const statusMeta = getSupportTicketStatusMeta(ticket.status);
 
                     return (
@@ -1048,7 +1052,7 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                 </div>
 
                 <Link className="clientSupportAllLink" href="#support-form">
-                  Показать все обращения
+                  Создать новое обращение
                 </Link>
               </>
             ) : (
@@ -1156,12 +1160,35 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
               </span>
               <div className="profileSecurityText">
                 <strong>Пароль</strong>
-                <span>Используется для входа в кабинет FOX POINT.</span>
+                <span>
+                  {overview.profile.localLogin
+                    ? `Логин ${overview.profile.localLogin} используется для входа в кабинет FOX POINT.`
+                    : "Создайте логин и пароль для быстрого входа в кабинет."}
+                </span>
               </div>
               <div className="profileInlineActions">
-                <button className="secondaryButton portalGhostButton profileMiniButton" type="button">
-                  Сменить пароль
-                </button>
+                <form action={saveProfileCredentialsAction} className="profileInlineForm">
+                  <input name="returnTo" type="hidden" value="/cabinet/profile" />
+                  <input
+                    className="textInput profileInlineInput"
+                    defaultValue={overview.profile.localLogin ?? ""}
+                    name="login"
+                    placeholder="Логин"
+                    required
+                    type="text"
+                  />
+                  <input
+                    className="textInput profileInlineInput"
+                    minLength={6}
+                    name="password"
+                    placeholder={overview.profile.localLogin ? "Новый пароль" : "Пароль"}
+                    required
+                    type="password"
+                  />
+                  <button className="secondaryButton portalGhostButton profileMiniButton" type="submit">
+                    {overview.profile.localLogin ? "Сменить пароль" : "Сохранить вход"}
+                  </button>
+                </form>
               </div>
             </div>
 
@@ -1177,6 +1204,15 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                 <span className={hasTelegram ? "profileState profileStateLinked" : "profileState"}>
                   {hasTelegram ? "Привязан" : "Не подключен"}
                 </span>
+                {!overview.profile.email ? (
+                  <form action={attachProfileEmailAction} className="profileInlineForm">
+                    <input name="returnTo" type="hidden" value="/cabinet/profile" />
+                    <input className="textInput profileInlineInput" name="email" placeholder="Email для уведомлений" required type="email" />
+                    <button className="secondaryButton portalGhostButton profileMiniButton" type="submit">
+                      Привязать email
+                    </button>
+                  </form>
+                ) : null}
               </div>
             </div>
 
@@ -1186,15 +1222,28 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
               </span>
               <div className="profileSecurityText">
                 <strong>Двухфакторная защита</strong>
-                <span>{hasTelegram ? "Можно настроить второй фактор через Telegram." : "Сначала подключите Telegram, чтобы включить дополнительную защиту."}</span>
+                <span>
+                  {overview.profile.hasOpenTwoFactorRequest
+                    ? "Запрос на подключение 2FA уже отправлен и виден администратору."
+                    : hasTelegram
+                      ? "Можно отправить запрос на настройку второго фактора через Telegram."
+                      : "Можно отправить запрос на подключение 2FA, а мы поможем завершить настройку."}
+                </span>
               </div>
               <div className="profileInlineActions">
-                <span className={hasTelegram ? "profileState profileStateEnabled" : "profileState"}>
-                  {hasTelegram ? "Доступна" : "Недоступна"}
+                <span className={overview.profile.hasOpenTwoFactorRequest ? "profileState profileStateEnabled" : hasTelegram ? "profileState profileStateEnabled" : "profileState"}>
+                  {overview.profile.hasOpenTwoFactorRequest ? "Запрос открыт" : hasTelegram ? "Доступна" : "По запросу"}
                 </span>
-                <button className="secondaryButton portalGhostButton profileMiniButton" type="button">
-                  Управлять 2FA
-                </button>
+                <form action={requestTwoFactorSetupAction}>
+                  <input name="returnTo" type="hidden" value="/cabinet/profile" />
+                  <button
+                    className="secondaryButton portalGhostButton profileMiniButton"
+                    disabled={overview.profile.hasOpenTwoFactorRequest}
+                    type="submit"
+                  >
+                    Управлять 2FA
+                  </button>
+                </form>
               </div>
             </div>
           </div>
@@ -1228,9 +1277,17 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                     {session.timeLabel}
                   </span>
                 </div>
-                <button className="secondaryButton portalGhostButton profileMiniButton" type="button">
-                  Завершить
-                </button>
+                {session.isCurrent ? (
+                  <form action={logoutClientAction}>
+                    <button className="secondaryButton portalGhostButton profileMiniButton" type="submit">
+                      Завершить
+                    </button>
+                  </form>
+                ) : (
+                  <button className="secondaryButton portalGhostButton profileMiniButton" disabled type="button">
+                    Завершить
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -1283,9 +1340,16 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
             <p>После удаления аккаунта все данные будут безвозвратно удалены.</p>
           </div>
 
-          <button className="secondaryButton dangerButton profileDeleteButton" type="button">
-            Удалить аккаунт
-          </button>
+          <form action={requestAccountDeletionAction}>
+            <input name="returnTo" type="hidden" value="/cabinet/profile" />
+            <button
+              className="secondaryButton dangerButton profileDeleteButton"
+              disabled={overview.profile.hasOpenDeletionRequest}
+              type="submit"
+            >
+              {overview.profile.hasOpenDeletionRequest ? "Запрос уже отправлен" : "Удалить аккаунт"}
+            </button>
+          </form>
         </article>
       </section>
       ) : null}

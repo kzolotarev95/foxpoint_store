@@ -5,12 +5,16 @@ export type ClientOverview = {
     name: string;
     email: string | null;
     telegram: string | null;
+    localLogin: string | null;
     createdAt: string;
+    lastActivityAt: string | null;
     status: string;
     balance: number;
     balanceLabel: string;
     referralCode: string;
     referralLink: string;
+    hasOpenTwoFactorRequest: boolean;
+    hasOpenDeletionRequest: boolean;
   };
   links: {
     support: string;
@@ -174,6 +178,7 @@ export type AdminOverview = {
     routerCount: number;
     referralCode: string;
     createdAt: string;
+    lastActivityAt: string | null;
   }>;
   routers: Array<{
     id: string;
@@ -182,35 +187,48 @@ export type AdminOverview = {
     serialNumber: string | null;
     configurationType: string;
     status: string;
+    ownerId: string;
     ownerName: string;
     savedTemplate: string;
+    adminNote: string | null;
     createdAt: string;
   }>;
   subscriptions: Array<{
     id: string;
+    routerId: string;
     routerName: string;
     bundleLabel: string;
     status: string;
+    startAt: string | null;
     endAt: string | null;
     price: number;
     priceLabel: string;
+    accessEnabled: boolean;
+    supportType: string;
     pendingActivation: boolean;
   }>;
   orders: Array<{
     id: string;
+    userId: string;
     customerName: string;
     status: string;
     totalPrice: number;
     totalPriceLabel: string;
     trackingNumber: string | null;
     createdAt: string;
+    receivedAt: string | null;
   }>;
   tickets: Array<{
     id: string;
+    userId: string;
+    routerId: string | null;
     customerName: string;
     routerName: string;
     category: string;
+    description: string;
     status: string;
+    assigneeId: string | null;
+    createdAt: string;
     updatedAt: string;
   }>;
   rewards: Array<{
