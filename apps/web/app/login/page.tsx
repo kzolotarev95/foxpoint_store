@@ -19,13 +19,17 @@ function getSingleParam(value: string | string[] | undefined): string | null {
 export default async function LoginPage(props: { searchParams: PageSearchParams }) {
   const existingToken = await getClientSessionToken();
   if (existingToken) {
-    const response = await fetch(`${getApiBaseUrl()}/api/me/overview`, {
-      headers: Object.fromEntries((await getClientRequestHeaders()).entries()),
-      cache: "no-store"
-    });
+    try {
+      const response = await fetch(`${getApiBaseUrl()}/api/me/overview`, {
+        headers: Object.fromEntries((await getClientRequestHeaders()).entries()),
+        cache: "no-store"
+      });
 
-    if (response.ok) {
-      redirect("/cabinet");
+      if (response.ok) {
+        redirect("/cabinet");
+      }
+    } catch {
+      // If the API is temporarily unavailable or the cookie is stale, fall back to a fresh login.
     }
 
     await clearClientSessionCookie();
