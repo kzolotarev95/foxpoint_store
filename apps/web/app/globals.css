@@ -907,7 +907,12 @@ textarea {
     padding: 1rem;
   }
 
+  .heroContent {
+    order: 2;
+  }
+
   .heroVisual {
+    order: 1;
     min-height: auto;
     width: min(100%, 22rem);
   }
