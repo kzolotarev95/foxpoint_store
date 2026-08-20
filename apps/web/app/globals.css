@@ -1889,7 +1889,10 @@ textarea {
 }
 
 .clientRoutersExperience .brandMark img {
-  display: none;
+  display: block;
+  width: 2rem;
+  height: 2rem;
+  filter: drop-shadow(0 0 10px rgba(135, 64, 255, 0.28));
 }
 
 .clientRoutersExperience .brandWordmark strong {
@@ -2553,11 +2556,11 @@ textarea {
 
 .clientRoutersMascot {
   position: sticky;
-  top: 4.45rem;
+  top: 3.35rem;
   display: flex;
-  align-items: flex-end;
-  justify-content: flex-end;
-  min-height: 42rem;
+  align-items: flex-start;
+  justify-content: flex-start;
+  min-height: 0;
   margin-left: 0;
   padding: 0;
   pointer-events: none;
@@ -2583,11 +2586,11 @@ textarea {
 .clientRoutersMascotShell {
   position: relative;
   display: flex;
-  align-items: flex-end;
-  justify-content: flex-end;
+  align-items: flex-start;
+  justify-content: flex-start;
   width: min(100%, 31rem);
-  min-height: 100%;
-  padding: 0.65rem 0 1.1rem;
+  min-height: 0;
+  padding: 0 0 0.9rem;
   isolation: isolate;
 }
 
