@@ -1,3 +1,5 @@
+import { headers } from "next/headers";
+
 const DEFAULT_APP_URL = "http://localhost:3000";
 
 export type TelegramCallbackPayload = {
@@ -39,6 +41,35 @@ function getAppBaseUrl(): string {
 
 export function buildTelegramCallbackUrl(path: "login" | "link", input?: { referralCode?: string }): string {
   const url = new URL(`/telegram/${path}`, getAppBaseUrl());
+  const referralCode = input?.referralCode?.trim() ?? "";
+
+  if (path === "login" && referralCode) {
+    url.searchParams.set("ref", referralCode);
+  }
+
+  return url.toString();
+}
+
+async function getRequestBaseUrl(): Promise<string | null> {
+  const headerStore = await headers();
+  const forwardedHost = headerStore.get("x-forwarded-host")?.split(",")[0]?.trim() ?? "";
+  const host = forwardedHost || headerStore.get("host")?.trim() || "";
+
+  if (!host) {
+    return null;
+  }
+
+  const forwardedProto = headerStore.get("x-forwarded-proto")?.split(",")[0]?.trim() ?? "";
+  const proto = forwardedProto || (host.includes("localhost") ? "http" : "https");
+  return `${proto}://${host}`.replace(/\/+$/, "");
+}
+
+export async function buildTelegramCallbackUrlForRequest(
+  path: "login" | "link",
+  input?: { referralCode?: string }
+): Promise<string> {
+  const requestBaseUrl = await getRequestBaseUrl();
+  const url = new URL(`/telegram/${path}`, requestBaseUrl ?? getAppBaseUrl());
   const referralCode = input?.referralCode?.trim() ?? "";
 
   if (path === "login" && referralCode) {

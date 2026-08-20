@@ -17,7 +17,7 @@ import {
 } from "../../lib/client-actions";
 import { fetchClientApi } from "../../lib/client-auth";
 import type { ClientOverview } from "../../lib/portal-types";
-import { buildTelegramCallbackUrl, getTelegramBotUsername } from "../../lib/telegram-auth";
+import { buildTelegramCallbackUrlForRequest, getTelegramBotUsername } from "../../lib/telegram-auth";
 
 export type PageSearchParams = Promise<Record<string, string | string[] | undefined>>;
 export type CabinetTab = "overview" | "routers" | "support" | "payments" | "profile";
@@ -694,6 +694,7 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
   const telegramHandle = formatTelegramHandle(overview.profile.telegram);
   const hasTelegram = Boolean(overview.profile.telegram);
   const telegramBotUsername = getTelegramBotUsername(overview.links.telegramBot);
+  const telegramLinkUrl = await buildTelegramCallbackUrlForRequest("link");
   const profileSessions = overview.sessions.map((session) => ({
     ...session,
     ...getProfileSessionMeta(session)
@@ -1197,7 +1198,7 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                   {hasTelegram ? "Привязан" : "Не подключен"}
                 </span>
                 <TelegramLoginWidget
-                  authUrl={buildTelegramCallbackUrl("link")}
+                  authUrl={telegramLinkUrl}
                   botUrl={telegramBotUsername ? overview.links.telegramBot : overview.links.support}
                   botUsername={telegramBotUsername}
                   className="telegramAuthStack telegramAuthStackCompact"
