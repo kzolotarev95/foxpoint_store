@@ -1,7 +1,7 @@
 {
-  "name": "FoxPoint",
-  "short_name": "FoxPoint",
-  "description": "Сайт, личный кабинет и админ-панель проекта 'Интернет, как раньше'",
+  "name": "FOX POINT",
+  "short_name": "FOX POINT",
+  "description": "Сайт, личный кабинет и админ-панель FOX POINT",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#110d18",
@@ -13,9 +13,9 @@
       "type": "image/png"
     },
     {
-      "src": "/favicon.ico",
-      "sizes": "64x64",
-      "type": "image/x-icon"
+      "src": "/images/foxpoint-logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
     }
   ]
 }

@@ -51,7 +51,7 @@ export default async function LoginPage(props: { searchParams: PageSearchParams 
           {errorMessage ? <div className="banner errorBanner">{errorMessage}</div> : null}
 
           <div className="authBrandMark authLoginMark">
-            <Image alt="" aria-hidden height={56} src="/apple-touch-icon.png" width={56} />
+            <Image alt="" aria-hidden height={72} src="/images/foxpoint-logo.png" width={72} />
           </div>
 
           <h1>Свободный интернет</h1>

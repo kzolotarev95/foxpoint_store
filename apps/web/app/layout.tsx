@@ -13,14 +13,20 @@ const rubik = Rubik({
 });
 
 export const metadata: Metadata = {
-  title: "FoxPoint | Интернет, как раньше",
-  description: "Сайт, личный кабинет и админ-панель проекта 'Интернет, как раньше'",
+  title: "FOX POINT | Интернет должен просто работать",
+  description: "Сайт, личный кабинет и админ-панель FOX POINT",
   manifest: "/site.webmanifest",
   icons: {
     icon: [
       {
         rel: "icon",
         url: "/favicon.ico"
+      },
+      {
+        rel: "icon",
+        url: "/images/foxpoint-logo.png",
+        sizes: "512x512",
+        type: "image/png"
       }
     ],
     apple: [
@@ -35,7 +41,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "FoxPoint"
+    title: "FOX POINT"
   }
 };
 

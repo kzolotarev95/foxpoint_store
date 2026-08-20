@@ -15,13 +15,15 @@ type PortalHeaderProps = {
 };
 
 export function PortalHeader({ navItems = [], rightSlot, subtitle }: PortalHeaderProps) {
+  const brandSubtitle = subtitle ?? "Интернет должен просто работать.";
+
   return (
     <header className="portalTopBar panel">
       <Link className="brandMark" href="/">
-        <Image alt="" aria-hidden="true" height={34} src="/apple-touch-icon.png" width={34} />
+        <Image alt="" aria-hidden="true" height={40} src="/images/foxpoint-logo.png" width={40} />
         <span className="brandWordmark">
           <strong>FOX POINT</strong>
-          {subtitle ? <span>{subtitle}</span> : null}
+          <span>{brandSubtitle}</span>
         </span>
       </Link>
 

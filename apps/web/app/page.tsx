@@ -26,12 +26,12 @@ export default async function HomePage() {
             </Link>
           </>
         }
-        subtitle="Интернет должен просто работать"
+        subtitle="Интернет должен просто работать."
       />
 
       <section className="portalHero">
         <div className="heroCopy">
-          <span className="statusTag">FoxPoint</span>
+          <span className="statusTag">FOX POINT</span>
           <h1>Интернет должен просто работать.</h1>
           <p>{site.tagline}</p>
 
@@ -92,7 +92,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <footer className="siteFooter">FOX POINT © 2026. Свободный интернет.</footer>
+      <footer className="siteFooter">FOX POINT © 2026. Интернет должен просто работать.</footer>
     </main>
   );
 }

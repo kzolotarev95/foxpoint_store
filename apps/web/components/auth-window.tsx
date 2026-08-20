@@ -9,7 +9,7 @@ type AuthWindowProps = {
 
 const contentByMode = {
   home: {
-    eyebrow: "FoxPoint Access",
+    eyebrow: "FOX POINT Access",
     title: "Интернет, как раньше.",
     copy: "",
     cardTitle: "Вход для клиентов",
@@ -22,7 +22,7 @@ const contentByMode = {
   },
   login: {
     eyebrow: "Client Login",
-    title: "Вход в FoxPoint",
+    title: "Вход в FOX POINT",
     copy: "",
     cardTitle: "Вход для клиентов",
     cardCopy:
@@ -89,7 +89,7 @@ export function AuthWindow({ entryLinks, hasTelegramBot, mode }: AuthWindowProps
         <img
           className="authPreviewImage"
           src="/images/foxpoint-hero-welcome.jpg"
-          alt="FoxPoint"
+          alt="FOX POINT"
           style={{
             display: "block",
             width: "100%",
