@@ -1995,8 +1995,8 @@ textarea {
 
 .clientRoutersStage {
   display: grid;
-  gap: 0.6rem;
-  grid-template-columns: minmax(0, 1fr) minmax(300px, 392px);
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 470px);
   align-items: flex-start;
 }
 
@@ -2379,42 +2379,47 @@ textarea {
 
 .clientRoutersMascot {
   position: sticky;
-  top: 5.1rem;
+  top: 4.8rem;
   display: flex;
-  align-items: flex-start;
-  justify-content: flex-end;
-  min-height: 100%;
-  margin-left: 0;
-  padding-top: 0.15rem;
+  align-items: stretch;
+  justify-content: center;
+  min-height: 43rem;
+  margin-left: -1.25rem;
+  padding: 0.25rem 0 0;
   pointer-events: none;
   z-index: 0;
   isolation: isolate;
+  overflow: visible;
 }
 
 .clientRoutersMascot::before {
   content: "";
   position: absolute;
-  inset: 12% -2% 10% 12%;
-  border-radius: 50%;
+  inset: 10% 4% 4% 10%;
+  border-radius: 2.8rem;
   background:
-    radial-gradient(circle, rgba(131, 50, 255, 0.26), rgba(131, 50, 255, 0.1) 38%, transparent 72%);
-  filter: blur(24px);
-  opacity: 0.76;
+    radial-gradient(circle at 58% 28%, rgba(148, 69, 255, 0.34), transparent 34%),
+    radial-gradient(circle at 50% 76%, rgba(255, 108, 24, 0.18), transparent 26%),
+    linear-gradient(180deg, rgba(17, 12, 34, 0.08), rgba(8, 7, 18, 0));
+  filter: blur(28px);
+  opacity: 0.96;
   z-index: -1;
 }
 
 .clientRoutersMascotImage {
-  width: min(100%, 31rem);
+  align-self: end;
+  width: min(100%, 36rem);
+  max-width: none;
   height: auto;
-  opacity: 0.96;
+  opacity: 1;
   object-fit: contain;
-  mix-blend-mode: screen;
   filter:
-    saturate(1.08)
-    contrast(1.06)
-    brightness(1.04)
+    saturate(1.07)
+    contrast(1.05)
+    brightness(1.02)
     drop-shadow(0 28px 46px rgba(0, 0, 0, 0.42))
-    drop-shadow(0 0 28px rgba(130, 48, 255, 0.14));
+    drop-shadow(0 0 30px rgba(130, 48, 255, 0.16));
+  transform: translateX(-0.45rem);
 }
 
 .clientEmptyRouters {
@@ -2552,10 +2557,13 @@ textarea {
     order: -1;
     margin-left: 0;
     justify-content: center;
+    min-height: 28rem;
+    padding-top: 0.2rem;
   }
 
   .clientRoutersMascotImage {
-    width: min(100%, 18rem);
+    width: min(100%, 23rem);
+    transform: none;
   }
 
   .clientRouterRow {
@@ -2735,6 +2743,18 @@ textarea {
   .clientRoutersLead p {
     max-width: 28rem;
     font-size: 0.95rem;
+  }
+
+  .clientRoutersMascot {
+    min-height: 23rem;
+  }
+
+  .clientRoutersMascot::before {
+    inset: 12% 6% 8%;
+  }
+
+  .clientRoutersMascotImage {
+    width: min(100%, 19rem);
   }
 
   .clientSummaryCard,

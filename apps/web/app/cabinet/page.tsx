@@ -643,8 +643,8 @@ export default async function CabinetPage(props: { searchParams: PageSearchParam
               className="clientRoutersMascotImage"
               height={1280}
               priority
-              src="/images/foxpoint-cabinet-fox.png"
-              width={1280}
+              src="/images/foxpoint-cabinet-fox-cutout.png"
+              width={1091}
             />
           </aside>
         </div>
