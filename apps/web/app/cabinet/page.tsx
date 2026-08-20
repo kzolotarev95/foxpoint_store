@@ -370,41 +370,55 @@ function ChevronIcon() {
 function DevicePreview({ router, index }: { router: RouterOverviewItem; index: number }) {
   const skin = getRouterDeviceSkin(router, index);
   const antennaIndices = Array.from({ length: skin.antennaCount }, (_, item) => item);
+  const hasDistinctModelLabel = skin.modelLabel.trim().toUpperCase() !== skin.brandLabel.trim().toUpperCase();
+  const modelBadgeClassName = hasDistinctModelLabel
+    ? "routerDeviceModelBadge"
+    : "routerDeviceModelBadge isSingleLine";
+  const modelBadge = (
+    <div className="routerDeviceBadgeFrame">
+      <div className={modelBadgeClassName}>
+        {hasDistinctModelLabel ? <span>{skin.brandLabel}</span> : null}
+        <strong>{skin.modelLabel}</strong>
+      </div>
+    </div>
+  );
 
   return (
     <div className={`routerDeviceStage is-${skin.variant}`}>
       {skin.imageSrc ? (
-        <div className="routerDeviceImageWrap">
-          <Image
-            alt={skin.imageAlt ?? skin.modelLabel}
-            className={skin.imageClassName ? `routerDeviceImage ${skin.imageClassName}` : "routerDeviceImage"}
-            height={220}
-            priority={false}
-            src={skin.imageSrc}
-            width={300}
-          />
-          <div className="routerDeviceModelBadge">
-            <span>{skin.brandLabel}</span>
-            <strong>{skin.modelLabel}</strong>
+        <>
+          <div className="routerDeviceImageWrap">
+            <Image
+              alt={skin.imageAlt ?? skin.modelLabel}
+              className={skin.imageClassName ? `routerDeviceImage ${skin.imageClassName}` : "routerDeviceImage"}
+              height={220}
+              priority={false}
+              src={skin.imageSrc}
+              width={300}
+            />
           </div>
-        </div>
+          {modelBadge}
+        </>
       ) : (
-        <div className={`routerDevice is-${skin.variant}`}>
-          <div className="routerDeviceAntennaRow">
-            {antennaIndices.map((item) => (
-              <span key={item} className="routerAntenna" />
-            ))}
-          </div>
-          <div className="routerDeviceBody">
-            <span className="routerDeviceBrand">{skin.brandLabel}</span>
-            <div className="routerDeviceLights">
-              <span />
-              <span />
-              <span />
-              <span />
+        <>
+          <div className={`routerDevice is-${skin.variant}`}>
+            <div className="routerDeviceAntennaRow">
+              {antennaIndices.map((item) => (
+                <span key={item} className="routerAntenna" />
+              ))}
+            </div>
+            <div className="routerDeviceBody">
+              <span className="routerDeviceBrand">{skin.brandLabel}</span>
+              <div className="routerDeviceLights">
+                <span />
+                <span />
+                <span />
+                <span />
+              </div>
             </div>
           </div>
-        </div>
+          {modelBadge}
+        </>
       )}
     </div>
   );
