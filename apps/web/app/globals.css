@@ -635,29 +635,33 @@ textarea {
 }
 
 .clientAuthPanel {
-  width: min(430px, 100%);
-  padding: 1rem;
-  gap: 1rem;
+  width: min(820px, 100%);
+  padding: 0;
+  gap: 0;
+  overflow: hidden;
+  grid-template-columns: minmax(0, 1.05fr) minmax(290px, 0.8fr);
+  align-items: stretch;
 }
 
 .clientAuthHero {
+  display: flex;
   overflow: hidden;
   width: 100%;
-  border: 1px solid var(--line);
-  border-radius: 1.5rem;
   background: #100b14;
 }
 
 .clientAuthBody {
   display: grid;
-  gap: 1rem;
+  align-content: center;
+  gap: 0.8rem;
   width: 100%;
+  padding: 1rem;
 }
 
 .clientAuthImage {
   width: 100%;
-  height: auto;
-  aspect-ratio: 4 / 5;
+  height: 100%;
+  aspect-ratio: 1 / 1;
   object-fit: cover;
   object-position: center top;
 }
@@ -665,7 +669,7 @@ textarea {
 .clientAuthActions,
 .clientAuthForm {
   width: 100%;
-  max-width: 18.75rem;
+  max-width: none;
   margin: 0 auto;
 }
 
@@ -676,15 +680,22 @@ textarea {
 
 .clientAuthForm {
   justify-items: center;
+  gap: 0.65rem;
 }
 
 .clientAuthForm .fieldStack {
   width: 100%;
   justify-items: center;
+  gap: 0.45rem;
 }
 
 .clientAuthForm .fieldLabel {
   text-align: center;
+}
+
+.clientAuthPanel .textInput {
+  min-height: 2.75rem;
+  padding: 0.7rem 0.9rem;
 }
 
 .adminAuthPanel .authForm {
@@ -967,12 +978,20 @@ textarea {
   }
 
   .clientAuthPanel {
-    width: min(390px, 100%);
-    padding: 0.9rem;
+    width: min(100%, 520px);
+    grid-template-columns: 1fr;
   }
 
   .authPreviewMedia {
     min-height: 14rem;
+  }
+
+  .clientAuthHero {
+    border-bottom: 1px solid var(--line);
+  }
+
+  .clientAuthImage {
+    aspect-ratio: 16 / 11;
   }
 
   .stickyActions {
