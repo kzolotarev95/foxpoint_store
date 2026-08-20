@@ -79,7 +79,7 @@ export default async function LoginPage(props: { searchParams: PageSearchParams 
               botUrl={botIsConfigured ? site.links.telegramBot : site.links.support}
               botUsername={telegramBotUsername}
               className="telegramAuthStack"
-              fallbackLabel={botIsConfigured ? "Открыть Telegram-бота" : "Открыть поддержку"}
+              fallbackLabel={botIsConfigured ? "Войти через Telegram" : "Открыть поддержку"}
               hint={
                 botIsConfigured
                   ? "Telegram сам вернет вас на сайт и завершит вход."

@@ -1,4 +1,7 @@
+ "use client";
+
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 
 type TelegramLoginWidgetProps = {
   authUrl: string;
@@ -17,6 +20,47 @@ export function TelegramLoginWidget({
   fallbackLabel,
   hint
 }: TelegramLoginWidgetProps) {
+  const widgetRef = useRef<HTMLDivElement | null>(null);
+  const [hasRenderedWidget, setHasRenderedWidget] = useState(false);
+
+  useEffect(() => {
+    if (!botUsername || !widgetRef.current) {
+      setHasRenderedWidget(false);
+      return;
+    }
+
+    const widgetNode = widgetRef.current;
+    widgetNode.innerHTML = "";
+    setHasRenderedWidget(false);
+
+    const observer = new MutationObserver(() => {
+      const hasWidgetContent = Array.from(widgetNode.children).some((child) => child.tagName !== "SCRIPT");
+      if (hasWidgetContent) {
+        setHasRenderedWidget(true);
+      }
+    });
+
+    observer.observe(widgetNode, {
+      childList: true,
+      subtree: true
+    });
+
+    const script = document.createElement("script");
+    script.async = true;
+    script.src = "https://telegram.org/js/telegram-widget.js?22";
+    script.setAttribute("data-telegram-login", botUsername);
+    script.setAttribute("data-size", "large");
+    script.setAttribute("data-radius", "12");
+    script.setAttribute("data-auth-url", authUrl);
+    script.setAttribute("data-request-access", "write");
+    widgetNode.appendChild(script);
+
+    return () => {
+      observer.disconnect();
+      widgetNode.innerHTML = "";
+    };
+  }, [authUrl, botUsername]);
+
   if (!botUsername) {
     return (
       <div className={className}>
@@ -31,15 +75,12 @@ export function TelegramLoginWidget({
   return (
     <div className={className}>
       <div className="telegramWidgetShell">
-        <script
-          async
-          data-auth-url={authUrl}
-          data-radius="12"
-          data-request-access="write"
-          data-size="large"
-          data-telegram-login={botUsername}
-          src="https://telegram.org/js/telegram-widget.js?22"
-        />
+        <div ref={widgetRef} className="telegramWidgetMount" />
+        {!hasRenderedWidget ? (
+          <Link className="primaryButton fullWidthButton portalActionButton telegramWidgetFallbackButton" href={botUrl} target="_blank">
+            {fallbackLabel}
+          </Link>
+        ) : null}
       </div>
       {hint ? <p className="telegramWidgetHint">{hint}</p> : null}
       <noscript>
