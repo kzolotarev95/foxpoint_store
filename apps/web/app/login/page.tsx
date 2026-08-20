@@ -27,6 +27,7 @@ export default async function LoginPage(props: { searchParams: PageSearchParams 
   const signedOutMessage = getSingleParam(searchParams.signedOut) ? "Сессия завершена." : null;
   const referralCode = getSingleParam(searchParams.ref) ?? "";
   const supportLink = site.links.support;
+  const telegramChannelLink = site.links.telegramChannel;
 
   return (
     <main className="shell authExperience authLoginExperience">
@@ -53,6 +54,13 @@ export default async function LoginPage(props: { searchParams: PageSearchParams 
           <div className="clientAuthActions authLoginActions">
             <Link className="primaryButton fullWidthButton portalActionButton" href={supportLink} target="_blank">
               Открыть поддержку
+            </Link>
+            <Link
+              className="secondaryButton fullWidthButton portalGhostButton authLoginChannelButton"
+              href={telegramChannelLink}
+              target="_blank"
+            >
+              Telegram-канал
             </Link>
           </div>
 
@@ -85,7 +93,7 @@ export default async function LoginPage(props: { searchParams: PageSearchParams 
 
             {referralCode ? <input name="referralCode" type="hidden" value={referralCode} /> : null}
 
-            <button className="primaryButton fullWidthButton portalActionButton" type="submit">
+            <button className="primaryButton fullWidthButton portalActionButton authLoginSubmitButton" type="submit">
               Войти
             </button>
 
