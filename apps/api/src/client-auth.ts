@@ -1,7 +1,7 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import type { FastifyRequest } from "fastify";
-import { prisma } from "./prisma.js";
 import { config } from "./config.js";
+import { prisma } from "./prisma.js";
 
 const CLIENT_COOKIE_NAME = "foxpoint_client_session";
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 30;
@@ -58,8 +58,33 @@ function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
+function normalizeLogin(login: string): string {
+  return login.trim().toLowerCase();
+}
+
 function normalizeReferralCode(value: string): string {
   return value.trim().toUpperCase();
+}
+
+function createPasswordHash(password: string): string {
+  const salt = randomBytes(16).toString("hex");
+  const hash = scryptSync(password, salt, 64).toString("hex");
+  return `scrypt:${salt}:${hash}`;
+}
+
+function verifyPassword(password: string, passwordHash: string): boolean {
+  const [algorithm, salt, storedHash] = passwordHash.split(":");
+  if (algorithm !== "scrypt" || !salt || !storedHash) {
+    return false;
+  }
+
+  const expectedLength = Buffer.from(storedHash, "hex").length;
+  if (expectedLength === 0) {
+    return false;
+  }
+
+  const actualHash = scryptSync(password, salt, expectedLength).toString("hex");
+  return safeEqual(actualHash, storedHash);
 }
 
 export function getClientCookieName(): string {
@@ -111,6 +136,10 @@ export function getClientSessionFromRequest(request: FastifyRequest): ClientSess
 
 export function buildReferralCode(userId: string): string {
   return `FOX-${userId.replace(/[^A-Za-z0-9]/g, "").slice(-8).toUpperCase()}`;
+}
+
+export function normalizeClientLogin(login: string): string {
+  return normalizeLogin(login);
 }
 
 async function resolveReferrerByCode(referralCode: string) {
@@ -203,5 +232,100 @@ export async function upsertClientFromEmail(input: {
     isNew: true,
     token: createClientSessionToken(createdUser.id),
     userId: createdUser.id
+  };
+}
+
+export async function registerClientFromCredentials(input: {
+  login: string;
+  password: string;
+  referralCode?: string;
+}) {
+  const login = normalizeLogin(input.login);
+  const password = input.password;
+  const referralCode = input.referralCode?.trim() || "";
+
+  const existingIdentity = await prisma.authIdentity.findFirst({
+    where: {
+      provider: "LOCAL",
+      providerUserId: login
+    },
+    include: {
+      user: true
+    }
+  });
+
+  if (existingIdentity) {
+    throw new Error("Такой логин уже занят.");
+  }
+
+  const referrer = await resolveReferrerByCode(referralCode);
+  const createdUser = await prisma.$transaction(async (tx) => {
+    const user = await tx.user.create({
+      data: {
+        name: login,
+        status: "ACTIVE",
+        lastActivityAt: new Date()
+      }
+    });
+
+    await tx.authIdentity.create({
+      data: {
+        userId: user.id,
+        provider: "LOCAL",
+        providerUserId: login,
+        passwordHash: createPasswordHash(password),
+        verifiedAt: new Date()
+      }
+    });
+
+    if (referrer && referrer.id !== user.id) {
+      await tx.referral.create({
+        data: {
+          referrerUserId: referrer.id,
+          referredUserId: user.id,
+          referralCode: normalizeReferralCode(referralCode),
+          source: "site_local_mvp"
+        }
+      });
+    }
+
+    return user;
+  });
+
+  return {
+    isNew: true,
+    token: createClientSessionToken(createdUser.id),
+    userId: createdUser.id
+  };
+}
+
+export async function loginClientFromCredentials(input: { login: string; password: string }) {
+  const login = normalizeLogin(input.login);
+  const password = input.password;
+
+  const existingIdentity = await prisma.authIdentity.findFirst({
+    where: {
+      provider: "LOCAL",
+      providerUserId: login
+    }
+  });
+
+  if (!existingIdentity || !existingIdentity.passwordHash || !verifyPassword(password, existingIdentity.passwordHash)) {
+    throw new Error("Неверный логин или пароль.");
+  }
+
+  await prisma.user.update({
+    where: {
+      id: existingIdentity.userId
+    },
+    data: {
+      lastActivityAt: new Date()
+    }
+  });
+
+  return {
+    isNew: false,
+    token: createClientSessionToken(existingIdentity.userId),
+    userId: existingIdentity.userId
   };
 }

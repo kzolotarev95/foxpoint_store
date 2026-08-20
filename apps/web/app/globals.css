@@ -995,12 +995,26 @@ textarea {
 }
 
 .authTab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   min-height: 2.55rem;
   border: 0;
   border-radius: 0.85rem;
   background: transparent;
   color: var(--muted);
   font-weight: 800;
+  text-decoration: none;
+  transition:
+    color 160ms ease,
+    background-color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.authTab:hover {
+  color: #fff;
+  transform: translateY(-1px);
 }
 
 .authTab.isActive {

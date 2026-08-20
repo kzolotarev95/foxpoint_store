@@ -1,8 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getSiteSnapshot } from "../../components/site-data";
-import { loginWithEmailAction } from "../../lib/client-actions";
+import { getSiteSnapshot, isTelegramBotConfigured } from "../../components/site-data";
+import { authenticateClientAction } from "../../lib/client-actions";
 import { getClientSessionToken } from "../../lib/client-auth";
 
 type PageSearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -25,9 +25,15 @@ export default async function LoginPage(props: { searchParams: PageSearchParams 
   const site = await getSiteSnapshot();
   const errorMessage = getSingleParam(searchParams.error);
   const signedOutMessage = getSingleParam(searchParams.signedOut) ? "Сессия завершена." : null;
+  const mode = getSingleParam(searchParams.mode) === "register" ? "register" : "login";
+  const savedLogin = getSingleParam(searchParams.login) ?? "";
   const referralCode = getSingleParam(searchParams.ref) ?? "";
-  const supportLink = site.links.support;
+  const botIsConfigured = isTelegramBotConfigured(site.links.telegramBot);
+  const primaryTelegramLink = botIsConfigured ? site.links.telegramBot : site.links.support;
+  const primaryTelegramLabel = botIsConfigured ? "Войти через Telegram-бота" : "Открыть поддержку";
   const telegramChannelLink = site.links.telegramChannel;
+  const loginTabHref = `/login?mode=login${referralCode ? `&ref=${encodeURIComponent(referralCode)}` : ""}`;
+  const registerTabHref = `/login?mode=register${referralCode ? `&ref=${encodeURIComponent(referralCode)}` : ""}`;
 
   return (
     <main className="shell authExperience authLoginExperience">
@@ -49,11 +55,11 @@ export default async function LoginPage(props: { searchParams: PageSearchParams 
             <span>Свободный</span>
             <span>интернет</span>
           </h1>
-          <p>Личный кабинет для управления роутерами и технической поддержкой.</p>
+          <p>Вход по логину и паролю, либо через Telegram и бота.</p>
 
           <div className="clientAuthActions authLoginActions">
-            <Link className="primaryButton fullWidthButton portalActionButton" href={supportLink} target="_blank">
-              Открыть поддержку
+            <Link className="primaryButton fullWidthButton portalActionButton" href={primaryTelegramLink} target="_blank">
+              {primaryTelegramLabel}
             </Link>
             <Link
               className="secondaryButton fullWidthButton portalGhostButton authLoginChannelButton"
@@ -65,39 +71,64 @@ export default async function LoginPage(props: { searchParams: PageSearchParams 
           </div>
 
           <div className="authTabs">
-            <button className="authTab isActive" type="button">
+            <Link className={`authTab ${mode === "login" ? "isActive" : ""}`} href={loginTabHref}>
               Вход
-            </button>
-            <button className="authTab" type="button">
+            </Link>
+            <Link className={`authTab ${mode === "register" ? "isActive" : ""}`} href={registerTabHref}>
               Регистрация
-            </button>
+            </Link>
           </div>
 
-          <form action={loginWithEmailAction} className="authForm clientAuthForm">
+          <form action={authenticateClientAction} className="authForm clientAuthForm">
+            <input name="mode" type="hidden" value={mode} />
             <label className="fieldStack">
-              <span className="fieldLabel">Email или логин</span>
+              <span className="fieldLabel">Логин</span>
               <input
-                autoComplete="email"
+                autoComplete="username"
                 className="textInput"
-                name="email"
-                placeholder="Введите email или логин"
+                defaultValue={savedLogin}
+                name="login"
+                placeholder="Введите логин"
                 required
-                type="email"
+                type="text"
               />
             </label>
 
             <label className="fieldStack">
               <span className="fieldLabel">Пароль</span>
-              <input className="textInput" name="password" placeholder="Введите пароль" type="password" />
+              <input
+                autoComplete={mode === "register" ? "new-password" : "current-password"}
+                className="textInput"
+                name="password"
+                placeholder="Введите пароль"
+                required
+                type="password"
+              />
             </label>
 
-            {referralCode ? <input name="referralCode" type="hidden" value={referralCode} /> : null}
+            {mode === "register" ? (
+              <label className="fieldStack">
+                <span className="fieldLabel">Реферальный код</span>
+                <input
+                  autoComplete="off"
+                  className="textInput"
+                  defaultValue={referralCode}
+                  name="referralCode"
+                  placeholder="Если пришли по ссылке, код уже будет здесь"
+                  type="text"
+                />
+              </label>
+            ) : null}
 
             <button className="primaryButton fullWidthButton portalActionButton authLoginSubmitButton" type="submit">
-              Войти
+              {mode === "register" ? "Зарегистрироваться" : "Войти"}
             </button>
 
-            <p className="authHint">Если забыли пароль, войдите через Telegram и восстановите доступ в профиле.</p>
+            <p className="authHint">
+              {mode === "register"
+                ? "Рефкод подтянется автоматически из ссылки ?ref=."
+                : "Если пароль забыли, используйте Telegram-бота для восстановления доступа."}
+            </p>
           </form>
         </div>
       </section>

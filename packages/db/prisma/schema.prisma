@@ -16,6 +16,7 @@ enum UserStatus {
 enum AuthProvider {
   TELEGRAM
   EMAIL
+  LOCAL
   GOOGLE
 }
 
@@ -122,6 +123,7 @@ model AuthIdentity {
   provider       AuthProvider
   providerUserId String
   email          String?
+  passwordHash   String?
   verifiedAt     DateTime?
   user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 

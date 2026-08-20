@@ -3,7 +3,7 @@ import sensible from "@fastify/sensible";
 import Fastify, { type FastifyRequest } from "fastify";
 import { z } from "zod";
 import { readAdminSession, readAdminSessionToken } from "./admin-auth.js";
-import { getClientSessionFromRequest, upsertClientFromEmail } from "./client-auth.js";
+import { getClientSessionFromRequest, loginClientFromCredentials, registerClientFromCredentials, upsertClientFromEmail } from "./client-auth.js";
 import { getAdminSettings, saveAdminSettings } from "./admin-settings.js";
 import { config } from "./config.js";
 import { buildOverview } from "./overview.js";
@@ -80,7 +80,7 @@ app.get("/api/site", async () => {
 
 app.get("/api/routes", async () => {
   return {
-    public: ["/health", "/api/overview", "/api/site", "/api/routes", "/api/auth/email"],
+    public: ["/health", "/api/overview", "/api/site", "/api/routes", "/api/auth/email", "/api/auth/credentials"],
     planned: [
       "/api/me/overview",
       "/api/orders",
@@ -105,6 +105,43 @@ app.post("/api/auth/email", async (request, reply) => {
   const result = await upsertClientFromEmail(body);
   reply.code(result.isNew ? 201 : 200);
   return result;
+});
+
+app.post("/api/auth/credentials", async (request, reply) => {
+  const body = z
+    .object({
+      mode: z.enum(["login", "register"]),
+      login: z
+        .string()
+        .trim()
+        .min(3)
+        .max(32)
+        .regex(/^[a-zA-Z0-9._-]+$/),
+      password: z.string().min(6).max(128),
+      referralCode: z.string().trim().max(32).optional()
+    })
+    .parse(request.body);
+
+  try {
+    const result =
+      body.mode === "register"
+        ? await registerClientFromCredentials({
+            login: body.login,
+            password: body.password,
+            referralCode: body.referralCode
+          })
+        : await loginClientFromCredentials({
+            login: body.login,
+            password: body.password
+          });
+    reply.code(result.isNew ? 201 : 200);
+    return result;
+  } catch (error) {
+    reply.code(400);
+    return {
+      error: error instanceof Error ? error.message : "Не удалось выполнить вход."
+    };
+  }
 });
 
 app.get("/api/me/overview", async (request, reply) => {

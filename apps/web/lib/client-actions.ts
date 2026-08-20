@@ -46,6 +46,41 @@ export async function loginWithEmailAction(formData: FormData) {
   redirect(payload.isNew ? "/cabinet?welcome=1" : "/cabinet");
 }
 
+export async function authenticateClientAction(formData: FormData) {
+  const mode = String(formData.get("mode") ?? "login").trim() === "register" ? "register" : "login";
+  const login = String(formData.get("login") ?? "").trim();
+  const password = String(formData.get("password") ?? "");
+  const referralCode = String(formData.get("referralCode") ?? "").trim();
+
+  const response = await fetch(`${getApiBaseUrl()}/api/auth/credentials`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({
+      mode,
+      login,
+      password,
+      referralCode: referralCode || undefined
+    }),
+    cache: "no-store"
+  });
+
+  if (!response.ok) {
+    const errorMessage = await parseApiError(response, "Не удалось выполнить вход.");
+    redirect(
+      `/login?mode=${mode}&error=${encodeMessage(errorMessage)}&login=${encodeURIComponent(login)}&ref=${encodeURIComponent(
+        referralCode
+      )}`
+    );
+  }
+
+  const payload = (await response.json()) as { isNew: boolean; token: string };
+  await setClientSessionCookie(payload.token);
+  redirect(payload.isNew ? "/cabinet?welcome=1" : "/cabinet");
+}
+
 export async function logoutClientAction() {
   await clearClientSessionCookie();
   redirect("/login?signedOut=1");
