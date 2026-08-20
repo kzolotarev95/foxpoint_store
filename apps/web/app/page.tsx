@@ -1,10 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
-import { getSiteSnapshot, getSystemHealth, isTelegramBotConfigured } from "../components/site-data";
+import { getSiteSnapshot, getSystemHealth } from "../components/site-data";
 
 export default async function HomePage() {
   const [site, health] = await Promise.all([getSiteSnapshot(), getSystemHealth()]);
-  const hasTelegramBot = isTelegramBotConfigured(site.links.telegramBot);
 
   return (
     <main className="shell siteShell">
@@ -29,19 +28,6 @@ export default async function HomePage() {
         <div className="heroContent">
           <span className="statusTag">Главный экран</span>
           <h1>Интернет должен просто работать.</h1>
-
-          <div className="ctaRow">
-            <Link className="primaryButton" href="/login">
-              Открыть личный кабинет
-            </Link>
-            <Link
-              className="secondaryButton"
-              href={hasTelegramBot ? site.links.telegramBot : site.links.support}
-              target="_blank"
-            >
-              {hasTelegramBot ? "Войти через Telegram" : "Связаться с поддержкой"}
-            </Link>
-          </div>
 
           <div className="heroTrustGrid">
             <article className="metricCard">

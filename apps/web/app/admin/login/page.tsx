@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import {
@@ -78,6 +79,10 @@ export default async function AdminLoginPage(props: { searchParams: PageSearchPa
           <button className="primaryButton fullWidthButton" type="submit">
             Войти
           </button>
+
+          <Link className="secondaryButton fullWidthButton" href="/">
+            Вернуться на главную
+          </Link>
         </form>
       </section>
     </main>
