@@ -311,26 +311,19 @@ textarea {
 }
 
 .brandMark img {
-  border-radius: 0.5rem;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04);
+  display: block;
+  filter: drop-shadow(0 0 12px rgba(141, 88, 255, 0.28));
 }
 
 .brandWordmark {
-  display: grid;
-  gap: 0.14rem;
+  display: flex;
+  align-items: center;
   line-height: 1;
 }
 
 .brandWordmark strong {
   font-size: 1rem;
   letter-spacing: 0.04em;
-}
-
-.brandWordmark span {
-  color: var(--muted);
-  font-size: 0.71rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
 }
 
 .portalNav {
@@ -810,6 +803,11 @@ textarea {
 .authBrandMark {
   display: flex;
   justify-content: center;
+}
+
+.authBrandMark img {
+  display: block;
+  filter: drop-shadow(0 0 22px rgba(141, 88, 255, 0.26));
 }
 
 .authStageCard .statusTag {
@@ -1773,10 +1771,6 @@ textarea {
   .portalTopBar {
     top: 0.45rem;
     padding: 0.75rem;
-  }
-
-  .brandWordmark span {
-    display: none;
   }
 
   .portalActions {

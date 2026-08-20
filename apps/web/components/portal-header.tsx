@@ -11,19 +11,15 @@ type PortalNavItem = {
 type PortalHeaderProps = {
   navItems?: PortalNavItem[];
   rightSlot?: ReactNode;
-  subtitle?: string;
 };
 
-export function PortalHeader({ navItems = [], rightSlot, subtitle }: PortalHeaderProps) {
-  const brandSubtitle = subtitle ?? "Интернет должен просто работать.";
-
+export function PortalHeader({ navItems = [], rightSlot }: PortalHeaderProps) {
   return (
     <header className="portalTopBar panel">
       <Link className="brandMark" href="/">
         <Image alt="" aria-hidden="true" height={40} src="/images/foxpoint-logo.png" width={40} />
         <span className="brandWordmark">
           <strong>FOX POINT</strong>
-          <span>{brandSubtitle}</span>
         </span>
       </Link>
 

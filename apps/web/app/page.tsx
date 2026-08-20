@@ -26,7 +26,6 @@ export default async function HomePage() {
             </Link>
           </>
         }
-        subtitle="Интернет должен просто работать."
       />
 
       <section className="portalHero">

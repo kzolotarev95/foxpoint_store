@@ -71,7 +71,6 @@ export default async function CabinetPage(props: { searchParams: PageSearchParam
             </form>
           </>
         }
-        subtitle="Личный кабинет"
       />
 
       <section id="overview" className="panel portalHero dashboardHero">
