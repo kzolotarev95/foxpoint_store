@@ -800,14 +800,53 @@ textarea {
   justify-items: stretch;
 }
 
+.authLoginCard {
+  width: min(438px, 100%);
+  gap: 0.72rem;
+  padding: 1.45rem 1.35rem 1.3rem;
+  background:
+    radial-gradient(circle at top, rgba(243, 138, 29, 0.08), transparent 28%),
+    linear-gradient(180deg, rgba(22, 16, 30, 0.94) 0%, rgba(15, 11, 21, 0.96) 100%);
+  border-color: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.38), 0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+}
+
 .authBrandMark {
   display: flex;
   justify-content: center;
 }
 
+.authLoginMark {
+  margin-top: -0.05rem;
+}
+
 .authBrandMark img {
   display: block;
   filter: drop-shadow(0 0 22px rgba(141, 88, 255, 0.26));
+}
+
+.authLoginMark img {
+  width: 60px;
+  height: 60px;
+}
+
+.authBrandTitle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.14rem;
+  font-size: 1.78rem;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.05em;
+}
+
+.authBrandFox {
+  color: #ff7d1f;
+}
+
+.authBrandPoint {
+  color: #8d58ff;
 }
 
 .authStageCard .statusTag {
@@ -816,11 +855,17 @@ textarea {
 
 .authStageCard h1 {
   margin: 0;
+  display: grid;
+  gap: 0.06rem;
   text-align: center;
   font-family: var(--font-heading, sans-serif);
-  font-size: clamp(2rem, 4vw, 3rem);
-  line-height: 0.96;
+  font-size: clamp(2.15rem, 4.5vw, 3.1rem);
+  line-height: 0.92;
   letter-spacing: -0.06em;
+}
+
+.authStageCard h1 span {
+  display: block;
 }
 
 .authStageCard p {
@@ -828,6 +873,24 @@ textarea {
   text-align: center;
   color: var(--muted);
   line-height: 1.62;
+}
+
+.authLoginActions {
+  gap: 0.65rem;
+  margin-top: 0.05rem;
+}
+
+.authDivider {
+  display: flex;
+  align-items: center;
+  margin-top: 0.1rem;
+  color: #f2e9ef;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.authDivider span {
+  text-transform: lowercase;
 }
 
 .authTabs {
@@ -864,6 +927,20 @@ textarea {
 
 .authStageCard .textInput {
   background: rgba(17, 12, 25, 0.92);
+}
+
+.authHint {
+  margin: 0.15rem 0 0;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.6;
+}
+
+.authFooterLink {
+  justify-self: start;
+  color: #ffd08f;
+  font-size: 0.95rem;
+  font-weight: 800;
 }
 
 .siteFooter {

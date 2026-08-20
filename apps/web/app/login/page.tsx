@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { PortalHeader } from "../../components/portal-header";
-import { getSiteSnapshot, isTelegramBotConfigured } from "../../components/site-data";
+import { getSiteSnapshot } from "../../components/site-data";
 import { loginWithEmailAction } from "../../lib/client-actions";
 import { getClientSessionToken } from "../../lib/client-auth";
 
@@ -24,11 +24,10 @@ export default async function LoginPage(props: { searchParams: PageSearchParams 
 
   const searchParams = await props.searchParams;
   const site = await getSiteSnapshot();
-  const hasTelegramBot = isTelegramBotConfigured(site.links.telegramBot);
   const errorMessage = getSingleParam(searchParams.error);
   const signedOutMessage = getSingleParam(searchParams.signedOut) ? "Сессия завершена." : null;
   const referralCode = getSingleParam(searchParams.ref) ?? "";
-  const primaryClientLink = hasTelegramBot ? site.links.telegramBot : site.links.support;
+  const supportLink = site.links.support;
 
   return (
     <main className="shell authExperience authLoginExperience">
@@ -38,31 +37,39 @@ export default async function LoginPage(props: { searchParams: PageSearchParams 
             <Link className="secondaryButton portalGhostButton" href={site.links.telegramChannel} target="_blank">
               Telegram-канал
             </Link>
-            <Link className="primaryButton portalActionButton" href={primaryClientLink} target="_blank">
-              {hasTelegramBot ? "Войти в кабинет" : "Открыть поддержку"}
+            <Link className="primaryButton portalActionButton" href={supportLink} target="_blank">
+              Открыть поддержку
             </Link>
           </>
         }
       />
 
       <section className="authStage panel authLoginStage">
-        <div className="panel authStageCard">
+        <div className="panel authStageCard authLoginCard">
           {signedOutMessage ? <div className="banner successBanner">{signedOutMessage}</div> : null}
           {errorMessage ? <div className="banner errorBanner">{errorMessage}</div> : null}
 
           <div className="authBrandMark authLoginMark">
-            <Image alt="" aria-hidden height={72} src="/images/foxpoint-logo.png" width={72} />
+            <Image alt="" aria-hidden height={60} src="/images/foxpoint-logo.png" width={60} />
           </div>
 
-          <h1>Свободный интернет</h1>
+          <div className="authBrandTitle" aria-label="Fox Point">
+            <span className="authBrandFox">Fox</span>
+            <span className="authBrandPoint">Point</span>
+          </div>
+
+          <h1>
+            <span>Свободный</span>
+            <span>интернет</span>
+          </h1>
           <p>Личный кабинет для управления роутерами и технической поддержкой.</p>
 
           <div className="clientAuthActions authLoginActions">
-            <Link className="primaryButton fullWidthButton portalActionButton" href={primaryClientLink} target="_blank">
-              {hasTelegramBot ? "Войти через Telegram" : "Открыть поддержку"}
+            <Link className="primaryButton fullWidthButton portalActionButton" href={supportLink} target="_blank">
+              Открыть поддержку
             </Link>
-            <Link className="secondaryButton fullWidthButton portalGhostButton" href={primaryClientLink} target="_blank">
-              {hasTelegramBot ? "Войти через бота" : "Открыть поддержку"}
+            <Link className="secondaryButton fullWidthButton portalGhostButton" href={supportLink} target="_blank">
+              Открыть поддержку
             </Link>
           </div>
 
