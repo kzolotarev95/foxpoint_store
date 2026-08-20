@@ -640,14 +640,16 @@ export default async function CabinetPage(props: { searchParams: PageSearchParam
           <aside className="clientRoutersMascot" aria-hidden="true">
             <div className="clientRoutersMascotShell">
               <div className="clientRoutersMascotGlow" />
-              <Image
-                alt="Лис FOX POINT"
-                className="clientRoutersMascotImage"
-                height={1280}
-                priority
-                src="/images/foxpoint-cabinet-fox-cutout.png"
-                width={1091}
-              />
+              <div className="clientRoutersMascotCard">
+                <Image
+                  alt=""
+                  className="clientRoutersMascotImage"
+                  height={1254}
+                  priority
+                  src="/images/foxpoint-cabinet-fox-poster.png"
+                  width={1254}
+                />
+              </div>
             </div>
           </aside>
         </div>
