@@ -44,7 +44,7 @@ export default async function LoginPage(props: { searchParams: PageSearchParams 
         }
       />
 
-      <section className="authStage panel authLoginStage">
+      <section className="authStage authLoginStage">
         <div className="panel authStageCard authLoginCard">
           {signedOutMessage ? <div className="banner successBanner">{signedOutMessage}</div> : null}
           {errorMessage ? <div className="banner errorBanner">{errorMessage}</div> : null}
@@ -66,9 +66,6 @@ export default async function LoginPage(props: { searchParams: PageSearchParams 
 
           <div className="clientAuthActions authLoginActions">
             <Link className="primaryButton fullWidthButton portalActionButton" href={supportLink} target="_blank">
-              Открыть поддержку
-            </Link>
-            <Link className="secondaryButton fullWidthButton portalGhostButton" href={supportLink} target="_blank">
               Открыть поддержку
             </Link>
           </div>
@@ -112,10 +109,6 @@ export default async function LoginPage(props: { searchParams: PageSearchParams 
 
             <p className="authHint">Если забыли пароль, войдите через Telegram и восстановите доступ в профиле.</p>
           </form>
-
-          <Link className="authInlineLink authFooterLink" href={site.links.telegramChannel} target="_blank">
-            Как работает сервис
-          </Link>
         </div>
       </section>
     </main>

@@ -765,11 +765,10 @@ textarea {
   position: relative;
   display: grid;
   place-items: center;
-  overflow: hidden;
+  overflow: visible;
   min-height: calc(100vh - 7.75rem);
   padding: 1.5rem;
-  border-radius: 1.75rem;
-  background: rgba(12, 8, 19, 0.88);
+  background: transparent;
 }
 
 .authStageBackdrop,
@@ -934,13 +933,6 @@ textarea {
   color: var(--muted);
   text-align: center;
   line-height: 1.6;
-}
-
-.authFooterLink {
-  justify-self: start;
-  color: #ffd08f;
-  font-size: 0.95rem;
-  font-weight: 800;
 }
 
 .siteFooter {
