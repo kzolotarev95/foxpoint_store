@@ -216,7 +216,6 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
   return (
     <main className="shell dashboardShell adminDashboardShell">
       <aside className="panel sideNav">
-        <span className="pill">Админ-панель</span>
         <ul>
           <li>
             <a href="#overview">Сводка</a>
@@ -253,7 +252,6 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
 
       <section className="contentStack adminContentStack">
         <article id="overview" className="panel hero adminHero">
-          <span className="statusTag">Живые настройки</span>
           <div className="miniGrid adminOverviewGrid">
             <article className="metricCard">
               <div className="muted">Клиентов</div>
@@ -288,9 +286,6 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
 
         <section id="assign" className="panel sectionPanel adminSectionPanel">
           <span className="pill">Ручная привязка</span>
-          <h2 className="adminSectionTitle">
-            Создать устройство и назначить клиенту
-          </h2>
           <form action={createRouterAction} className="contentStack">
             <div className="settingsGrid">
               <label className="fieldStack">
@@ -367,11 +362,11 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
               <div className="sectionHeader">
                 <div>
                   <h2 className="adminSectionTitle">{groupName}</h2>
-                  <p className="sectionLead" style={{ marginTop: "10px" }}>
-                    {groupName === "Коммуникации"
-                      ? "Эти значения уже можно показывать на публичной части сайта."
-                      : "Параметры ниже можно менять вручную без редактирования исходников."}
-                  </p>
+                  {groupName === "Коммуникации" ? (
+                    <p className="sectionLead" style={{ marginTop: "10px" }}>
+                      Эти значения уже можно показывать на публичной части сайта.
+                    </p>
+                  ) : null}
                 </div>
               </div>
 
