@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { getSiteSnapshot, isTelegramBotConfigured } from "../../components/site-data";
 import { authenticateClientAction } from "../../lib/client-actions";
 import { getApiBaseUrl } from "../../lib/api";
-import { clearClientSessionCookie, getClientRequestHeaders, getClientSessionToken } from "../../lib/client-auth";
+import { getClientRequestHeaders, getClientSessionToken } from "../../lib/client-auth";
 
 type PageSearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -31,8 +31,6 @@ export default async function LoginPage(props: { searchParams: PageSearchParams 
     } catch {
       // If the API is temporarily unavailable or the cookie is stale, fall back to a fresh login.
     }
-
-    await clearClientSessionCookie();
   }
 
   const searchParams = await props.searchParams;
