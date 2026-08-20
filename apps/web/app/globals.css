@@ -2296,7 +2296,8 @@ textarea {
 }
 
 .clientRouterActionButton {
-  display: inline-flex;
+  display: grid;
+  grid-template-columns: 1.1rem minmax(0, 1fr) 1.1rem;
   align-items: center;
   justify-content: center;
   gap: 0.7rem;
@@ -2327,7 +2328,17 @@ textarea {
 }
 
 .clientRouterActionButton.isGhost {
-  justify-content: space-between;
+  background: rgba(15, 13, 26, 0.92);
+}
+
+.clientRouterActionLabel {
+  text-align: center;
+}
+
+.clientRouterActionButton > svg,
+.clientRouterActionButton .clientRouterActionIcon,
+.clientRouterActionButton .clientRouterActionLabel {
+  justify-self: center;
 }
 
 .clientRouterActionButton.isGhost .clientRouterActionIcon {
@@ -2337,6 +2348,13 @@ textarea {
 .clientRouterActionIcon {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.clientRouterActionIconPlaceholder {
+  opacity: 0;
 }
 
 .clientRoutersMascot {
@@ -2368,31 +2386,15 @@ textarea {
 .clientRoutersMascotImage {
   width: min(100%, 31rem);
   height: auto;
-  opacity: 0.98;
+  opacity: 0.96;
   object-fit: contain;
+  mix-blend-mode: screen;
   filter:
-    drop-shadow(0 30px 48px rgba(0, 0, 0, 0.52))
-    drop-shadow(0 0 28px rgba(130, 48, 255, 0.12));
-  -webkit-mask-image: radial-gradient(
-    ellipse at 57% 46%,
-    #000 0%,
-    #000 48%,
-    rgba(0, 0, 0, 0.94) 64%,
-    rgba(0, 0, 0, 0.52) 80%,
-    transparent 100%
-  );
-  mask-image: radial-gradient(
-    ellipse at 57% 46%,
-    #000 0%,
-    #000 48%,
-    rgba(0, 0, 0, 0.94) 64%,
-    rgba(0, 0, 0, 0.52) 80%,
-    transparent 100%
-  );
-  -webkit-mask-repeat: no-repeat;
-  mask-repeat: no-repeat;
-  -webkit-mask-size: 100% 100%;
-  mask-size: 100% 100%;
+    saturate(1.08)
+    contrast(1.06)
+    brightness(1.04)
+    drop-shadow(0 28px 46px rgba(0, 0, 0, 0.42))
+    drop-shadow(0 0 28px rgba(130, 48, 255, 0.14));
 }
 
 .clientEmptyRouters {

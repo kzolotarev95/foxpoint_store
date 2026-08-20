@@ -593,7 +593,8 @@ export default async function CabinetPage(props: { searchParams: PageSearchParam
 
                       <div className="clientRouterActions">
                         <Link className="clientRouterActionButton isGhost" href={`#router-controls-${router.id}`}>
-                          Подробнее
+                          <span className="clientRouterActionIcon clientRouterActionIconPlaceholder" aria-hidden="true" />
+                          <span className="clientRouterActionLabel">Подробнее</span>
                           <ChevronIcon />
                         </Link>
 
@@ -603,7 +604,7 @@ export default async function CabinetPage(props: { searchParams: PageSearchParam
                             <span className="clientRouterActionIcon">
                               <ServerIcon />
                             </span>
-                            Продлить
+                            <span className="clientRouterActionLabel">Продлить</span>
                             <ChevronIcon />
                           </button>
                         </form>
@@ -612,7 +613,7 @@ export default async function CabinetPage(props: { searchParams: PageSearchParam
                           <span className="clientRouterActionIcon">
                             <SupportIcon />
                           </span>
-                          Поддержка
+                          <span className="clientRouterActionLabel">Поддержка</span>
                           <ChevronIcon />
                         </Link>
                       </div>
