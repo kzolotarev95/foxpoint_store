@@ -21,22 +21,23 @@ export function TelegramLoginWidget({
   hint
 }: TelegramLoginWidgetProps) {
   const widgetRef = useRef<HTMLDivElement | null>(null);
-  const [hasRenderedWidget, setHasRenderedWidget] = useState(false);
+  const [widgetStatus, setWidgetStatus] = useState<"idle" | "loading" | "ready" | "error">(botUsername ? "loading" : "idle");
 
   useEffect(() => {
     if (!botUsername || !widgetRef.current) {
-      setHasRenderedWidget(false);
+      setWidgetStatus("idle");
       return;
     }
 
     const widgetNode = widgetRef.current;
+    let isActive = true;
     widgetNode.innerHTML = "";
-    setHasRenderedWidget(false);
+    setWidgetStatus("loading");
 
     const observer = new MutationObserver(() => {
       const hasWidgetContent = Array.from(widgetNode.children).some((child) => child.tagName !== "SCRIPT");
-      if (hasWidgetContent) {
-        setHasRenderedWidget(true);
+      if (hasWidgetContent && isActive) {
+        setWidgetStatus("ready");
       }
     });
 
@@ -44,6 +45,13 @@ export function TelegramLoginWidget({
       childList: true,
       subtree: true
     });
+
+    const timeoutId = window.setTimeout(() => {
+      if (isActive) {
+        const hasWidgetContent = Array.from(widgetNode.children).some((child) => child.tagName !== "SCRIPT");
+        setWidgetStatus(hasWidgetContent ? "ready" : "error");
+      }
+    }, 3000);
 
     const script = document.createElement("script");
     script.async = true;
@@ -53,9 +61,17 @@ export function TelegramLoginWidget({
     script.setAttribute("data-radius", "12");
     script.setAttribute("data-auth-url", authUrl);
     script.setAttribute("data-request-access", "write");
+    script.onerror = () => {
+      if (isActive) {
+        window.clearTimeout(timeoutId);
+        setWidgetStatus("error");
+      }
+    };
     widgetNode.appendChild(script);
 
     return () => {
+      isActive = false;
+      window.clearTimeout(timeoutId);
       observer.disconnect();
       widgetNode.innerHTML = "";
     };
@@ -76,7 +92,8 @@ export function TelegramLoginWidget({
     <div className={className}>
       <div className="telegramWidgetShell">
         <div ref={widgetRef} className="telegramWidgetMount" />
-        {!hasRenderedWidget ? (
+        {widgetStatus === "loading" ? <div className="telegramWidgetLoading">Подключаем Telegram...</div> : null}
+        {widgetStatus === "error" ? (
           <Link className="primaryButton fullWidthButton portalActionButton telegramWidgetFallbackButton" href={botUrl} target="_blank">
             {fallbackLabel}
           </Link>
