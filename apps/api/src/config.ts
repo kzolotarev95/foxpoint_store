@@ -11,7 +11,8 @@ const configSchema = z.object({
   DATABASE_URL: z.string().min(1).default("postgresql://foxpoint:foxpoint@localhost:5432/foxpoint?schema=public"),
   ADMIN_USERNAME: z.string().min(1).default("admin"),
   ADMIN_PASSWORD: z.string().min(1).default("admin"),
-  ADMIN_SESSION_SECRET: z.string().min(16).default("foxpoint-admin-secret-change-me")
+  ADMIN_SESSION_SECRET: z.string().min(16).default("foxpoint-admin-secret-change-me"),
+  CLIENT_SESSION_SECRET: z.string().min(16).default("foxpoint-client-secret-change-me")
 });
 
 export const config = configSchema.parse(process.env);

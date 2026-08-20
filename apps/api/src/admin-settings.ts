@@ -26,6 +26,27 @@ type AppSettingRow = {
   value: string;
 };
 
+function normalizeTelegramUrl(value: string, fallback: string): string {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return fallback;
+  }
+
+  if (trimmed.includes("example_bot") || trimmed.includes("example_channel")) {
+    return fallback;
+  }
+
+  if (trimmed.startsWith("@")) {
+    return `https://t.me/${trimmed.slice(1)}`;
+  }
+
+  try {
+    return new URL(trimmed).toString();
+  } catch {
+    return fallback;
+  }
+}
+
 const adminSettingDefinitions: AdminSettingDefinition[] = [
   {
     key: "router_price",
@@ -180,12 +201,7 @@ function normalizeValue(definition: AdminSettingDefinition, rawValue: string | u
   }
 
   if (definition.input === "url") {
-    try {
-      const parsed = new URL(nextValue);
-      return parsed.toString();
-    } catch {
-      throw new Error(`Setting "${definition.label}" must be a valid URL.`);
-    }
+    return normalizeTelegramUrl(nextValue, definition.defaultValue);
   }
 
   return nextValue;
@@ -250,9 +266,12 @@ export async function getPublicSettingLinks(): Promise<{
   const valueByKey = new Map(settings.map((setting) => [setting.key, setting.value]));
 
   return {
-    telegramBot: valueByKey.get("tg_bot_url") ?? config.TG_BOT_URL,
-    telegramChannel: valueByKey.get("tg_channel_url") ?? config.TG_CHANNEL_URL,
-    support: valueByKey.get("support_contact") ?? config.SUPPORT_CONTACT
+    telegramBot: normalizeTelegramUrl(valueByKey.get("tg_bot_url") ?? "", config.TG_BOT_URL),
+    telegramChannel: normalizeTelegramUrl(
+      valueByKey.get("tg_channel_url") ?? "",
+      config.TG_CHANNEL_URL
+    ),
+    support: normalizeTelegramUrl(valueByKey.get("support_contact") ?? "", config.SUPPORT_CONTACT)
   };
 }
 

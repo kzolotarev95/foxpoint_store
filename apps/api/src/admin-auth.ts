@@ -71,8 +71,7 @@ export function createAdminSessionToken(username: string): string {
   return `${payload}.${signPayload(payload)}`;
 }
 
-export function readAdminSession(cookieHeader: string | undefined): AdminSessionPayload | null {
-  const token = getCookieValue(cookieHeader, ADMIN_COOKIE_NAME);
+export function readAdminSessionToken(token: string | undefined): AdminSessionPayload | null {
   if (!token) {
     return null;
   }
@@ -99,3 +98,6 @@ export function readAdminSession(cookieHeader: string | undefined): AdminSession
   return payload;
 }
 
+export function readAdminSession(cookieHeader: string | undefined): AdminSessionPayload | null {
+  return readAdminSessionToken(getCookieValue(cookieHeader, ADMIN_COOKIE_NAME) ?? undefined);
+}

@@ -10,8 +10,6 @@ export type OverviewResponse = {
     support: string;
   };
   corePrinciples: string[];
-  currentScope: string[];
-  nextMilestones: string[];
 };
 
 export async function buildOverview(): Promise<OverviewResponse> {
@@ -27,19 +25,6 @@ export async function buildOverview(): Promise<OverviewResponse> {
       "Один клиент может владеть несколькими роутерами",
       "Платежи и подписки всегда привязаны к конкретному роутеру",
       "Клиентский интерфейс скрывает внутренние технические термины"
-    ],
-    currentScope: [
-      "Публичная главная страница",
-      "Клиентский вход через Telegram-ссылки и поддержку",
-      "Рабочая админ-панель настроек",
-      "Схема БД под MVP",
-      "API-основа для дальнейшей доменной логики"
-    ],
-    nextMilestones: [
-      "Telegram auth через bot token, callback и привязку к пользователю",
-      "CRUD для роутеров, подписок, заказов и платежей",
-      "Реферальная логика и внутренний баланс",
-      "Система поддержки и аудит админ-действий"
     ]
   };
 }
