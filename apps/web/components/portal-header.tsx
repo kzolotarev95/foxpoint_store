@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 type PortalNavItem = {
   active?: boolean;
   href: string;
+  icon?: ReactNode;
   label: string;
 };
 
@@ -31,6 +32,7 @@ export function PortalHeader({ navItems = [], rightSlot }: PortalHeaderProps) {
               className={item.active ? "portalNavLink isActive" : "portalNavLink"}
               href={item.href}
             >
+              {item.icon ? <span className="portalNavIcon">{item.icon}</span> : null}
               {item.label}
             </Link>
           ))}

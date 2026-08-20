@@ -342,9 +342,18 @@ textarea {
 
 .portalNavLink {
   position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
   padding: 0.4rem 0;
   color: var(--muted);
   white-space: nowrap;
+}
+
+.portalNavIcon,
+.portalNavIcon svg {
+  width: 1.1rem;
+  height: 1.1rem;
 }
 
 .portalNavLink::after {
@@ -423,6 +432,25 @@ textarea {
   fill: currentColor;
 }
 
+.portalBellButton.hasAlert {
+  position: relative;
+  color: #fff;
+  border-color: rgba(243, 138, 29, 0.38);
+  box-shadow: 0 0 0 1px rgba(243, 138, 29, 0.12), 0 10px 24px rgba(243, 138, 29, 0.12);
+}
+
+.portalBellButton.hasAlert::after {
+  content: "";
+  position: absolute;
+  top: 0.32rem;
+  right: 0.34rem;
+  width: 0.42rem;
+  height: 0.42rem;
+  border-radius: 999px;
+  background: #ff6b1a;
+  box-shadow: 0 0 0 0.2rem rgba(255, 107, 26, 0.18);
+}
+
 .portalUserAvatar {
   display: inline-flex;
   align-items: center;
@@ -434,6 +462,21 @@ textarea {
   background: linear-gradient(135deg, rgba(141, 88, 255, 0.28), rgba(243, 138, 29, 0.2));
   color: #fff;
   font-size: 0.8rem;
+}
+
+.portalUserChipRich {
+  gap: 0.3rem;
+  min-height: 3rem;
+  padding-right: 0.75rem;
+  border-radius: 1rem;
+}
+
+.portalChipChevron,
+.portalChipChevron svg,
+.portalOrderButton svg,
+.portalLogoutButton svg {
+  width: 1rem;
+  height: 1rem;
 }
 
 .portalActionButton,
@@ -450,6 +493,20 @@ textarea {
 
 .portalGhostButton {
   background: rgba(255, 255, 255, 0.04);
+}
+
+.portalOrderButton {
+  gap: 0.6rem;
+  min-height: 3rem;
+  padding-right: 1.2rem;
+  padding-left: 1.2rem;
+  border-radius: 0.95rem;
+}
+
+.portalLogoutButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
 }
 
 .portalHero {
@@ -1202,7 +1259,7 @@ textarea {
 }
 
 .sectionSplit {
-  align-items: start;
+  align-items: flex-start;
 }
 
 .entryCard,
@@ -1795,6 +1852,488 @@ textarea {
   box-shadow: var(--shadow);
 }
 
+.clientRoutersExperience {
+  position: relative;
+  gap: 1.5rem;
+  padding-bottom: 3rem;
+}
+
+.clientRoutersExperience::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background:
+    radial-gradient(circle at left 25%, rgba(255, 113, 24, 0.16), transparent 28%),
+    radial-gradient(circle at right 18%, rgba(146, 71, 255, 0.22), transparent 32%),
+    radial-gradient(circle at 50% 32%, rgba(110, 27, 182, 0.12), transparent 26%),
+    linear-gradient(180deg, #06060a 0%, #090712 38%, #0b0815 100%);
+}
+
+.clientRoutersExperience::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  opacity: 0.3;
+  background-image:
+    radial-gradient(circle at 15% 30%, rgba(255, 126, 0, 0.9) 0 1px, transparent 1.2px),
+    radial-gradient(circle at 80% 22%, rgba(172, 93, 255, 0.9) 0 1px, transparent 1.2px),
+    radial-gradient(circle at 70% 70%, rgba(255, 126, 0, 0.6) 0 1px, transparent 1.2px),
+    radial-gradient(circle at 12% 78%, rgba(173, 140, 255, 0.65) 0 1px, transparent 1.2px);
+  background-size: 240px 240px, 280px 280px, 340px 340px, 360px 360px;
+  pointer-events: none;
+}
+
+.clientRoutersHero {
+  display: grid;
+  gap: 1.2rem;
+}
+
+.clientRoutersLead {
+  display: grid;
+  gap: 0.65rem;
+  justify-items: center;
+  text-align: center;
+  padding-top: 0.4rem;
+}
+
+.clientRoutersEyebrow {
+  color: rgba(205, 171, 255, 0.82);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+.clientRoutersLead h1 {
+  margin: 0;
+  font-family: var(--font-heading, sans-serif);
+  font-size: clamp(2.6rem, 4.8vw, 4rem);
+  line-height: 0.98;
+  letter-spacing: -0.05em;
+}
+
+.clientRoutersLead p {
+  margin: 0;
+  max-width: 44rem;
+  color: rgba(238, 231, 255, 0.78);
+  font-size: clamp(1rem, 1.6vw, 1.2rem);
+  line-height: 1.55;
+}
+
+.clientRoutersSummary {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.clientSummaryCard {
+  display: flex;
+  align-items: center;
+  gap: 1.05rem;
+  min-height: 6.9rem;
+  padding: 1.25rem 1.35rem;
+  border: 1px solid rgba(168, 129, 255, 0.16);
+  border-radius: 1.45rem;
+  background: linear-gradient(180deg, rgba(13, 11, 24, 0.94), rgba(11, 9, 18, 0.92));
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.24);
+}
+
+.routerIconShell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 4rem;
+  height: 4rem;
+  border: 1px solid rgba(178, 109, 255, 0.58);
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 50% 60%, rgba(255, 121, 0, 0.18), transparent 52%),
+    rgba(17, 12, 25, 0.95);
+  color: #b56dff;
+  box-shadow: inset 0 0 0 1px rgba(255, 123, 0, 0.18);
+}
+
+.routerIconShell svg {
+  width: 1.65rem;
+  height: 1.65rem;
+}
+
+.clientSummaryCopy {
+  display: grid;
+  gap: 0.28rem;
+}
+
+.clientSummaryCopy span {
+  color: rgba(231, 224, 249, 0.74);
+  font-size: 0.98rem;
+}
+
+.clientSummaryCopy strong {
+  font-family: var(--font-heading, sans-serif);
+  font-size: clamp(1.7rem, 2.8vw, 2.35rem);
+  font-weight: 800;
+  line-height: 1;
+  color: #c576ff;
+}
+
+.clientRoutersStage {
+  display: grid;
+  gap: 1.1rem;
+  grid-template-columns: minmax(0, 1fr) minmax(230px, 300px);
+  align-items: flex-start;
+}
+
+.clientRoutersColumn {
+  min-width: 0;
+}
+
+.clientRouterDeck {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.clientRouterRow {
+  display: grid;
+  grid-template-columns: 235px minmax(0, 1fr) 210px;
+  gap: 1.2rem;
+  align-items: center;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(167, 125, 255, 0.14);
+  border-radius: 1.55rem;
+  background:
+    linear-gradient(180deg, rgba(11, 10, 20, 0.97) 0%, rgba(9, 8, 16, 0.94) 100%);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.26);
+}
+
+.clientRouterPreview {
+  min-width: 0;
+}
+
+.routerDeviceStage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 11rem;
+  border-radius: 1.2rem;
+  background:
+    radial-gradient(circle at 50% 86%, rgba(145, 67, 255, 0.32), transparent 22%),
+    linear-gradient(180deg, rgba(14, 12, 21, 0.76), rgba(9, 8, 15, 0.1));
+  overflow: hidden;
+}
+
+.routerDeviceStage::after {
+  content: "";
+  position: absolute;
+  right: 18%;
+  bottom: 1rem;
+  left: 18%;
+  height: 3.2rem;
+  border-radius: 999px;
+  border: 1px solid rgba(157, 90, 255, 0.56);
+  background: radial-gradient(circle, rgba(122, 42, 227, 0.16), transparent 72%);
+  filter: blur(0.1px);
+}
+
+.routerDevice {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  gap: 0.3rem;
+}
+
+.routerDeviceAntennaRow {
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+  height: 4.8rem;
+}
+
+.routerAntenna {
+  width: 0.26rem;
+  height: 4.7rem;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(62, 62, 68, 0.98), rgba(12, 12, 16, 0.98));
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.routerDeviceBody {
+  width: 8.4rem;
+  padding: 0.55rem 0.8rem 0.4rem;
+  border-radius: 0.95rem;
+  background: linear-gradient(180deg, rgba(20, 20, 27, 0.98), rgba(8, 8, 11, 0.98));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 10px 18px rgba(0, 0, 0, 0.34);
+}
+
+.routerDeviceBrand {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-size: 0.55rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.routerDeviceLights {
+  display: flex;
+  justify-content: center;
+  gap: 0.28rem;
+}
+
+.routerDeviceLights span {
+  width: 0.36rem;
+  height: 0.16rem;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #ff9f1f, #78ff75);
+  box-shadow: 0 0 7px rgba(120, 255, 117, 0.38);
+}
+
+.routerDevice.is-keenetic .routerDeviceAntennaRow {
+  gap: 4.2rem;
+  height: 4.3rem;
+}
+
+.routerDevice.is-keenetic .routerAntenna {
+  height: 4rem;
+  background: linear-gradient(180deg, rgba(240, 240, 244, 0.98), rgba(213, 213, 218, 0.98));
+}
+
+.routerDevice.is-keenetic .routerDeviceBody {
+  width: 8.8rem;
+  padding-top: 0.62rem;
+  background: linear-gradient(180deg, rgba(246, 246, 248, 0.98), rgba(211, 211, 218, 0.95));
+}
+
+.routerDevice.is-keenetic .routerDeviceBrand {
+  color: rgba(55, 55, 59, 0.74);
+}
+
+.routerDevice.is-cudy .routerDeviceAntennaRow {
+  gap: 0.6rem;
+}
+
+.routerDevice.is-cudy .routerAntenna:nth-child(2),
+.routerDevice.is-cudy .routerAntenna:nth-child(5) {
+  height: 5.1rem;
+}
+
+.clientRouterContent {
+  display: grid;
+  gap: 0.8rem;
+  min-width: 0;
+}
+
+.clientRouterHeading h2 {
+  margin: 0;
+  font-family: var(--font-heading, sans-serif);
+  font-size: clamp(1.65rem, 2.4vw, 2.35rem);
+  line-height: 1.02;
+  letter-spacing: -0.04em;
+}
+
+.clientRouterHeading p {
+  margin: 0.28rem 0 0;
+  color: rgba(231, 224, 249, 0.68);
+  font-size: 0.95rem;
+}
+
+.clientRouterFacts {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.clientRouterFact {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 2.05rem;
+  padding-bottom: 0.28rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.clientRouterFact:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.clientRouterFactLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.7rem;
+  color: rgba(219, 209, 241, 0.72);
+}
+
+.clientRouterFactLabel svg,
+.clientRouterActionIcon svg,
+.clientRouterActionButton svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.clientRouterFact strong {
+  color: #fff;
+  font-size: 0.98rem;
+  font-weight: 600;
+  text-align: right;
+}
+
+.clientRouterActions {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.clientRouterActions form {
+  margin: 0;
+}
+
+.clientRouterActionButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  width: 100%;
+  min-height: 3rem;
+  padding: 0.78rem 1rem;
+  border: 1px solid rgba(156, 95, 255, 0.58);
+  border-radius: 0.95rem;
+  background: rgba(17, 15, 28, 0.9);
+  color: #f6f1ff;
+  text-decoration: none;
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background-color 160ms ease;
+}
+
+.clientRouterActionButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 26px rgba(0, 0, 0, 0.22);
+}
+
+.clientRouterActionButton.isAccent {
+  border-color: rgba(255, 118, 15, 0.88);
+  background: rgba(22, 13, 10, 0.94);
+  color: #fff;
+}
+
+.clientRouterActionButton.isGhost {
+  justify-content: space-between;
+}
+
+.clientRouterActionIcon {
+  display: inline-flex;
+  align-items: center;
+}
+
+.clientRoutersMascot {
+  position: sticky;
+  top: 6.5rem;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  min-height: 100%;
+  padding-top: 0.5rem;
+}
+
+.clientRoutersMascotImage {
+  width: min(100%, 22rem);
+  height: auto;
+  filter: drop-shadow(0 24px 48px rgba(0, 0, 0, 0.48));
+}
+
+.clientEmptyRouters {
+  display: grid;
+  gap: 1rem;
+  border: 1px solid rgba(167, 125, 255, 0.14);
+  background: linear-gradient(180deg, rgba(11, 10, 20, 0.97), rgba(9, 8, 16, 0.94));
+}
+
+.clientRouterControlsGrid,
+.clientDashboardLowerGrid {
+  display: grid;
+  gap: 1rem;
+}
+
+.clientRouterControlsGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.clientDashboardLowerGrid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.clientRouterControlCard,
+.clientUtilityCard {
+  border: 1px solid rgba(167, 125, 255, 0.14);
+  background: linear-gradient(180deg, rgba(11, 10, 20, 0.97), rgba(9, 8, 16, 0.94));
+}
+
+.clientRouterControlHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.clientRouterControlHeader h3 {
+  margin: 0.75rem 0 0;
+  font-family: var(--font-heading, sans-serif);
+  font-size: clamp(1.4rem, 2vw, 1.9rem);
+  line-height: 1.02;
+}
+
+.clientRouterControlPrice {
+  padding: 0.8rem 1rem;
+  border-radius: 1rem;
+  background: rgba(255, 111, 26, 0.12);
+  color: #ffb07d;
+  font-weight: 700;
+}
+
+.clientRouterControlLayout {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1.2fr) minmax(240px, 0.8fr);
+  margin-top: 1rem;
+}
+
+.clientRouterSettingsForm {
+  display: grid;
+  gap: 1rem;
+}
+
+.clientRouterControlMeta,
+.clientUtilityStats {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.clientRouterMiniStat {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.clientRouterMiniStat span {
+  color: rgba(231, 224, 249, 0.68);
+  font-size: 0.88rem;
+}
+
+.clientRouterMiniStat strong {
+  font-size: 1.05rem;
+  line-height: 1.35;
+}
+
 @keyframes pulseGreen {
   0% {
     transform: scale(0.96);
@@ -1828,6 +2367,27 @@ textarea {
   .profileReferralGrid,
   .authPagePanel,
   .dashboardShell {
+    grid-template-columns: 1fr;
+  }
+
+  .clientRoutersSummary,
+  .clientRoutersStage,
+  .clientRouterControlsGrid,
+  .clientDashboardLowerGrid,
+  .clientRouterControlLayout {
+    grid-template-columns: 1fr;
+  }
+
+  .clientRoutersMascot {
+    position: static;
+    order: -1;
+  }
+
+  .clientRoutersMascotImage {
+    width: min(100%, 18rem);
+  }
+
+  .clientRouterRow {
     grid-template-columns: 1fr;
   }
 
@@ -1908,6 +2468,10 @@ textarea {
     padding: 0.8rem;
   }
 
+  .clientSummaryCard {
+    min-height: auto;
+  }
+
   .promoCard {
     flex-direction: column;
     align-items: stretch;
@@ -1986,6 +2550,27 @@ textarea {
 
   .portalActions > * {
     flex: 1 1 auto;
+  }
+
+  .clientRoutersLead h1,
+  .clientRouterHeading h2 {
+    font-size: clamp(2rem, 8vw, 2.6rem);
+  }
+
+  .clientSummaryCard,
+  .clientRouterRow,
+  .clientRouterControlCard,
+  .clientUtilityCard {
+    padding: 1rem;
+  }
+
+  .clientRouterFact {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .clientRouterFact strong {
+    text-align: left;
   }
 
   .authStage {
