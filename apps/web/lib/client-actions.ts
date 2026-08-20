@@ -12,6 +12,16 @@ function encodeMessage(message: string): string {
   return encodeURIComponent(message);
 }
 
+function getReturnToPath(formData: FormData, fallback: string): string {
+  const candidate = String(formData.get("returnTo") ?? "").trim();
+
+  if (!candidate.startsWith("/cabinet")) {
+    return fallback;
+  }
+
+  return candidate;
+}
+
 async function parseApiError(response: Response, fallback: string): Promise<string> {
   const payload = (await response.json().catch(() => null)) as { error?: string } | null;
   return payload?.error ?? fallback;
@@ -86,19 +96,21 @@ export async function logoutClientAction() {
   redirect("/login?signedOut=1");
 }
 
-export async function createRouterOrderAction() {
+export async function createRouterOrderAction(formData: FormData) {
+  const returnTo = getReturnToPath(formData, "/cabinet");
   const payload = await fetchClientApi<{ paymentUrl: string; totalPriceLabel: string }>("/api/orders", {
     method: "POST"
   });
 
   redirect(
-    `/cabinet?success=${encodeMessage(
+    `${returnTo}?success=${encodeMessage(
       `Заказ создан. Сумма ${payload.totalPriceLabel}.`
     )}&payment=${encodeURIComponent(payload.paymentUrl)}`
   );
 }
 
 export async function createSupportTicketAction(formData: FormData) {
+  const returnTo = getReturnToPath(formData, "/cabinet/support");
   const category = String(formData.get("category") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
   const routerId = String(formData.get("routerId") ?? "").trim();
@@ -116,13 +128,14 @@ export async function createSupportTicketAction(formData: FormData) {
       })
     });
   } catch (error) {
-    redirect(`/cabinet?error=${encodeMessage(error instanceof Error ? error.message : "Не удалось создать заявку.")}`);
+    redirect(`${returnTo}?error=${encodeMessage(error instanceof Error ? error.message : "Не удалось создать заявку.")}`);
   }
 
-  redirect("/cabinet?success=Обращение%20создано.");
+  redirect(`${returnTo}?success=Обращение%20создано.`);
 }
 
 export async function saveRouterTemplateAction(formData: FormData) {
+  const returnTo = getReturnToPath(formData, "/cabinet/routers");
   const routerId = String(formData.get("routerId") ?? "").trim();
   const supportType = String(formData.get("supportType") ?? "NONE").trim();
   const accessEnabled = formData.get("accessEnabled") === "on";
@@ -139,13 +152,14 @@ export async function saveRouterTemplateAction(formData: FormData) {
       })
     });
   } catch (error) {
-    redirect(`/cabinet?error=${encodeMessage(error instanceof Error ? error.message : "Не удалось сохранить пакет.")}`);
+    redirect(`${returnTo}?error=${encodeMessage(error instanceof Error ? error.message : "Не удалось сохранить пакет.")}`);
   }
 
-  redirect("/cabinet?success=Пакет%20для%20продления%20сохранен.");
+  redirect(`${returnTo}?success=Пакет%20для%20продления%20сохранен.`);
 }
 
 export async function renewRouterAction(formData: FormData) {
+  const returnTo = getReturnToPath(formData, "/cabinet/routers");
   const routerId = String(formData.get("routerId") ?? "").trim();
 
   try {
@@ -161,11 +175,11 @@ export async function renewRouterAction(formData: FormData) {
       : "";
 
     redirect(
-      `/cabinet?success=${encodeMessage(
+      `${returnTo}?success=${encodeMessage(
         `Продление создано на ${payload.amountLabel}.${activationMessage}`
       )}&payment=${encodeURIComponent(payload.paymentUrl)}`
     );
   } catch (error) {
-    redirect(`/cabinet?error=${encodeMessage(error instanceof Error ? error.message : "Не удалось продлить пакет.")}`);
+    redirect(`${returnTo}?error=${encodeMessage(error instanceof Error ? error.message : "Не удалось продлить пакет.")}`);
   }
 }
