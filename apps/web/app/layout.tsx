@@ -1,15 +1,10 @@
 import type { Metadata } from "next";
-import { Manrope, Space_Grotesk } from "next/font/google";
+import { Manrope } from "next/font/google";
 import "./globals.css";
 
 const manrope = Manrope({
   subsets: ["latin", "cyrillic"],
   variable: "--font-body"
-});
-
-const spaceGrotesk = Space_Grotesk({
-  subsets: ["latin"],
-  variable: "--font-heading"
 });
 
 export const metadata: Metadata = {
@@ -24,11 +19,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         style={{
           fontFamily: "var(--font-body, sans-serif)"
         }}
-        className={`${manrope.variable} ${spaceGrotesk.variable}`}
+        className={manrope.variable}
       >
         {children}
       </body>
     </html>
   );
 }
-

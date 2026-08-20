@@ -1,5 +1,4 @@
 import Link from "next/link";
-import authPreviewImage from "./assets/auth-login-bg.jpg";
 import type { PublicLinks } from "./site-data";
 
 type AuthWindowProps = {
@@ -89,7 +88,7 @@ export function AuthWindow({ entryLinks, hasTelegramBot, mode }: AuthWindowProps
       >
         <img
           className="authPreviewImage"
-          src={authPreviewImage.src}
+          src="/images/foxpoint-hero-welcome.jpg"
           alt="FoxPoint"
           style={{
             display: "block",

@@ -214,8 +214,8 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
       <aside className="panel sideNav">
         <span className="pill">Админ-панель</span>
         <p className="navMeta">
-          Вход защищён cookie-сессией. На Wednesday, August 19, 2026 здесь уже есть живые
-          настройки, обзор клиентов и ручная привязка роутеров.
+          Вход защищён cookie-сессией. Здесь собраны живые настройки, обзор клиентов и ручная
+          привязка роутеров для ежедневной работы с сервисом.
         </p>
         <ul>
           <li>

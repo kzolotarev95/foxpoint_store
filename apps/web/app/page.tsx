@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { getSiteSnapshot, getSystemHealth, isTelegramBotConfigured } from "../components/site-data";
 
@@ -8,107 +9,102 @@ export default async function HomePage() {
   return (
     <main className="shell siteShell">
       <header className="topBar">
-        <div>
-          <span className="pill">FoxPoint MVP</span>
+        <div className="brandLockup">
+          <span className="pill">FoxPoint</span>
+          <span className="topBarNote">{site.product} с готовым роутером, поддержкой и кабинетом</span>
         </div>
         <div className="ctaRow">
           <Link className="secondaryButton" href={site.links.telegramChannel} target="_blank">
             Telegram-канал
           </Link>
           <Link className="primaryButton" href="/login">
-            Войти на сайте
+            Войти в кабинет
           </Link>
         </div>
       </header>
 
-      <section className="panel hero heroWide">
-        <span className="statusTag">Сайт + кабинет + backend</span>
-        <h1 style={{ fontFamily: "var(--font-heading, sans-serif)" }}>{site.product}</h1>
-        <p>{site.tagline}</p>
+      <section className="panel heroStage">
+        <div className="heroContent">
+          <span className="statusTag">Главный экран</span>
+          <h1>Интернет должен просто работать.</h1>
+          <p>
+            FoxPoint берет на себя настройку, сопровождение и продление. Клиент сразу видит
+            понятный маршрут: открыть Telegram, зайти в кабинет, заказать роутер или получить
+            помощь без лишней технической нагрузки.
+          </p>
 
-        <div className="heroMetaGrid">
-          <div className="metricCard">
-            <div className="muted">Рекомендуемый пакет</div>
-            <div className="metricValue" style={{ fontFamily: "var(--font-heading, sans-serif)" }}>
-              {site.subscriptionOffer.recommendedPriceLabel}
-            </div>
-            <p>{site.subscriptionOffer.recommendedPackage}</p>
+          <div className="ctaRow">
+            <Link className="primaryButton" href="/login">
+              Открыть личный кабинет
+            </Link>
+            <Link
+              className="secondaryButton"
+              href={hasTelegramBot ? site.links.telegramBot : site.links.support}
+              target="_blank"
+            >
+              {hasTelegramBot ? "Войти через Telegram" : "Связаться с поддержкой"}
+            </Link>
           </div>
-          <div className="metricCard">
-            <div className="muted">Готовый роутер</div>
-            <div className="metricValue" style={{ fontFamily: "var(--font-heading, sans-serif)" }}>
-              {site.orderOffer.totalPriceLabel}
-            </div>
-            <p>
-              Роутер {site.orderOffer.routerPriceLabel} + подготовка {site.orderOffer.setupPriceLabel}
-            </p>
-          </div>
-          <div className="metricCard">
-            <div className="muted">Статус API</div>
-            <div className="metricValue" style={{ fontFamily: "var(--font-heading, sans-serif)" }}>
-              {health.ok ? "UP" : "DOWN"}
-            </div>
-            <p>База: {health.database.toUpperCase()}</p>
+
+          <div className="heroTrustGrid">
+            <article className="metricCard">
+              <div className="muted">Пробный старт</div>
+              <div className="metricValue">{site.trialPeriodDays} дней</div>
+              <p>Достаточно, чтобы спокойно проверить связку роутера, подписки и кабинета.</p>
+            </article>
+
+            <article className="metricCard">
+              <div className="muted">Готовый комплект</div>
+              <div className="metricValue">{site.orderOffer.totalPriceLabel}</div>
+              <p>
+                Роутер {site.orderOffer.routerPriceLabel} и настройка {site.orderOffer.setupPriceLabel}.
+              </p>
+            </article>
+
+            <article className="metricCard">
+              <div className="muted">Статус платформы</div>
+              <div className="metricValue">{health.ok ? "ON" : "CHECK"}</div>
+              <p>API {health.ok ? "доступен" : "нуждается в проверке"}, база {health.database}.</p>
+            </article>
           </div>
         </div>
 
-        <div className="gridTwo heroGrid">
-          <article className="entryCard panel">
-            <span className="pill">Основной вход</span>
-            <h2 style={{ fontFamily: "var(--font-heading, sans-serif)" }}>Открыть в Telegram</h2>
+        <div className="heroVisual">
+          <Image
+            priority
+            alt="FoxPoint приветственный экран"
+            className="heroImage"
+            height={720}
+            src="/images/foxpoint-hero-welcome.jpg"
+            width={1280}
+          />
+          <div className="heroVisualShade" />
+          <div className="heroOverlay">
+            <span className="pill heroPill">Приветствие FoxPoint</span>
+            <h2>Настройку и поддержку берем на себя</h2>
             <p>
-              Для клиентов, которые уже ведут диалог с ботом. Все сроки, роутеры и оплаты должны
-              быть синхронизированы с сайтом.
+              Главный экран теперь строится вокруг приветственного изображения и сразу задает
+              нужное настроение сервиса.
             </p>
-            <div className="stackedActions">
-              <Link
-                className="primaryButton"
-                href={hasTelegramBot ? site.links.telegramBot : site.links.support}
-                target="_blank"
-              >
-                {hasTelegramBot ? "Открыть Telegram-бота" : "Перейти в поддержку"}
-              </Link>
-              <Link className="secondaryButton" href={site.links.support} target="_blank">
-                Написать в поддержку
-              </Link>
-            </div>
-          </article>
-
-          <article className="entryCard panel">
-            <span className="pill">Сайт</span>
-            <h2 style={{ fontFamily: "var(--font-heading, sans-serif)" }}>Войти в личный кабинет</h2>
-            <p>
-              На сайте уже можно войти, увидеть привязанные роутеры, заказать устройство, отправить
-              заявку в поддержку и сохранить пакет для продления.
-            </p>
-            <div className="stackedActions">
-              <Link className="primaryButton" href="/login">
-                Перейти ко входу
-              </Link>
-              <Link className="secondaryButton" href="/admin/login">
-                Админ-панель
-              </Link>
-            </div>
-          </article>
+          </div>
         </div>
       </section>
 
-      <section className="contentStack">
+      <section className="panel sectionPanel">
         <div className="sectionBlock">
-          <span className="pill">Как устроено</span>
-          <h2 className="sectionTitle" style={{ fontFamily: "var(--font-heading, sans-serif)" }}>
-            Это уже не одностраничная витрина, а каркас рабочего клиентского сервиса.
-          </h2>
+          <span className="pill">Что получает клиент</span>
+          <h2 className="sectionTitle">Понятный сервис вместо витрины и ручной переписки.</h2>
+          <p className="sectionLead">
+            Сайт, Telegram и кабинет работают как одна система: с общими данными, едиными ценами
+            и прямыми действиями без лишних переходов.
+          </p>
         </div>
 
         <div className="miniGrid">
           {site.corePrinciples.map((principle) => (
             <article key={principle} className="featureCard panel">
-              <h3 style={{ fontFamily: "var(--font-heading, sans-serif)" }}>{principle}</h3>
-              <p>
-                Клиентский интерфейс объясняет результат и ведет к нужному действию без
-                технических терминов во фронте.
-              </p>
+              <h3>{principle}</h3>
+              <p>Интерфейс объясняет клиенту результат простым языком и сразу ведет к нужному шагу.</p>
             </article>
           ))}
         </div>
@@ -116,10 +112,8 @@ export default async function HomePage() {
 
       <section className="panel sectionPanel">
         <div className="sectionBlock">
-          <span className="pill">Сценарии</span>
-          <h2 className="sectionTitle" style={{ fontFamily: "var(--font-heading, sans-serif)" }}>
-            Путь клиента от первого входа до продления.
-          </h2>
+          <span className="pill">Сценарий работы</span>
+          <h2 className="sectionTitle">От первого входа до продления все собрано в одном маршруте.</h2>
         </div>
 
         <div className="timelineGrid">
@@ -134,8 +128,8 @@ export default async function HomePage() {
 
       <section className="gridTwo sectionSplit">
         <article className="panel sectionPanel">
-          <span className="pill">Подписки</span>
-          <h2 style={{ fontFamily: "var(--font-heading, sans-serif)" }}>Продление и сопровождение</h2>
+          <span className="pill">Подписка и помощь</span>
+          <h2>Продление без путаницы</h2>
           <ul className="list">
             <li>
               Расширенный доступ: {site.subscriptionOffer.extendedAccessPrice} ₽ /{" "}
@@ -149,23 +143,18 @@ export default async function HomePage() {
               Расширенное сопровождение: {site.subscriptionOffer.extendedSupportPrice} ₽ /{" "}
               {site.subscriptionOffer.periodDays} дней
             </li>
-            <li>
-              Быстрый комплект: {site.subscriptionOffer.recommendedPackage} за{" "}
-              {site.subscriptionOffer.recommendedPriceLabel}
-            </li>
+            <li>Рекомендованный пакет: {site.subscriptionOffer.recommendedPriceLabel}</li>
           </ul>
         </article>
 
         <article className="panel sectionPanel">
-          <span className="pill">Рефералы и старт</span>
-          <h2 style={{ fontFamily: "var(--font-heading, sans-serif)" }}>Стартовый оффер MVP</h2>
+          <span className="pill">Старт и приглашения</span>
+          <h2>Быстрый вход и бонусы</h2>
           <ul className="list">
-            <li>
-              Бесплатный пробный период: {site.trialPeriodDays} дней после ручной активации админом
-            </li>
+            <li>Бесплатный старт после ручной активации администратора: {site.trialPeriodDays} дней</li>
             <li>Бонус за подтвержденный заказ: {site.referralOffer.signupBonusLabel} обеим сторонам</li>
-            <li>Процент с утвержденных подписок: {site.referralOffer.subscriptionPercent}%</li>
-            <li>Готовый комплект роутера: {site.orderOffer.totalPriceLabel}</li>
+            <li>Вознаграждение с подписок: {site.referralOffer.subscriptionPercent}%</li>
+            <li>Поддержка и Telegram остаются рядом на каждом клиентском экране.</li>
           </ul>
         </article>
       </section>

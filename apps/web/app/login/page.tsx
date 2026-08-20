@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSiteSnapshot, isTelegramBotConfigured } from "../../components/site-data";
@@ -31,26 +32,36 @@ export default async function LoginPage(props: { searchParams: PageSearchParams 
     <main className="shell siteShell">
       <section className="panel authPagePanel">
         <div className="authPageIntro">
-          <span className="pill">Вход клиента</span>
-          <h1 style={{ fontFamily: "var(--font-heading, sans-serif)" }}>Личный кабинет FoxPoint</h1>
-          <p>
-            На Wednesday, August 19, 2026 сайт уже умеет принимать вход, создавать клиентскую
-            сессию, открывать кабинет, заказы и поддержку поверх общего backend.
-          </p>
+          <div className="authPreviewFrame">
+            <div className="authPreviewMedia">
+              <Image
+                alt="FoxPoint приветствие"
+                className="authPreviewShot"
+                height={720}
+                src="/images/foxpoint-hero-welcome.jpg"
+                width={1280}
+              />
+            </div>
+            <div className="authPreviewBody">
+              <span className="pill">Вход клиента</span>
+              <h1>Личный кабинет в едином стиле FoxPoint</h1>
+              <p>
+                Вход, Telegram и поддержка собраны в одном месте. Клиенту не нужно разбираться в
+                настройках: сервис ведет к следующему шагу сам.
+              </p>
+            </div>
+          </div>
+
           <div className="heroMetaGrid compactGrid">
             <div className="metricCard">
-              <div className="muted">Комплект</div>
-              <div className="metricValue" style={{ fontFamily: "var(--font-heading, sans-serif)" }}>
-                {site.subscriptionOffer.recommendedPriceLabel}
-              </div>
+              <div className="muted">Рекомендованный пакет</div>
+              <div className="metricValue">{site.subscriptionOffer.recommendedPriceLabel}</div>
               <p>{site.subscriptionOffer.recommendedPackage}</p>
             </div>
             <div className="metricCard">
-              <div className="muted">Роутер с доставкой</div>
-              <div className="metricValue" style={{ fontFamily: "var(--font-heading, sans-serif)" }}>
-                {site.orderOffer.totalPriceLabel}
-              </div>
-              <p>Готовое решение под ключ.</p>
+              <div className="muted">Роутер под ключ</div>
+              <div className="metricValue">{site.orderOffer.totalPriceLabel}</div>
+              <p>Готовый роутер, настройка и старт без ручной конфигурации.</p>
             </div>
           </div>
         </div>
@@ -62,11 +73,10 @@ export default async function LoginPage(props: { searchParams: PageSearchParams 
           <div className="contentStack">
             <div>
               <span className="statusTag">Telegram</span>
-              <h2 style={{ marginBottom: "10px", fontFamily: "var(--font-heading, sans-serif)" }}>
-                Основной маршрут для действующих клиентов
-              </h2>
-              <p className="sectionLead" style={{ fontSize: "16px" }}>
-                Если бот уже настроен, можно открыть его сразу. Если нет, клиент попадет в поддержку.
+              <h2 style={{ marginBottom: "10px" }}>Основной маршрут для действующих клиентов</h2>
+              <p className="sectionLead">
+                Если бот уже настроен, вход откроется сразу. Если нет, клиент попадет прямо в
+                поддержку без лишних шагов.
               </p>
             </div>
 
@@ -89,11 +99,10 @@ export default async function LoginPage(props: { searchParams: PageSearchParams 
           <form action={loginWithEmailAction} className="authForm">
             <div>
               <span className="statusTag">Email MVP</span>
-              <h2 style={{ marginBottom: "10px", fontFamily: "var(--font-heading, sans-serif)" }}>
-                Быстрый вход на сайте
-              </h2>
-              <p className="sectionLead" style={{ fontSize: "16px" }}>
-                Для MVP создаем или находим клиента по email и сразу заводим сессию на сайте.
+              <h2 style={{ marginBottom: "10px" }}>Быстрый вход на сайте</h2>
+              <p className="sectionLead">
+                Для MVP достаточно email: создаем или находим профиль, а затем сразу открываем
+                кабинет с заказами, продлениями и поддержкой.
               </p>
             </div>
 
@@ -123,7 +132,7 @@ export default async function LoginPage(props: { searchParams: PageSearchParams 
                 placeholder="FOX-ABCD1234"
                 type="text"
               />
-              <span className="helperText">Если пришли по ссылке, код уже подставится автоматически.</span>
+              <span className="helperText">Если пришли по приглашению, код можно оставить уже подставленным.</span>
             </label>
 
             <div className="ctaRow">
