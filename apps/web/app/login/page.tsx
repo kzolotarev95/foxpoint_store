@@ -60,7 +60,7 @@ export default async function LoginPage(props: { searchParams: PageSearchParams 
               href={telegramChannelLink}
               target="_blank"
             >
-              Telegram-канал
+              Telegram канал
             </Link>
           </div>
 
