@@ -11,7 +11,6 @@ export default async function HomePage() {
       <header className="topBar">
         <div className="brandLockup">
           <span className="pill">FoxPoint</span>
-          <span className="topBarNote">{site.product} с готовым роутером, поддержкой и кабинетом</span>
         </div>
         <div className="ctaRow">
           <Link className="secondaryButton" href={site.links.telegramChannel} target="_blank">
@@ -88,75 +87,6 @@ export default async function HomePage() {
             </p>
           </div>
         </div>
-      </section>
-
-      <section className="panel sectionPanel">
-        <div className="sectionBlock">
-          <span className="pill">Что получает клиент</span>
-          <h2 className="sectionTitle">Понятный сервис вместо витрины и ручной переписки.</h2>
-          <p className="sectionLead">
-            Сайт, Telegram и кабинет работают как одна система: с общими данными, едиными ценами
-            и прямыми действиями без лишних переходов.
-          </p>
-        </div>
-
-        <div className="miniGrid">
-          {site.corePrinciples.map((principle) => (
-            <article key={principle} className="featureCard panel">
-              <h3>{principle}</h3>
-              <p>Интерфейс объясняет клиенту результат простым языком и сразу ведет к нужному шагу.</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="panel sectionPanel">
-        <div className="sectionBlock">
-          <span className="pill">Сценарий работы</span>
-          <h2 className="sectionTitle">От первого входа до продления все собрано в одном маршруте.</h2>
-        </div>
-
-        <div className="timelineGrid">
-          {site.journey.map((step, index) => (
-            <article key={step} className="timelineCard">
-              <div className="timelineIndex">{index + 1}</div>
-              <p>{step}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="gridTwo sectionSplit">
-        <article className="panel sectionPanel">
-          <span className="pill">Подписка и помощь</span>
-          <h2>Продление без путаницы</h2>
-          <ul className="list">
-            <li>
-              Расширенный доступ: {site.subscriptionOffer.extendedAccessPrice} ₽ /{" "}
-              {site.subscriptionOffer.periodDays} дней
-            </li>
-            <li>
-              Базовое сопровождение: {site.subscriptionOffer.basicSupportPrice} ₽ /{" "}
-              {site.subscriptionOffer.periodDays} дней
-            </li>
-            <li>
-              Расширенное сопровождение: {site.subscriptionOffer.extendedSupportPrice} ₽ /{" "}
-              {site.subscriptionOffer.periodDays} дней
-            </li>
-            <li>Рекомендованный пакет: {site.subscriptionOffer.recommendedPriceLabel}</li>
-          </ul>
-        </article>
-
-        <article className="panel sectionPanel">
-          <span className="pill">Старт и приглашения</span>
-          <h2>Быстрый вход и бонусы</h2>
-          <ul className="list">
-            <li>Бесплатный старт после ручной активации администратора: {site.trialPeriodDays} дней</li>
-            <li>Бонус за подтвержденный заказ: {site.referralOffer.signupBonusLabel} обеим сторонам</li>
-            <li>Вознаграждение с подписок: {site.referralOffer.subscriptionPercent}%</li>
-            <li>Поддержка и Telegram остаются рядом на каждом клиентском экране.</li>
-          </ul>
-        </article>
       </section>
     </main>
   );
