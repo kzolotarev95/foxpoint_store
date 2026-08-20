@@ -1,0 +1,21 @@
+{
+  "name": "FoxPoint",
+  "short_name": "FoxPoint",
+  "description": "Сайт, личный кабинет и админ-панель проекта 'Интернет, как раньше'",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#110d18",
+  "theme_color": "#f38a1d",
+  "icons": [
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64",
+      "type": "image/x-icon"
+    }
+  ]
+}

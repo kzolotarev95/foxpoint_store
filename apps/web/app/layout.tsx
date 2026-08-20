@@ -9,7 +9,29 @@ const manrope = Manrope({
 
 export const metadata: Metadata = {
   title: "FoxPoint | Интернет, как раньше",
-  description: "Сайт, личный кабинет и админ-панель проекта 'Интернет, как раньше'"
+  description: "Сайт, личный кабинет и админ-панель проекта 'Интернет, как раньше'",
+  manifest: "/site.webmanifest",
+  icons: {
+    icon: [
+      {
+        rel: "icon",
+        url: "/favicon.ico"
+      }
+    ],
+    apple: [
+      {
+        url: "/apple-touch-icon.png",
+        sizes: "180x180",
+        type: "image/png"
+      }
+    ],
+    shortcut: ["/favicon.ico"]
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "FoxPoint"
+  }
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
