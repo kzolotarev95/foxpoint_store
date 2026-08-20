@@ -8,7 +8,13 @@ import {
   TicketStatus,
   type Prisma
 } from "@prisma/client";
-import { bindEmailIdentityForUser, buildReferralCode, normalizeClientLogin, upsertLocalCredentialsForUser } from "./client-auth.js";
+import {
+  bindEmailIdentityForUser,
+  buildReferralCode,
+  listClientSessionsForUser,
+  normalizeClientLogin,
+  upsertLocalCredentialsForUser
+} from "./client-auth.js";
 import { getAdminSettings, getPublicSettingLinks } from "./admin-settings.js";
 import { config } from "./config.js";
 import { prisma } from "./prisma.js";
@@ -235,13 +241,13 @@ export async function buildSiteSnapshot() {
   };
 }
 
-export async function buildClientOverview(userId: string) {
-  const [links, settings, user, openTwoFactorRequest, openDeletionRequest] = await Promise.all([
+export async function buildClientOverview(input: { currentSessionId?: string; userId: string }) {
+  const [links, settings, user, openTwoFactorRequest, openDeletionRequest, clientSessions] = await Promise.all([
     getPublicSettingLinks(),
     getSettingMap(),
     prisma.user.findUnique({
       where: {
-        id: userId
+        id: input.userId
       },
       include: {
         identities: true,
@@ -325,7 +331,7 @@ export async function buildClientOverview(userId: string) {
     }),
     prisma.supportTicket.findFirst({
       where: {
-        userId,
+        userId: input.userId,
         category: "2FA",
         status: {
           in: ["OPEN", "IN_PROGRESS", "WAITING_CLIENT"]
@@ -337,7 +343,7 @@ export async function buildClientOverview(userId: string) {
     }),
     prisma.supportTicket.findFirst({
       where: {
-        userId,
+        userId: input.userId,
         category: "Удаление аккаунта",
         status: {
           in: ["OPEN", "IN_PROGRESS", "WAITING_CLIENT"]
@@ -346,6 +352,10 @@ export async function buildClientOverview(userId: string) {
       orderBy: {
         updatedAt: "desc"
       }
+    }),
+    listClientSessionsForUser({
+      userId: input.userId,
+      currentSessionId: input.currentSessionId
     })
   ]);
 
@@ -446,6 +456,7 @@ export async function buildClientOverview(userId: string) {
       hasOpenTwoFactorRequest: Boolean(openTwoFactorRequest),
       hasOpenDeletionRequest: Boolean(openDeletionRequest)
     },
+    sessions: clientSessions,
     links: {
       support: links.support,
       telegramBot: links.telegramBot,

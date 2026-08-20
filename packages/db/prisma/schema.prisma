@@ -105,6 +105,7 @@ model User {
   balance        Decimal              @default(0) @db.Decimal(12, 2)
   routers        Router[]
   identities     AuthIdentity[]
+  clientSessions ClientSession[]
   payments       Payment[]
   orders         RouterOrder[]
   tickets        SupportTicket[]
@@ -128,6 +129,22 @@ model AuthIdentity {
   user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerUserId])
+}
+
+model ClientSession {
+  id         String   @id @default(cuid())
+  userId     String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  lastSeenAt DateTime @default(now())
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  userAgent  String?
+  ipAddress  String?
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model Router {

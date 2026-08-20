@@ -7,6 +7,7 @@ import {
   createRouterOrderAction,
   createSupportTicketAction,
   logoutClientAction,
+  revokeClientSessionAction,
   requestAccountDeletionAction,
   requestTwoFactorSetupAction,
   renewRouterAction,
@@ -20,6 +21,7 @@ export type PageSearchParams = Promise<Record<string, string | string[] | undefi
 export type CabinetTab = "overview" | "routers" | "support" | "payments" | "profile";
 
 type RouterOverviewItem = ClientOverview["routers"][number];
+type ClientSessionItem = ClientOverview["sessions"][number];
 type SupportTicketItem = ClientOverview["tickets"][number];
 
 function getCabinetTabHref(tab: CabinetTab): string {
@@ -201,19 +203,21 @@ function formatTelegramHandle(value: string | null | undefined): string {
   return value.startsWith("@") ? value : `@${value}`;
 }
 
-function getProfileLastActivity(overview: ClientOverview): string | null {
-  const dates = [
-    overview.notifications[0]?.createdAt,
-    overview.payments[0]?.createdAt,
-    overview.tickets[0]?.updatedAt,
-    overview.profile.createdAt
-  ].filter((item): item is string => Boolean(item));
+function getProfileSessionMeta(session: ClientSessionItem) {
+  const userAgent = (session.userAgent ?? "").toLowerCase();
+  const isPhoneSession = /android|iphone|ipad|mobile/.test(userAgent);
+  const isTelegramSession = /telegram/.test(userAgent);
 
-  if (!dates.length) {
-    return null;
-  }
-
-  return dates.sort((left, right) => new Date(right).getTime() - new Date(left).getTime())[0] ?? null;
+  return {
+    deviceLabel: isTelegramSession
+      ? "Telegram / Встроенный браузер"
+      : isPhoneSession
+        ? "Мобильное устройство"
+        : "Web / Личный кабинет",
+    location: session.ipAddress ?? "IP не определен",
+    timeLabel: formatRelativeDateTime(session.lastSeenAt),
+    icon: isPhoneSession || isTelegramSession ? <DevicePhoneIcon /> : <MonitorIcon />
+  };
 }
 
 type RouterDeviceVariant = "netis" | "keenetic" | "cudy" | "xiaomi-ax3000t" | "cudy-wbr3000uax";
@@ -686,26 +690,11 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
   const isPaymentsTab = props.activeTab === "payments";
   const isProfileTab = props.activeTab === "profile";
   const telegramHandle = formatTelegramHandle(overview.profile.telegram);
-  const latestProfileActivity = overview.profile.lastActivityAt ?? getProfileLastActivity(overview);
   const hasTelegram = Boolean(overview.profile.telegram);
-  const profileSessions = [
-    {
-      id: "cabinet",
-      deviceLabel: "Web / Личный кабинет",
-      isCurrent: true,
-      location: "FOX POINT кабинет",
-      timeLabel: "Сейчас",
-      icon: <MonitorIcon />
-    },
-    {
-      id: hasTelegram ? "telegram" : "notifications",
-      deviceLabel: hasTelegram ? "Telegram / Бот поддержки" : "Email / Уведомления",
-      isCurrent: false,
-      location: hasTelegram ? telegramHandle : overview.profile.email ?? "Email не привязан",
-      timeLabel: hasTelegram ? `с ${formatLongDate(overview.profile.createdAt)}` : formatRelativeDateTime(latestProfileActivity),
-      icon: hasTelegram ? <DevicePhoneIcon /> : <MailIcon />
-    }
-  ];
+  const profileSessions = overview.sessions.map((session) => ({
+    ...session,
+    ...getProfileSessionMeta(session)
+  }));
 
   return (
     <main className="shell portalPage clientDashboardPage clientRoutersExperience">
@@ -1284,9 +1273,13 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                     </button>
                   </form>
                 ) : (
-                  <button className="secondaryButton portalGhostButton profileMiniButton" disabled type="button">
-                    Завершить
-                  </button>
+                  <form action={revokeClientSessionAction}>
+                    <input name="returnTo" type="hidden" value="/cabinet/profile" />
+                    <input name="sessionId" type="hidden" value={session.id} />
+                    <button className="secondaryButton portalGhostButton profileMiniButton" type="submit">
+                      Завершить
+                    </button>
+                  </form>
                 )}
               </div>
             ))}

@@ -5,6 +5,7 @@ import { getApiBaseUrl } from "./api";
 import {
   clearClientSessionCookie,
   fetchClientApi,
+  getForwardedClientHeaders,
   setClientSessionCookie
 } from "./client-auth";
 
@@ -36,7 +37,8 @@ export async function loginWithEmailAction(formData: FormData) {
     method: "POST",
     headers: {
       Accept: "application/json",
-      "content-type": "application/json"
+      "content-type": "application/json",
+      ...(await getForwardedClientHeaders())
     },
     body: JSON.stringify({
       email,
@@ -66,7 +68,8 @@ export async function authenticateClientAction(formData: FormData) {
     method: "POST",
     headers: {
       Accept: "application/json",
-      "content-type": "application/json"
+      "content-type": "application/json",
+      ...(await getForwardedClientHeaders())
     },
     body: JSON.stringify({
       mode,
@@ -92,8 +95,31 @@ export async function authenticateClientAction(formData: FormData) {
 }
 
 export async function logoutClientAction() {
+  try {
+    await fetchClientApi("/api/me/logout", {
+      method: "POST"
+    });
+  } catch {
+    // Always clear the cookie locally even if the API session is already gone.
+  }
+
   await clearClientSessionCookie();
   redirect("/login?signedOut=1");
+}
+
+export async function revokeClientSessionAction(formData: FormData) {
+  const returnTo = getReturnToPath(formData, "/cabinet/profile");
+  const sessionId = String(formData.get("sessionId") ?? "").trim();
+
+  try {
+    await fetchClientApi(`/api/me/sessions/${sessionId}/revoke`, {
+      method: "POST"
+    });
+  } catch (error) {
+    redirect(`${returnTo}?error=${encodeMessage(error instanceof Error ? error.message : "Не удалось завершить сессию.")}`);
+  }
+
+  redirect(`${returnTo}?success=Сессия%20завершена.`);
 }
 
 export async function createRouterOrderAction(formData: FormData) {

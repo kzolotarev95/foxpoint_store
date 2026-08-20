@@ -16,6 +16,15 @@ export type ClientOverview = {
     hasOpenTwoFactorRequest: boolean;
     hasOpenDeletionRequest: boolean;
   };
+  sessions: Array<{
+    id: string;
+    isCurrent: boolean;
+    createdAt: string;
+    lastSeenAt: string;
+    expiresAt: string;
+    userAgent: string | null;
+    ipAddress: string | null;
+  }>;
   links: {
     support: string;
     telegramBot: string;

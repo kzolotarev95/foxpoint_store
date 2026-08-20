@@ -3,7 +3,14 @@ import sensible from "@fastify/sensible";
 import Fastify, { type FastifyRequest } from "fastify";
 import { z } from "zod";
 import { readAdminSession, readAdminSessionToken } from "./admin-auth.js";
-import { getClientSessionFromRequest, loginClientFromCredentials, registerClientFromCredentials, upsertClientFromEmail } from "./client-auth.js";
+import {
+  getClientSessionFromRequest,
+  loginClientFromCredentials,
+  registerClientFromCredentials,
+  revokeClientSessionForUser,
+  revokeCurrentClientSession,
+  upsertClientFromEmail
+} from "./client-auth.js";
 import { getAdminSettings, saveAdminSettings } from "./admin-settings.js";
 import { config } from "./config.js";
 import { buildOverview } from "./overview.js";
@@ -48,8 +55,8 @@ function isAuthorizedAdminRequest(request: FastifyRequest): boolean {
   return isLocalAdminRequest(request) || hasAdminSession(request.headers);
 }
 
-function getAuthorizedUserId(request: FastifyRequest): string | null {
-  return getClientSessionFromRequest(request)?.u ?? null;
+async function getAuthorizedUserId(request: FastifyRequest): Promise<string | null> {
+  return (await getClientSessionFromRequest(request))?.u ?? null;
 }
 
 await app.register(cors, {
@@ -110,7 +117,10 @@ app.post("/api/auth/email", async (request, reply) => {
     })
     .parse(request.body);
 
-  const result = await upsertClientFromEmail(body);
+  const result = await upsertClientFromEmail({
+    ...body,
+    request
+  });
   reply.code(result.isNew ? 201 : 200);
   return result;
 });
@@ -136,11 +146,13 @@ app.post("/api/auth/credentials", async (request, reply) => {
         ? await registerClientFromCredentials({
             login: body.login,
             password: body.password,
-            referralCode: body.referralCode
+            referralCode: body.referralCode,
+            request
           })
         : await loginClientFromCredentials({
             login: body.login,
-            password: body.password
+            password: body.password,
+            request
           });
     reply.code(result.isNew ? 201 : 200);
     return result;
@@ -153,19 +165,22 @@ app.post("/api/auth/credentials", async (request, reply) => {
 });
 
 app.get("/api/me/overview", async (request, reply) => {
-  const userId = getAuthorizedUserId(request);
-  if (!userId) {
+  const session = await getClientSessionFromRequest(request);
+  if (!session) {
     reply.code(401);
     return {
       error: "unauthorized"
     };
   }
 
-  return buildClientOverview(userId);
+  return buildClientOverview({
+    userId: session.u,
+    currentSessionId: session.sid
+  });
 });
 
 app.post("/api/me/profile/email", async (request, reply) => {
-  const userId = getAuthorizedUserId(request);
+  const userId = await getAuthorizedUserId(request);
   if (!userId) {
     reply.code(401);
     return {
@@ -193,7 +208,7 @@ app.post("/api/me/profile/email", async (request, reply) => {
 });
 
 app.post("/api/me/profile/password", async (request, reply) => {
-  const userId = getAuthorizedUserId(request);
+  const userId = await getAuthorizedUserId(request);
   if (!userId) {
     reply.code(401);
     return {
@@ -228,7 +243,7 @@ app.post("/api/me/profile/password", async (request, reply) => {
 });
 
 app.post("/api/me/profile/request", async (request, reply) => {
-  const userId = getAuthorizedUserId(request);
+  const userId = await getAuthorizedUserId(request);
   if (!userId) {
     reply.code(401);
     return {
@@ -256,7 +271,7 @@ app.post("/api/me/profile/request", async (request, reply) => {
 });
 
 app.post("/api/orders", async (request, reply) => {
-  const userId = getAuthorizedUserId(request);
+  const userId = await getAuthorizedUserId(request);
   if (!userId) {
     reply.code(401);
     return {
@@ -267,8 +282,47 @@ app.post("/api/orders", async (request, reply) => {
   return createRouterOrderForUser(userId);
 });
 
+app.post("/api/me/logout", async (request, reply) => {
+  const userId = await getAuthorizedUserId(request);
+  if (!userId) {
+    reply.code(401);
+    return {
+      error: "unauthorized"
+    };
+  }
+
+  await revokeCurrentClientSession(request);
+  return {
+    ok: true
+  };
+});
+
+app.post("/api/me/sessions/:sessionId/revoke", async (request, reply) => {
+  const userId = await getAuthorizedUserId(request);
+  if (!userId) {
+    reply.code(401);
+    return {
+      error: "unauthorized"
+    };
+  }
+
+  const params = z.object({ sessionId: z.string().trim().min(1) }).parse(request.params);
+
+  try {
+    return await revokeClientSessionForUser({
+      userId,
+      sessionId: params.sessionId
+    });
+  } catch (error) {
+    reply.code(400);
+    return {
+      error: error instanceof Error ? error.message : "Не удалось завершить сессию."
+    };
+  }
+});
+
 app.post("/api/support", async (request, reply) => {
-  const userId = getAuthorizedUserId(request);
+  const userId = await getAuthorizedUserId(request);
   if (!userId) {
     reply.code(401);
     return {
@@ -300,7 +354,7 @@ app.post("/api/support", async (request, reply) => {
 });
 
 app.post("/api/routers/:routerId/template", async (request, reply) => {
-  const userId = getAuthorizedUserId(request);
+  const userId = await getAuthorizedUserId(request);
   if (!userId) {
     reply.code(401);
     return {
@@ -332,7 +386,7 @@ app.post("/api/routers/:routerId/template", async (request, reply) => {
 });
 
 app.post("/api/routers/:routerId/renew", async (request, reply) => {
-  const userId = getAuthorizedUserId(request);
+  const userId = await getAuthorizedUserId(request);
   if (!userId) {
     reply.code(401);
     return {

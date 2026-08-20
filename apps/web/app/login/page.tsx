@@ -3,7 +3,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSiteSnapshot, isTelegramBotConfigured } from "../../components/site-data";
 import { authenticateClientAction } from "../../lib/client-actions";
-import { getClientSessionToken } from "../../lib/client-auth";
+import { getApiBaseUrl } from "../../lib/api";
+import { clearClientSessionCookie, getClientRequestHeaders, getClientSessionToken } from "../../lib/client-auth";
 
 type PageSearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -18,7 +19,16 @@ function getSingleParam(value: string | string[] | undefined): string | null {
 export default async function LoginPage(props: { searchParams: PageSearchParams }) {
   const existingToken = await getClientSessionToken();
   if (existingToken) {
-    redirect("/cabinet");
+    const response = await fetch(`${getApiBaseUrl()}/api/me/overview`, {
+      headers: Object.fromEntries((await getClientRequestHeaders()).entries()),
+      cache: "no-store"
+    });
+
+    if (response.ok) {
+      redirect("/cabinet");
+    }
+
+    await clearClientSessionCookie();
   }
 
   const searchParams = await props.searchParams;

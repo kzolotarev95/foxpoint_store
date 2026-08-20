@@ -1,4 +1,4 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { getApiBaseUrl } from "./api";
 import { getExpiredSessionCookieOptions, getSessionCookieOptions } from "./session-cookie";
@@ -36,6 +36,23 @@ export async function clearClientSessionCookie() {
   });
 }
 
+export async function getForwardedClientHeaders(): Promise<Record<string, string>> {
+  const requestHeaders = await headers();
+  const forwardedFor = requestHeaders.get("x-forwarded-for") ?? "";
+  const userAgent = requestHeaders.get("user-agent") ?? "";
+  const result: Record<string, string> = {};
+
+  if (forwardedFor) {
+    result["x-client-forwarded-for"] = forwardedFor;
+  }
+
+  if (userAgent) {
+    result["x-client-user-agent"] = userAgent;
+  }
+
+  return result;
+}
+
 export async function getClientRequestHeaders(): Promise<Headers> {
   const token = await getClientSessionToken();
 
@@ -47,7 +64,8 @@ export async function getClientRequestHeaders(): Promise<Headers> {
   return new Headers({
     Accept: "application/json",
     cookie: cookieStore.toString(),
-    "x-client-session": token
+    "x-client-session": token,
+    ...(await getForwardedClientHeaders())
   });
 }
 

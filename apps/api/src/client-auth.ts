@@ -5,11 +5,20 @@ import { prisma } from "./prisma.js";
 
 const CLIENT_COOKIE_NAME = "foxpoint_client_session";
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 30;
+const SESSION_ACTIVITY_UPDATE_WINDOW_MS = 1000 * 60 * 5;
 
 type ClientSessionPayload = {
   exp: number;
+  sid: string;
   u: string;
 };
+
+type ClientRequestContext = {
+  ipAddress: string | null;
+  userAgent: string | null;
+};
+
+export type VerifiedClientSession = ClientSessionPayload;
 
 function signPayload(encodedPayload: string): string {
   return createHmac("sha256", config.CLIENT_SESSION_SECRET).update(encodedPayload).digest("base64url");
@@ -29,7 +38,7 @@ function safeEqual(left: string, right: string): boolean {
 function parseSessionPayload(encodedPayload: string): ClientSessionPayload | null {
   try {
     const payload = JSON.parse(Buffer.from(encodedPayload, "base64url").toString("utf8")) as ClientSessionPayload;
-    if (typeof payload.u !== "string" || typeof payload.exp !== "number") {
+    if (typeof payload.u !== "string" || typeof payload.sid !== "string" || typeof payload.exp !== "number") {
       return null;
     }
 
@@ -52,6 +61,53 @@ function getCookieValue(cookieHeader: string | undefined, name: string): string 
   }
 
   return null;
+}
+
+function getHeaderValue(value: string | string[] | undefined): string | null {
+  if (Array.isArray(value)) {
+    return value[0] ?? null;
+  }
+
+  return typeof value === "string" ? value : null;
+}
+
+function limitString(value: string | null | undefined, maxLength: number): string | null {
+  if (!value) {
+    return null;
+  }
+
+  return value.slice(0, maxLength);
+}
+
+function getRequestIpAddress(request: FastifyRequest): string | null {
+  const forwarded = getHeaderValue(request.headers["x-client-forwarded-for"]) ?? getHeaderValue(request.headers["x-forwarded-for"]);
+  const rawIp = forwarded?.split(",")[0]?.trim() || request.ip || request.socket.remoteAddress || "";
+
+  return rawIp ? limitString(rawIp, 120) : null;
+}
+
+function getClientRequestContext(request: FastifyRequest): ClientRequestContext {
+  return {
+    ipAddress: getRequestIpAddress(request),
+    userAgent: limitString(
+      getHeaderValue(request.headers["x-client-user-agent"]) ?? getHeaderValue(request.headers["user-agent"]),
+      500
+    )
+  };
+}
+
+function shouldRefreshSessionActivity(input: {
+  currentIpAddress: string | null;
+  currentUserAgent: string | null;
+  lastSeenAt: Date;
+  nextIpAddress: string | null;
+  nextUserAgent: string | null;
+}): boolean {
+  if (Date.now() - input.lastSeenAt.getTime() >= SESSION_ACTIVITY_UPDATE_WINDOW_MS) {
+    return true;
+  }
+
+  return input.currentIpAddress !== input.nextIpAddress || input.currentUserAgent !== input.nextUserAgent;
 }
 
 function normalizeEmail(email: string): string {
@@ -91,11 +147,12 @@ export function getClientCookieName(): string {
   return CLIENT_COOKIE_NAME;
 }
 
-export function createClientSessionToken(userId: string): string {
+function createClientSessionToken(input: { expiresAt: Date; sessionId: string; userId: string }): string {
   const payload = Buffer.from(
     JSON.stringify({
-      exp: Date.now() + SESSION_TTL_MS,
-      u: userId
+      exp: input.expiresAt.getTime(),
+      sid: input.sessionId,
+      u: input.userId
     } satisfies ClientSessionPayload)
   ).toString("base64url");
 
@@ -125,13 +182,155 @@ export function readClientSessionToken(token: string | undefined): ClientSession
   return payload;
 }
 
-export function getClientSessionFromRequest(request: FastifyRequest): ClientSessionPayload | null {
-  const headerToken = Array.isArray(request.headers["x-client-session"])
-    ? request.headers["x-client-session"][0]
-    : request.headers["x-client-session"];
+function getClientSessionTokenFromRequest(request: FastifyRequest): string | undefined {
+  const headerToken = getHeaderValue(request.headers["x-client-session"]) ?? undefined;
   const cookieToken = getCookieValue(request.headers.cookie, CLIENT_COOKIE_NAME) ?? undefined;
 
-  return readClientSessionToken(headerToken ?? cookieToken);
+  return headerToken ?? cookieToken;
+}
+
+async function createPersistedClientSession(input: { request: FastifyRequest; userId: string }) {
+  const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
+  const requestContext = getClientRequestContext(input.request);
+  const session = await prisma.clientSession.create({
+    data: {
+      userId: input.userId,
+      expiresAt,
+      ipAddress: requestContext.ipAddress,
+      userAgent: requestContext.userAgent
+    }
+  });
+
+  return {
+    expiresAt,
+    sessionId: session.id,
+    token: createClientSessionToken({
+      userId: input.userId,
+      sessionId: session.id,
+      expiresAt
+    })
+  };
+}
+
+export async function getClientSessionFromRequest(request: FastifyRequest): Promise<VerifiedClientSession | null> {
+  const token = getClientSessionTokenFromRequest(request);
+  const payload = readClientSessionToken(token);
+
+  if (!payload) {
+    return null;
+  }
+
+  const session = await prisma.clientSession.findUnique({
+    where: {
+      id: payload.sid
+    }
+  });
+
+  if (!session || session.userId !== payload.u || session.revokedAt || session.expiresAt.getTime() <= Date.now()) {
+    return null;
+  }
+
+  const requestContext = getClientRequestContext(request);
+  if (
+    shouldRefreshSessionActivity({
+      currentIpAddress: session.ipAddress,
+      currentUserAgent: session.userAgent,
+      lastSeenAt: session.lastSeenAt,
+      nextIpAddress: requestContext.ipAddress,
+      nextUserAgent: requestContext.userAgent
+    })
+  ) {
+    await prisma.clientSession.update({
+      where: {
+        id: session.id
+      },
+      data: {
+        lastSeenAt: new Date(),
+        ipAddress: requestContext.ipAddress,
+        userAgent: requestContext.userAgent
+      }
+    });
+  }
+
+  return payload;
+}
+
+export async function listClientSessionsForUser(input: { currentSessionId?: string; userId: string }) {
+  const sessions = await prisma.clientSession.findMany({
+    where: {
+      userId: input.userId,
+      revokedAt: null,
+      expiresAt: {
+        gt: new Date()
+      }
+    },
+    orderBy: [
+      {
+        lastSeenAt: "desc"
+      },
+      {
+        createdAt: "desc"
+      }
+    ],
+    take: 12
+  });
+
+  return sessions.map((session) => ({
+    id: session.id,
+    isCurrent: session.id === input.currentSessionId,
+    createdAt: session.createdAt.toISOString(),
+    lastSeenAt: session.lastSeenAt.toISOString(),
+    expiresAt: session.expiresAt.toISOString(),
+    userAgent: session.userAgent,
+    ipAddress: session.ipAddress
+  }));
+}
+
+export async function revokeClientSessionForUser(input: { sessionId: string; userId: string }) {
+  const session = await prisma.clientSession.findFirst({
+    where: {
+      id: input.sessionId,
+      userId: input.userId
+    }
+  });
+
+  if (!session) {
+    throw new Error("Сессия не найдена.");
+  }
+
+  if (session.revokedAt) {
+    return {
+      revoked: false
+    };
+  }
+
+  await prisma.clientSession.update({
+    where: {
+      id: session.id
+    },
+    data: {
+      revokedAt: new Date()
+    }
+  });
+
+  return {
+    revoked: true
+  };
+}
+
+export async function revokeCurrentClientSession(request: FastifyRequest) {
+  const payload = await getClientSessionFromRequest(request);
+
+  if (!payload) {
+    return {
+      revoked: false
+    };
+  }
+
+  return revokeClientSessionForUser({
+    userId: payload.u,
+    sessionId: payload.sid
+  });
 }
 
 export function buildReferralCode(userId: string): string {
@@ -317,6 +516,7 @@ export async function upsertClientFromEmail(input: {
   email: string;
   name?: string;
   referralCode?: string;
+  request: FastifyRequest;
 }) {
   const email = normalizeEmail(input.email);
   const name = input.name?.trim() || null;
@@ -343,9 +543,14 @@ export async function upsertClientFromEmail(input: {
       }
     });
 
+    const session = await createPersistedClientSession({
+      request: input.request,
+      userId: existingIdentity.userId
+    });
+
     return {
       isNew: false,
-      token: createClientSessionToken(existingIdentity.userId),
+      token: session.token,
       userId: existingIdentity.userId
     };
   }
@@ -384,9 +589,14 @@ export async function upsertClientFromEmail(input: {
     return user;
   });
 
+  const session = await createPersistedClientSession({
+    request: input.request,
+    userId: createdUser.id
+  });
+
   return {
     isNew: true,
-    token: createClientSessionToken(createdUser.id),
+    token: session.token,
     userId: createdUser.id
   };
 }
@@ -395,6 +605,7 @@ export async function registerClientFromCredentials(input: {
   login: string;
   password: string;
   referralCode?: string;
+  request: FastifyRequest;
 }) {
   const login = normalizeLogin(input.login);
   const password = input.password;
@@ -448,14 +659,19 @@ export async function registerClientFromCredentials(input: {
     return user;
   });
 
+  const session = await createPersistedClientSession({
+    request: input.request,
+    userId: createdUser.id
+  });
+
   return {
     isNew: true,
-    token: createClientSessionToken(createdUser.id),
+    token: session.token,
     userId: createdUser.id
   };
 }
 
-export async function loginClientFromCredentials(input: { login: string; password: string }) {
+export async function loginClientFromCredentials(input: { login: string; password: string; request: FastifyRequest }) {
   const login = normalizeLogin(input.login);
   const password = input.password;
 
@@ -479,9 +695,14 @@ export async function loginClientFromCredentials(input: { login: string; passwor
     }
   });
 
+  const session = await createPersistedClientSession({
+    request: input.request,
+    userId: existingIdentity.userId
+  });
+
   return {
     isNew: false,
-    token: createClientSessionToken(existingIdentity.userId),
+    token: session.token,
     userId: existingIdentity.userId
   };
 }
