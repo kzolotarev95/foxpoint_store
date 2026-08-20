@@ -343,51 +343,11 @@ textarea {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center top;
 }
 
 .heroImage {
   min-height: 100%;
-}
-
-.heroVisualShade {
-  position: absolute;
-  inset: 0;
-  background:
-    linear-gradient(180deg, rgba(8, 6, 12, 0.05) 0%, rgba(8, 6, 12, 0.26) 42%, rgba(8, 6, 12, 0.84) 100%);
-}
-
-.heroOverlay {
-  position: absolute;
-  right: 1rem;
-  bottom: 1rem;
-  left: 1rem;
-  display: grid;
-  gap: 0.7rem;
-  padding: 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  border-radius: 1.3rem;
-  background: linear-gradient(180deg, rgba(13, 10, 18, 0.48) 0%, rgba(13, 10, 18, 0.82) 100%);
-  backdrop-filter: blur(12px);
-}
-
-.heroOverlay h2 {
-  margin: 0;
-  font-family: var(--font-heading, sans-serif);
-  font-size: clamp(1.35rem, 3vw, 2rem);
-  line-height: 1.02;
-  letter-spacing: -0.03em;
-}
-
-.heroOverlay p {
-  margin: 0;
-  color: rgba(246, 241, 235, 0.82);
-  font-size: 0.96rem;
-  line-height: 1.65;
-}
-
-.heroPill {
-  color: #fff4df;
-  background: rgba(243, 138, 29, 0.12);
 }
 
 .contentStack {
@@ -875,13 +835,6 @@ textarea {
 
   .ctaRow > * {
     width: 100%;
-  }
-
-  .heroOverlay {
-    right: 0.8rem;
-    bottom: 0.8rem;
-    left: 0.8rem;
-    padding: 0.9rem;
   }
 
   .hero p,

@@ -26,11 +26,6 @@ export default async function HomePage() {
         <div className="heroContent">
           <span className="statusTag">Главный экран</span>
           <h1>Интернет должен просто работать.</h1>
-          <p>
-            FoxPoint берет на себя настройку, сопровождение и продление. Клиент сразу видит
-            понятный маршрут: открыть Telegram, зайти в кабинет, заказать роутер или получить
-            помощь без лишней технической нагрузки.
-          </p>
 
           <div className="ctaRow">
             <Link className="primaryButton" href="/login">
@@ -73,19 +68,10 @@ export default async function HomePage() {
             priority
             alt="FoxPoint приветственный экран"
             className="heroImage"
-            height={720}
+            height={640}
             src="/images/foxpoint-hero-welcome.jpg"
-            width={1280}
+            width={482}
           />
-          <div className="heroVisualShade" />
-          <div className="heroOverlay">
-            <span className="pill heroPill">Приветствие FoxPoint</span>
-            <h2>Настройку и поддержку берем на себя</h2>
-            <p>
-              Главный экран теперь строится вокруг приветственного изображения и сразу задает
-              нужное настроение сервиса.
-            </p>
-          </div>
         </div>
       </section>
     </main>
