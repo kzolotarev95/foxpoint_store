@@ -2083,12 +2083,12 @@ textarea {
 .clientRoutersLead h1 {
   margin: 0;
   font-family: var(--font-heading, sans-serif);
-  max-width: 22ch;
-  font-size: clamp(2rem, 2.9vw, 2.95rem);
-  line-height: 1.02;
+  max-width: none;
+  font-size: clamp(1.72rem, 2.25vw, 2.4rem);
+  line-height: 1.08;
   letter-spacing: -0.045em;
   color: #fff8ef;
-  text-wrap: balance;
+  white-space: nowrap;
 }
 
 .clientRoutersLead p {
@@ -3516,6 +3516,10 @@ textarea {
   .clientRoutersLead h1,
   .clientRouterHeading h2 {
     font-size: clamp(1.2rem, 4.8vw, 1.62rem);
+  }
+
+  .clientRoutersLead h1 {
+    white-space: normal;
   }
 
   .clientRoutersLead p {
