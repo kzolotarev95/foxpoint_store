@@ -177,6 +177,41 @@ function buildUserInitials(name: string): string {
   return parts.map((part) => part[0]?.toUpperCase() ?? "").join("");
 }
 
+function formatLongDate(value: string | null | undefined): string {
+  if (!value) {
+    return "нет данных";
+  }
+
+  return new Intl.DateTimeFormat("ru-RU", {
+    day: "numeric",
+    month: "long",
+    year: "numeric"
+  }).format(new Date(value));
+}
+
+function formatTelegramHandle(value: string | null | undefined): string {
+  if (!value) {
+    return "@не_привязан";
+  }
+
+  return value.startsWith("@") ? value : `@${value}`;
+}
+
+function getProfileLastActivity(overview: ClientOverview): string | null {
+  const dates = [
+    overview.notifications[0]?.createdAt,
+    overview.payments[0]?.createdAt,
+    overview.tickets[0]?.updatedAt,
+    overview.profile.createdAt
+  ].filter((item): item is string => Boolean(item));
+
+  if (!dates.length) {
+    return null;
+  }
+
+  return dates.sort((left, right) => new Date(right).getTime() - new Date(left).getTime())[0] ?? null;
+}
+
 type RouterDeviceVariant = "netis" | "keenetic" | "cudy" | "xiaomi-ax3000t" | "cudy-wbr3000uax";
 
 type RouterDeviceSkin = {
@@ -398,6 +433,80 @@ function ProfileIcon() {
   );
 }
 
+function MailIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="4" y="6" width="16" height="12" rx="2" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <path d="m6 8 6 5 6-5" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+    </svg>
+  );
+}
+
+function LockIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="6" y="11" width="12" height="9" rx="2" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M8.5 11V8.5a3.5 3.5 0 0 1 7 0V11" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+      <circle cx="12" cy="15.5" r=".8" fill="currentColor" />
+    </svg>
+  );
+}
+
+function DevicePhoneIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="7" y="3.5" width="10" height="17" rx="2.2" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M10 6h4" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+      <circle cx="12" cy="17.2" r=".75" fill="currentColor" />
+    </svg>
+  );
+}
+
+function LocationIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 21s6-5.4 6-10.4A6 6 0 1 0 6 10.6C6 15.6 12 21 12 21Z" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <circle cx="12" cy="10.5" r="2.1" fill="none" stroke="currentColor" strokeWidth="1.8" />
+    </svg>
+  );
+}
+
+function GiftIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 10h16v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M12 10v12M4 14h16M4 10V7.8A1.8 1.8 0 0 1 5.8 6h12.4A1.8 1.8 0 0 1 20 7.8V10" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+      <path d="M12 10H9.3a2.15 2.15 0 1 1 0-4.3c2.1 0 2.7 2.4 2.7 4.3Zm0 0h2.7a2.15 2.15 0 1 0 0-4.3C12.6 5.7 12 8.1 12 10Z" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.4" />
+    </svg>
+  );
+}
+
+function CopyIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="9" y="8" width="10" height="12" rx="2" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M15 8V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+    </svg>
+  );
+}
+
+function ExternalLinkIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M14 5h5v5M10 14 19 5M19 13v4a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+    </svg>
+  );
+}
+
+function AlertTriangleIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 4.8 20 19a1.2 1.2 0 0 1-1 1.8H5a1.2 1.2 0 0 1-1-1.8Z" fill="none" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.8" />
+      <path d="M12 9v4.8M12 17.6h.01" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+    </svg>
+  );
+}
+
 function CartIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -572,6 +681,27 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
   const isSupportTab = props.activeTab === "support";
   const isPaymentsTab = props.activeTab === "payments";
   const isProfileTab = props.activeTab === "profile";
+  const telegramHandle = formatTelegramHandle(overview.profile.telegram);
+  const latestProfileActivity = getProfileLastActivity(overview);
+  const hasTelegram = Boolean(overview.profile.telegram);
+  const profileSessions = [
+    {
+      id: "cabinet",
+      deviceLabel: "Web / Личный кабинет",
+      isCurrent: true,
+      location: "FOX POINT кабинет",
+      timeLabel: "Сейчас",
+      icon: <MonitorIcon />
+    },
+    {
+      id: hasTelegram ? "telegram" : "notifications",
+      deviceLabel: hasTelegram ? "Telegram / Бот поддержки" : "Email / Уведомления",
+      isCurrent: false,
+      location: hasTelegram ? telegramHandle : overview.profile.email ?? "Email не привязан",
+      timeLabel: hasTelegram ? `с ${formatLongDate(overview.profile.createdAt)}` : formatRelativeDateTime(latestProfileActivity),
+      icon: hasTelegram ? <DevicePhoneIcon /> : <MailIcon />
+    }
+  ];
 
   return (
     <main className="shell portalPage clientDashboardPage clientRoutersExperience">
@@ -966,7 +1096,201 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
       </section>
       ) : null}
 
-      {isOverviewTab || isSupportTab || isPaymentsTab || isProfileTab ? (
+      {isProfileTab ? (
+      <section id="profile" className="profileCabinetPage">
+        <div className="profileIntro">
+          <h1>Профиль и безопасность</h1>
+          <p>Управляйте своими данными, входом в кабинет и реферальной программой в одном месте.</p>
+        </div>
+
+        <div className="miniGrid profileSummaryGrid">
+          <article className="metricCard profileSummaryCard">
+            <div className="profileStatTop">
+              <span className="profileStatGlyph">
+                <ProfileIcon />
+              </span>
+              <div>
+                <span className="profileCardLabel">Имя</span>
+                <strong className="profileInfoValue">{overview.profile.name}</strong>
+              </div>
+            </div>
+          </article>
+
+          <article className="metricCard profileSummaryCard">
+            <div className="profileStatTop">
+              <span className="profileStatGlyph">
+                <MailIcon />
+              </span>
+              <div>
+                <span className="profileCardLabel">Email</span>
+                <strong className="profileInfoValue">{overview.profile.email ?? "Не привязан"}</strong>
+              </div>
+            </div>
+          </article>
+
+          <article className="metricCard profileSummaryCard">
+            <div className="profileStatTop">
+              <span className="profileStatGlyph">
+                <TelegramIcon />
+              </span>
+              <div>
+                <span className="profileCardLabel">Telegram</span>
+                <strong className="profileInfoValue">{hasTelegram ? telegramHandle : "Еще не привязан"}</strong>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <article className="panel profileSecurityPanel">
+          <div className="profileSectionHeader">
+            <span className="profileSectionIcon">
+              <ShieldIcon />
+            </span>
+            <h2>Вход и безопасность</h2>
+          </div>
+
+          <div className="profileSecurityList">
+            <div className="profileSecurityRow">
+              <span className="profileSecurityIcon">
+                <LockIcon />
+              </span>
+              <div className="profileSecurityText">
+                <strong>Пароль</strong>
+                <span>Используется для входа в кабинет FOX POINT.</span>
+              </div>
+              <div className="profileInlineActions">
+                <button className="secondaryButton portalGhostButton profileMiniButton" type="button">
+                  Сменить пароль
+                </button>
+              </div>
+            </div>
+
+            <div className="profileSecurityRow">
+              <span className="profileSecurityIcon">
+                <TelegramIcon />
+              </span>
+              <div className="profileSecurityText">
+                <strong>Telegram</strong>
+                <span>{hasTelegram ? `Аккаунт ${telegramHandle} уже привязан к кабинету.` : "Привяжите Telegram для быстрых уведомлений и входа."}</span>
+              </div>
+              <div className="profileInlineActions">
+                <span className={hasTelegram ? "profileState profileStateLinked" : "profileState"}>
+                  {hasTelegram ? "Привязан" : "Не подключен"}
+                </span>
+              </div>
+            </div>
+
+            <div className="profileSecurityRow">
+              <span className="profileSecurityIcon">
+                <ShieldIcon />
+              </span>
+              <div className="profileSecurityText">
+                <strong>Двухфакторная защита</strong>
+                <span>{hasTelegram ? "Можно настроить второй фактор через Telegram." : "Сначала подключите Telegram, чтобы включить дополнительную защиту."}</span>
+              </div>
+              <div className="profileInlineActions">
+                <span className={hasTelegram ? "profileState profileStateEnabled" : "profileState"}>
+                  {hasTelegram ? "Доступна" : "Недоступна"}
+                </span>
+                <button className="secondaryButton portalGhostButton profileMiniButton" type="button">
+                  Управлять 2FA
+                </button>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article className="panel profileSessionsPanel">
+          <div className="profileSectionHeader">
+            <span className="profileSectionIcon">
+              <MonitorIcon />
+            </span>
+            <h2>Активные сессии</h2>
+          </div>
+
+          <div className="profileSessionList">
+            {profileSessions.map((session) => (
+              <div key={session.id} className="profileSessionRow">
+                <span className="profileSecurityIcon profileSessionDeviceIcon">{session.icon}</span>
+                <div className="profileSessionText">
+                  <div className="profileSessionTitleLine">
+                    <strong>{session.deviceLabel}</strong>
+                    {session.isCurrent ? <span className="profileSessionPill">это устройство</span> : null}
+                  </div>
+                </div>
+                <div className="profileSessionMeta">
+                  <span>
+                    <LocationIcon />
+                    {session.location}
+                  </span>
+                  <span>
+                    <ClockIcon />
+                    {session.timeLabel}
+                  </span>
+                </div>
+                <button className="secondaryButton portalGhostButton profileMiniButton" type="button">
+                  Завершить
+                </button>
+              </div>
+            ))}
+          </div>
+        </article>
+
+        <article className="panel profileReferralPanel">
+          <div className="profileSectionHeader">
+            <span className="profileSectionIcon">
+              <GiftIcon />
+            </span>
+            <h2>Реферальная программа</h2>
+          </div>
+
+          <div className="profileReferralGrid">
+            <div className="profileReferralCodeBlock">
+              <span className="profileCardLabel">Ваш реферальный код</span>
+              <div className="profileReferralCodeRow">
+                <strong>{overview.profile.referralCode}</strong>
+                <button className="profileIconButton" title="Копирование добавим следующим шагом" type="button">
+                  <CopyIcon />
+                </button>
+              </div>
+            </div>
+
+            <div className="profileReferralMetric">
+              <span className="profileCardLabel">Приглашено клиентов</span>
+              <strong>{overview.referrals.invitedCount}</strong>
+            </div>
+
+            <div className="profileReferralMetric">
+              <span className="profileCardLabel">Начислено</span>
+              <strong className="isWarm">{overview.referrals.availableRewardsLabel}</strong>
+            </div>
+
+            <a className="secondaryButton portalGhostButton profileReferralAction" href={overview.profile.referralLink} target="_blank">
+              Открыть реферальную ссылку
+              <ExternalLinkIcon />
+            </a>
+          </div>
+        </article>
+
+        <article className="panel profileDeletePanel">
+          <div className="profileDeleteCopy">
+            <div className="profileSectionHeader">
+              <span className="profileSectionIcon isDanger">
+                <AlertTriangleIcon />
+              </span>
+              <h2>Удаление аккаунта</h2>
+            </div>
+            <p>После удаления аккаунта все данные будут безвозвратно удалены.</p>
+          </div>
+
+          <button className="secondaryButton dangerButton profileDeleteButton" type="button">
+            Удалить аккаунт
+          </button>
+        </article>
+      </section>
+      ) : null}
+
+      {isOverviewTab || isSupportTab || isPaymentsTab ? (
       <section className="clientDashboardLowerGrid">
         {isOverviewTab ? (
         <article id="order" className="panel sectionPanel clientUtilityCard">
@@ -1066,7 +1390,7 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
         </article>
         ) : null}
 
-        {isOverviewTab || isProfileTab ? (
+        {isOverviewTab ? (
         <article id="profile" className="panel sectionPanel clientUtilityCard">
           <span className="pill">Профиль</span>
           <h2 className="sectionTitle">Данные клиента</h2>
@@ -1081,7 +1405,7 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
             </div>
             <div className="clientRouterMiniStat">
               <span>Telegram</span>
-              <strong>{overview.profile.telegram ?? "Еще не привязан"}</strong>
+              <strong>{hasTelegram ? telegramHandle : "Еще не привязан"}</strong>
             </div>
             <div className="clientRouterMiniStat">
               <span>Реферальный код</span>

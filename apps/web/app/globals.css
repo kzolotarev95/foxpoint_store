@@ -609,23 +609,55 @@ textarea {
   align-content: start;
 }
 
+.profileCabinetPage {
+  position: relative;
+  display: grid;
+  gap: 1rem;
+  overflow: hidden;
+  padding: 1rem 0 0.2rem;
+}
+
+.profileCabinetPage::after {
+  content: "";
+  position: absolute;
+  right: -6%;
+  bottom: -1.6rem;
+  left: -6%;
+  height: 15rem;
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(128, 64, 255, 0.34) 0 1px, transparent 1.7px),
+    radial-gradient(circle at 1px 1px, rgba(255, 128, 48, 0.12) 0 1px, transparent 1.9px);
+  background-position: 0 0, 17px 10px;
+  background-size: 12px 12px, 24px 24px;
+  mask-image: radial-gradient(ellipse at center bottom, rgba(0, 0, 0, 0.88) 18%, transparent 80%);
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.profileCabinetPage > * {
+  position: relative;
+  z-index: 1;
+}
+
 .profileIntro {
   display: grid;
-  gap: 0.35rem;
-  padding: 0.1rem 0 0.2rem;
+  gap: 0.45rem;
+  max-width: 48rem;
+  padding: 0.2rem 0 0.35rem;
 }
 
 .profileIntro h1 {
   margin: 0;
   font-family: var(--font-heading, sans-serif);
-  font-size: clamp(2.15rem, 3.7vw, 3.15rem);
+  font-size: clamp(2.35rem, 4vw, 3.3rem);
   line-height: 0.96;
   letter-spacing: -0.06em;
+  color: #fff8ef;
 }
 
 .profileIntro p {
   margin: 0;
-  color: var(--muted);
+  color: rgba(228, 218, 243, 0.72);
   font-size: 1rem;
   line-height: 1.6;
 }
@@ -634,39 +666,61 @@ textarea {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.profileSummaryGrid .metricCard {
-  gap: 0.45rem;
-  padding: 1.05rem 1.1rem;
+.profileSummaryCard {
+  padding: 1.2rem 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1.3rem;
+  background:
+    radial-gradient(circle at 0 0, rgba(133, 69, 255, 0.12), transparent 32%),
+    linear-gradient(180deg, rgba(20, 16, 31, 0.98), rgba(13, 10, 21, 0.98));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    0 18px 34px rgba(0, 0, 0, 0.18);
 }
 
 .profileStatTop {
-  display: flex;
+  display: grid;
+  grid-template-columns: 3.85rem minmax(0, 1fr);
   align-items: center;
-  gap: 0.65rem;
+  gap: 1rem;
 }
 
 .profileStatGlyph {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 2.2rem;
-  height: 2.2rem;
-  border-radius: 0.95rem;
-  background: rgba(141, 88, 255, 0.15);
-  color: #ad8cff;
+  width: 3.5rem;
+  height: 3.5rem;
+  border: 1px solid rgba(163, 97, 255, 0.22);
+  border-radius: 1rem;
+  background: linear-gradient(180deg, rgba(58, 35, 109, 0.48), rgba(33, 21, 64, 0.6));
+  color: #ab65ff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 
-.profileSummaryGrid .metricValue {
-  margin-top: 0.1rem;
-  font-size: clamp(1.1rem, 2.2vw, 1.5rem);
-  line-height: 1.02;
+.profileStatGlyph svg,
+.profileSectionIcon svg,
+.profileSecurityIcon svg,
+.profileIconButton svg {
+  width: 1.45rem;
+  height: 1.45rem;
 }
 
-.profileSummaryGrid p {
-  margin: 0;
-  color: var(--muted);
-  font-size: 0.9rem;
-  line-height: 1.55;
+.profileCardLabel {
+  display: block;
+  color: rgba(223, 212, 240, 0.66);
+  font-size: 0.98rem;
+  line-height: 1.25;
+}
+
+.profileInfoValue {
+  display: block;
+  margin-top: 0.42rem;
+  color: #fff8ef;
+  font-family: var(--font-heading, sans-serif);
+  font-size: clamp(1.25rem, 2.1vw, 1.7rem);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
 }
 
 .profileSecurityPanel,
@@ -675,77 +729,128 @@ textarea {
 .profileDeletePanel {
   display: grid;
   gap: 1rem;
-  padding: 1.25rem 1.35rem;
+  padding: 1.2rem 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1.4rem;
+  background:
+    radial-gradient(circle at 50% 0, rgba(134, 69, 255, 0.14), transparent 32%),
+    linear-gradient(180deg, rgba(18, 15, 30, 0.98), rgba(11, 9, 19, 0.98));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    0 22px 48px rgba(0, 0, 0, 0.2);
+}
+
+.profileSectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 .profileSectionHeader h2 {
   margin: 0;
   font-family: var(--font-heading, sans-serif);
-  font-size: 1.15rem;
-  letter-spacing: -0.03em;
+  font-size: clamp(1.35rem, 2vw, 1.8rem);
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+  color: #fff8ef;
+}
+
+.profileSectionIcon,
+.profileSecurityIcon,
+.profileIconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profileSectionIcon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.8rem;
+  color: #ae68ff;
+}
+
+.profileSectionIcon.isDanger {
+  color: #ff6e66;
 }
 
 .profileSecurityList,
 .profileSessionList {
   display: grid;
-  gap: 0.45rem;
+  gap: 0;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 1rem;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .profileSecurityRow,
 .profileSessionRow {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 0.85rem;
-  padding: 0.85rem 0.9rem;
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 1rem;
-  background: rgba(255, 255, 255, 0.025);
+  gap: 1rem;
+  padding: 0.8rem 1rem;
+  background: linear-gradient(180deg, rgba(24, 18, 38, 0.35), rgba(15, 12, 25, 0.35));
+}
+
+.profileSecurityRow + .profileSecurityRow,
+.profileSessionRow + .profileSessionRow {
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.profileSecurityRow {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.profileSessionRow {
+  grid-template-columns: auto minmax(0, 1.3fr) minmax(250px, 0.95fr) auto;
 }
 
 .profileSecurityIcon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.15rem;
-  height: 2.15rem;
-  border-radius: 0.85rem;
-  background: rgba(255, 255, 255, 0.04);
-  color: #d8c7ef;
-  font-size: 1rem;
+  width: 1.8rem;
+  height: 1.8rem;
+  color: rgba(239, 232, 249, 0.88);
+}
+
+.profileSessionDeviceIcon {
+  color: #fff8ef;
 }
 
 .profileSecurityText,
 .profileSessionText {
   display: grid;
   gap: 0.18rem;
+  min-width: 0;
 }
 
 .profileSecurityText strong,
 .profileSessionText strong {
-  font-size: 0.96rem;
-  font-weight: 800;
+  color: #fff8ef;
+  font-size: 0.98rem;
+  font-weight: 600;
+  line-height: 1.3;
 }
 
 .profileSecurityText span,
 .profileSessionText span,
 .sectionLead {
-  color: var(--muted);
-  font-size: 0.9rem;
+  color: rgba(219, 208, 236, 0.68);
+  font-size: 0.92rem;
   line-height: 1.5;
 }
 
 .profileMiniButton {
   min-height: 2.25rem;
-  padding: 0.52rem 0.85rem;
-  border-radius: 0.85rem;
-  font-size: 0.88rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.8rem;
+  border-color: rgba(157, 97, 255, 0.44);
+  font-size: 0.92rem;
 }
 
 .profileInlineActions {
   display: flex;
   align-items: center;
-  gap: 0.55rem;
+  gap: 0.8rem;
   flex-wrap: wrap;
   justify-content: flex-end;
 }
@@ -755,44 +860,117 @@ textarea {
   align-items: center;
   justify-content: center;
   min-height: 1.8rem;
-  padding: 0.35rem 0.7rem;
+  padding: 0.35rem 0.72rem;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.04);
   color: #dacfe8;
-  font-size: 0.78rem;
-  font-weight: 800;
+  font-size: 0.82rem;
+  font-weight: 700;
 }
 
 .profileStateLinked,
 .profileStateEnabled,
 .profileStateCurrent {
-  background: rgba(90, 199, 111, 0.12);
-  color: #b7f0cb;
+  color: #83f0a6;
+}
+
+.profileSessionTitleLine {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.profileSessionPill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.65rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 0.55rem;
+  background: rgba(141, 88, 255, 0.18);
+  color: #b87dff;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.profileSessionMeta {
+  display: flex;
+  align-items: center;
+  gap: 1.3rem;
+  justify-content: space-between;
+  color: rgba(219, 208, 236, 0.68);
+  font-size: 0.92rem;
+}
+
+.profileSessionMeta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.profileSessionMeta svg {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
 }
 
 .profileReferralGrid {
   display: grid;
-  gap: 0.85rem;
-  grid-template-columns: minmax(0, 1.5fr) repeat(2, minmax(0, 1fr)) auto;
+  gap: 0.8rem;
+  grid-template-columns: minmax(0, 1.3fr) repeat(2, minmax(0, 0.85fr)) minmax(260px, auto);
+  align-items: stretch;
+}
+
+.profileReferralCodeBlock,
+.profileReferralMetric {
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.95rem;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.profileReferralCodeRow {
+  display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  margin-top: 0.35rem;
 }
 
 .profileReferralCodeBlock strong,
 .profileReferralMetric strong {
   display: block;
-  margin-top: 0.3rem;
   font-family: var(--font-heading, sans-serif);
-  font-size: 1.05rem;
+  font-size: 1.15rem;
+  line-height: 1.05;
   letter-spacing: -0.03em;
+  color: #b160ff;
 }
 
-.profileReferralCodeBlock strong {
-  color: var(--brand);
-  font-size: 1.35rem;
+.profileReferralMetric strong.isWarm,
+.profileReferralMetric .isWarm {
+  color: #ff8c47;
+}
+
+.profileIconButton {
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 0.8rem;
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(236, 229, 246, 0.8);
 }
 
 .profileReferralAction {
-  justify-self: end;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  min-height: 100%;
+  border-color: rgba(255, 132, 40, 0.55);
+  color: #b56fff;
+  font-size: 1rem;
+  font-weight: 600;
 }
 
 .profileDeletePanel {
@@ -800,15 +978,30 @@ textarea {
   align-items: center;
 }
 
+.profileDeleteCopy {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.profileDeleteCopy p {
+  margin: 0;
+  color: rgba(219, 208, 236, 0.68);
+  font-size: 0.97rem;
+}
+
+.profileDeleteButton {
+  min-width: 13rem;
+}
+
 .dangerButton {
-  border-color: rgba(194, 83, 64, 0.28);
-  background: rgba(194, 83, 64, 0.16);
-  color: #ffc4b5;
+  border-color: rgba(255, 89, 89, 0.55);
+  background: rgba(95, 18, 25, 0.3);
+  color: #ff6c67;
 }
 
 .dangerButton:hover {
-  border-color: rgba(194, 83, 64, 0.45);
-  background: rgba(194, 83, 64, 0.22);
+  border-color: rgba(255, 89, 89, 0.75);
+  background: rgba(122, 22, 31, 0.38);
 }
 
 .metricCard p {
