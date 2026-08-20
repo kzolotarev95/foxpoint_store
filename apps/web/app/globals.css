@@ -234,6 +234,25 @@ textarea {
   padding: 1.25rem;
 }
 
+.metricCard {
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    background 180ms ease;
+}
+
+@media (hover: hover) {
+  .metricCard:hover {
+    transform: translateY(-6px);
+    border-color: rgba(243, 138, 29, 0.34);
+    background:
+      radial-gradient(circle at top center, rgba(243, 138, 29, 0.16), transparent 58%),
+      linear-gradient(180deg, rgba(39, 30, 52, 0.92) 0%, rgba(22, 16, 31, 0.96) 100%);
+    box-shadow: 0 22px 44px rgba(9, 6, 16, 0.36), 0 0 0 1px rgba(243, 138, 29, 0.08);
+  }
+}
+
 .metricValue {
   margin: 0.55rem 0 0.35rem;
   font-family: var(--font-heading, sans-serif);
