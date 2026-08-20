@@ -771,6 +771,11 @@ textarea {
   background: transparent;
 }
 
+.authLoginExperience .portalTopBar {
+  width: min(920px, 100%);
+  margin-inline: auto;
+}
+
 .authStageBackdrop,
 .authStageOverlay {
   position: absolute;
@@ -925,7 +930,20 @@ textarea {
 }
 
 .authStageCard .textInput {
-  background: rgba(17, 12, 25, 0.92);
+  background: rgba(18, 13, 27, 0.96);
+  color: #fff7ef;
+  -webkit-text-fill-color: #fff7ef;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+}
+
+.authStageCard .textInput:-webkit-autofill,
+.authStageCard .textInput:-webkit-autofill:hover,
+.authStageCard .textInput:-webkit-autofill:focus,
+.authStageCard .textInput:-webkit-autofill:active {
+  -webkit-text-fill-color: #fff7ef;
+  caret-color: #fff7ef;
+  box-shadow: 0 0 0 1000px rgba(18, 13, 27, 0.98) inset, 0 0 0 1px rgba(255, 255, 255, 0.02) inset;
+  transition: background-color 9999s ease-in-out 0s;
 }
 
 .authHint {
