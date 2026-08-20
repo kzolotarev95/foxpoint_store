@@ -48,6 +48,7 @@ export default async function LoginPage(props: { searchParams: PageSearchParams 
   const loginTabHref = `/login?mode=login${referralCode ? `&ref=${encodeURIComponent(referralCode)}` : ""}`;
   const registerTabHref = `/login?mode=register${referralCode ? `&ref=${encodeURIComponent(referralCode)}` : ""}`;
   const telegramLoginUrl = await buildTelegramCallbackUrlForRequest("login", {
+    fallbackAppUrl: site.links.appUrl,
     referralCode
   });
 

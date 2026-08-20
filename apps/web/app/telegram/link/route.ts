@@ -1,10 +1,18 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getApiBaseUrl } from "../../../lib/api";
 import { getClientCookieName } from "../../../lib/client-auth";
-import { getTelegramCallbackPayload } from "../../../lib/telegram-auth";
+import { getTelegramCallbackPayload, resolveTelegramAppBaseUrl } from "../../../lib/telegram-auth";
 
-function redirectToProfile(request: NextRequest, key: "error" | "success", message: string) {
-  const location = new URL("/cabinet/profile", request.url);
+async function buildPublicUrl(request: NextRequest, path: string) {
+  const baseUrl = await resolveTelegramAppBaseUrl({
+    requestHeaders: request.headers
+  });
+
+  return new URL(path, baseUrl);
+}
+
+async function redirectToProfile(request: NextRequest, key: "error" | "success", message: string) {
+  const location = await buildPublicUrl(request, "/cabinet/profile");
   location.searchParams.set(key, message);
   return NextResponse.redirect(location);
 }
@@ -35,7 +43,7 @@ export async function GET(request: NextRequest) {
   const token = request.cookies.get(getClientCookieName())?.value ?? "";
 
   if (!token) {
-    const location = new URL("/login", request.url);
+    const location = await buildPublicUrl(request, "/login");
     location.searchParams.set("error", "Сессия истекла. Войдите снова.");
     return NextResponse.redirect(location);
   }
@@ -58,7 +66,7 @@ export async function GET(request: NextRequest) {
   });
 
   if (response.status === 401) {
-    const location = new URL("/login", request.url);
+    const location = await buildPublicUrl(request, "/login");
     location.searchParams.set("error", "Сессия истекла. Войдите снова.");
     return NextResponse.redirect(location);
   }

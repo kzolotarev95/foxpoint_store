@@ -1,4 +1,5 @@
 import { headers } from "next/headers";
+import { fetchApiJson } from "./api";
 
 const DEFAULT_APP_URL = "http://localhost:3000";
 
@@ -39,6 +40,63 @@ function getAppBaseUrl(): string {
   return (process.env.NEXT_PUBLIC_APP_URL ?? DEFAULT_APP_URL).replace(/\/+$/, "");
 }
 
+function normalizeBaseUrl(value: string | null | undefined): string | null {
+  const trimmed = value?.trim() ?? "";
+  if (!trimmed) {
+    return null;
+  }
+
+  try {
+    return new URL(trimmed).toString().replace(/\/+$/, "");
+  } catch {
+    return null;
+  }
+}
+
+function getPublicBaseUrlFromHeaders(headerStore: Pick<Headers, "get">): string | null {
+  const forwardedHost = headerStore.get("x-forwarded-host")?.split(",")[0]?.trim() ?? "";
+  const host = forwardedHost || headerStore.get("host")?.trim() || "";
+
+  if (!host) {
+    return null;
+  }
+
+  const forwardedProto = headerStore.get("x-forwarded-proto")?.split(",")[0]?.trim() ?? "";
+  const proto = forwardedProto || (host.includes("localhost") ? "http" : "https");
+  return normalizeBaseUrl(`${proto}://${host}`);
+}
+
+async function getConfiguredAppBaseUrl(): Promise<string | null> {
+  try {
+    const snapshot = await fetchApiJson<{ links?: { appUrl?: string } }>("/api/site");
+    return normalizeBaseUrl(snapshot.links?.appUrl);
+  } catch {
+    return null;
+  }
+}
+
+export async function resolveTelegramAppBaseUrl(input?: {
+  fallbackAppUrl?: string | null;
+  requestHeaders?: Pick<Headers, "get">;
+}): Promise<string> {
+  const requestBaseUrl = input?.requestHeaders ? getPublicBaseUrlFromHeaders(input.requestHeaders) : null;
+  if (requestBaseUrl && !requestBaseUrl.includes("localhost")) {
+    return requestBaseUrl;
+  }
+
+  const fallbackAppUrl = normalizeBaseUrl(input?.fallbackAppUrl);
+  if (fallbackAppUrl) {
+    return fallbackAppUrl;
+  }
+
+  const configuredAppUrl = await getConfiguredAppBaseUrl();
+  if (configuredAppUrl) {
+    return configuredAppUrl;
+  }
+
+  return requestBaseUrl ?? getAppBaseUrl();
+}
+
 export function buildTelegramCallbackUrl(path: "login" | "link", input?: { referralCode?: string }): string {
   const url = new URL(`/telegram/${path}`, getAppBaseUrl());
   const referralCode = input?.referralCode?.trim() ?? "";
@@ -52,24 +110,20 @@ export function buildTelegramCallbackUrl(path: "login" | "link", input?: { refer
 
 async function getRequestBaseUrl(): Promise<string | null> {
   const headerStore = await headers();
-  const forwardedHost = headerStore.get("x-forwarded-host")?.split(",")[0]?.trim() ?? "";
-  const host = forwardedHost || headerStore.get("host")?.trim() || "";
-
-  if (!host) {
-    return null;
-  }
-
-  const forwardedProto = headerStore.get("x-forwarded-proto")?.split(",")[0]?.trim() ?? "";
-  const proto = forwardedProto || (host.includes("localhost") ? "http" : "https");
-  return `${proto}://${host}`.replace(/\/+$/, "");
+  return getPublicBaseUrlFromHeaders(headerStore);
 }
 
 export async function buildTelegramCallbackUrlForRequest(
   path: "login" | "link",
-  input?: { referralCode?: string }
+  input?: { fallbackAppUrl?: string | null; referralCode?: string }
 ): Promise<string> {
   const requestBaseUrl = await getRequestBaseUrl();
-  const url = new URL(`/telegram/${path}`, requestBaseUrl ?? getAppBaseUrl());
+  const baseUrl = requestBaseUrl && !requestBaseUrl.includes("localhost")
+    ? requestBaseUrl
+    : await resolveTelegramAppBaseUrl({
+        fallbackAppUrl: input?.fallbackAppUrl
+      });
+  const url = new URL(`/telegram/${path}`, baseUrl);
   const referralCode = input?.referralCode?.trim() ?? "";
 
   if (path === "login" && referralCode) {

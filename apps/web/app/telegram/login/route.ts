@@ -2,10 +2,18 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getApiBaseUrl } from "../../../lib/api";
 import { getClientCookieName, getClientSessionMaxAge } from "../../../lib/client-auth";
 import { getSessionCookieOptions } from "../../../lib/session-cookie";
-import { getTelegramCallbackPayload } from "../../../lib/telegram-auth";
+import { getTelegramCallbackPayload, resolveTelegramAppBaseUrl } from "../../../lib/telegram-auth";
 
-function redirectToLogin(request: NextRequest, errorMessage: string, referralCode?: string) {
-  const location = new URL("/login", request.url);
+async function buildPublicUrl(request: NextRequest, path: string) {
+  const baseUrl = await resolveTelegramAppBaseUrl({
+    requestHeaders: request.headers
+  });
+
+  return new URL(path, baseUrl);
+}
+
+async function redirectToLogin(request: NextRequest, errorMessage: string, referralCode?: string) {
+  const location = await buildPublicUrl(request, "/login");
   location.searchParams.set("error", errorMessage);
 
   if (referralCode) {
@@ -59,11 +67,15 @@ export async function GET(request: NextRequest) {
   });
 
   if (!response.ok) {
-    return redirectToLogin(request, await parseApiError(response, "Не удалось выполнить вход через Telegram."), referralCode || undefined);
+    return redirectToLogin(
+      request,
+      await parseApiError(response, "Не удалось выполнить вход через Telegram."),
+      referralCode || undefined
+    );
   }
 
   const result = (await response.json()) as { isNew: boolean; token: string };
-  const target = new URL(result.isNew ? "/cabinet?welcome=1" : "/cabinet", request.url);
+  const target = await buildPublicUrl(request, result.isNew ? "/cabinet?welcome=1" : "/cabinet");
   const nextResponse = NextResponse.redirect(target);
 
   nextResponse.cookies.set({

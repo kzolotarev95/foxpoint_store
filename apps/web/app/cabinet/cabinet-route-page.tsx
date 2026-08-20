@@ -694,7 +694,9 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
   const telegramHandle = formatTelegramHandle(overview.profile.telegram);
   const hasTelegram = Boolean(overview.profile.telegram);
   const telegramBotUsername = getTelegramBotUsername(overview.links.telegramBot);
-  const telegramLinkUrl = await buildTelegramCallbackUrlForRequest("link");
+  const telegramLinkUrl = await buildTelegramCallbackUrlForRequest("link", {
+    fallbackAppUrl: overview.links.appUrl
+  });
   const profileSessions = overview.sessions.map((session) => ({
     ...session,
     ...getProfileSessionMeta(session)
