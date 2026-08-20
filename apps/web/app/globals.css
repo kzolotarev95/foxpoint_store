@@ -1896,10 +1896,10 @@ textarea {
 
 .clientRoutersLead {
   display: grid;
-  gap: 0.65rem;
+  gap: 0.5rem;
   justify-items: center;
   text-align: center;
-  max-width: 60rem;
+  max-width: 46rem;
   margin: 0 auto;
   padding-top: 0.8rem;
 }
@@ -1915,17 +1915,17 @@ textarea {
 .clientRoutersLead h1 {
   margin: 0;
   font-family: var(--font-heading, sans-serif);
-  font-size: clamp(2.75rem, 4.9vw, 4.25rem);
-  line-height: 0.94;
-  letter-spacing: -0.05em;
+  font-size: clamp(2rem, 3.5vw, 2.95rem);
+  line-height: 1.02;
+  letter-spacing: -0.04em;
 }
 
 .clientRoutersLead p {
   margin: 0;
-  max-width: 40rem;
+  max-width: 33rem;
   color: rgba(238, 231, 255, 0.78);
-  font-size: clamp(1rem, 1.5vw, 1.18rem);
-  line-height: 1.48;
+  font-size: clamp(0.92rem, 1.18vw, 1.02rem);
+  line-height: 1.42;
 }
 
 .clientRoutersSummary {
@@ -2045,11 +2045,12 @@ textarea {
   position: relative;
   display: grid;
   place-items: center;
-  min-height: 10.5rem;
+  min-height: 11rem;
+  padding: 0.2rem 0.4rem 0.8rem;
   border-radius: 1.4rem;
   background:
-    radial-gradient(circle at 50% 86%, rgba(145, 67, 255, 0.42), transparent 22%),
-    linear-gradient(180deg, rgba(14, 12, 21, 0.72), rgba(9, 8, 15, 0.18));
+    radial-gradient(circle at 50% 84%, rgba(108, 42, 227, 0.18), transparent 28%),
+    linear-gradient(180deg, rgba(12, 10, 21, 0.82), rgba(8, 7, 14, 0.28));
   overflow: hidden;
 }
 
@@ -2059,17 +2060,35 @@ textarea {
   padding: 0.8rem 0.7rem 0.6rem;
 }
 
+.routerDeviceStage::before {
+  content: "";
+  position: absolute;
+  right: 14%;
+  bottom: 0.8rem;
+  left: 14%;
+  height: 3.5rem;
+  border-radius: 999px;
+  border: 1px solid rgba(142, 77, 255, 0.8);
+  background:
+    linear-gradient(180deg, rgba(150, 87, 255, 0.08), rgba(150, 87, 255, 0.02));
+  box-shadow:
+    0 0 0 1px rgba(197, 151, 255, 0.08) inset,
+    0 0 22px rgba(133, 53, 255, 0.24);
+  opacity: 0.92;
+}
+
 .routerDeviceStage::after {
   content: "";
   position: absolute;
-  right: 18%;
-  bottom: 1rem;
-  left: 18%;
-  height: 3.2rem;
+  right: 20%;
+  bottom: 1.35rem;
+  left: 20%;
+  height: 1.45rem;
   border-radius: 999px;
-  border: 1px solid rgba(157, 90, 255, 0.56);
-  background: radial-gradient(circle, rgba(122, 42, 227, 0.16), transparent 72%);
-  filter: blur(0.1px);
+  background:
+    radial-gradient(ellipse at center, rgba(143, 52, 255, 0.78) 0%, rgba(132, 49, 255, 0.38) 46%, rgba(132, 49, 255, 0.04) 82%, transparent 100%);
+  filter: blur(10px);
+  opacity: 0.95;
 }
 
 .routerDeviceImageWrap {
@@ -2078,13 +2097,15 @@ textarea {
   display: grid;
   justify-items: center;
   width: 100%;
-  gap: 0.45rem;
+  gap: 0.58rem;
 }
 
 .routerDeviceImage {
   width: min(100%, 15.5rem);
   height: auto;
-  filter: drop-shadow(0 18px 28px rgba(0, 0, 0, 0.3));
+  filter:
+    drop-shadow(0 16px 22px rgba(0, 0, 0, 0.26))
+    drop-shadow(0 0 16px rgba(123, 59, 255, 0.1));
 }
 
 .routerDeviceImage.isXiaomi {
@@ -2099,11 +2120,16 @@ textarea {
   display: inline-grid;
   gap: 0.14rem;
   justify-items: center;
-  padding: 0.45rem 0.72rem;
-  border: 1px solid rgba(151, 96, 255, 0.26);
-  border-radius: 0.95rem;
-  background: rgba(10, 9, 17, 0.76);
-  backdrop-filter: blur(8px);
+  min-width: 9.6rem;
+  padding: 0.5rem 0.9rem 0.45rem;
+  border: 1px solid rgba(151, 96, 255, 0.6);
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgba(17, 14, 28, 0.92), rgba(10, 9, 17, 0.88));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.03),
+    0 0 22px rgba(123, 59, 255, 0.14);
+  backdrop-filter: blur(10px);
 }
 
 .routerDeviceModelBadge span {
@@ -2116,7 +2142,7 @@ textarea {
 
 .routerDeviceModelBadge strong {
   color: #fff;
-  font-size: 0.8rem;
+  font-size: 0.84rem;
   font-weight: 700;
   letter-spacing: 0.08em;
 }
@@ -2709,11 +2735,12 @@ textarea {
 
   .clientRoutersLead h1,
   .clientRouterHeading h2 {
-    font-size: clamp(2rem, 8vw, 2.6rem);
+    font-size: clamp(1.7rem, 7vw, 2.2rem);
   }
 
   .clientRoutersLead p {
     max-width: 28rem;
+    font-size: 0.95rem;
   }
 
   .clientSummaryCard,

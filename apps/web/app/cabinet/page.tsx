@@ -477,7 +477,6 @@ export default async function CabinetPage(props: { searchParams: PageSearchParam
 
       <section id="overview" className="clientRoutersHero">
         <div className="clientRoutersLead">
-          <span className="clientRoutersEyebrow">FOX POINT ROUTERS</span>
           <h1>Все ваши роутеры в одном месте.</h1>
           <p>
             Смотрите оборудование, сроки обслуживания и работу серверов без лишней
