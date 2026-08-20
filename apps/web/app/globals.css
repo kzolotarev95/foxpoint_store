@@ -488,6 +488,129 @@ textarea {
   padding: 1.35rem 0 2.4rem;
 }
 
+.adminDashboardShell {
+  gap: 1rem;
+  grid-template-columns: 220px minmax(0, 1fr);
+}
+
+.adminContentStack {
+  gap: 1rem;
+}
+
+.adminDashboardShell .sideNav {
+  padding: 1.05rem;
+}
+
+.adminDashboardShell .sideNav ul {
+  gap: 0.45rem;
+  margin-top: 1rem;
+}
+
+.adminDashboardShell .sideNav a {
+  padding: 0.72rem 0.85rem;
+  font-size: 0.93rem;
+}
+
+.adminDashboardShell .navMeta {
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+.adminHero,
+.adminSectionPanel,
+.adminSettingsSection {
+  padding: 1.2rem;
+}
+
+.adminHero h1 {
+  max-width: 15ch;
+  font-size: clamp(1.9rem, 3vw, 2.75rem);
+  line-height: 0.98;
+}
+
+.adminHero p {
+  max-width: 52rem;
+  font-size: 0.96rem;
+  line-height: 1.58;
+}
+
+.adminOverviewGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.adminDashboardShell .metricCard {
+  padding: 1rem;
+}
+
+.adminDashboardShell .metricValue {
+  font-size: clamp(1.45rem, 2.5vw, 2rem);
+}
+
+.adminSectionTitle {
+  margin: 0;
+  font-family: var(--font-heading, sans-serif);
+  font-size: clamp(1.45rem, 2.25vw, 2rem);
+  line-height: 1.05;
+  letter-spacing: -0.04em;
+}
+
+.adminDashboardShell .sectionLead {
+  font-size: 0.94rem;
+  line-height: 1.58;
+}
+
+.adminDashboardShell .settingsGrid,
+.adminDashboardShell .detailGrid,
+.adminDashboardShell .dashboardSectionGrid,
+.adminDataGrid {
+  gap: 0.85rem;
+}
+
+.adminDashboardShell .fieldLabel {
+  font-size: 0.88rem;
+}
+
+.adminDashboardShell .helperText {
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.adminDashboardShell .textInput,
+.adminDashboardShell .textAreaInput {
+  font-size: 0.95rem;
+}
+
+.adminDashboardShell .textInput {
+  min-height: 2.7rem;
+  padding: 0.72rem 0.9rem;
+}
+
+.adminDashboardShell .textAreaInput {
+  min-height: 7.5rem;
+  padding: 0.8rem 0.9rem;
+}
+
+.adminDashboardShell .checkboxRow {
+  font-size: 0.93rem;
+}
+
+.adminDashboardShell .primaryButton,
+.adminDashboardShell .secondaryButton {
+  min-height: 2.75rem;
+  padding: 0.68rem 1rem;
+  font-size: 0.94rem;
+}
+
+.adminList li {
+  padding: 0.78rem 0;
+  font-size: 0.93rem;
+  line-height: 1.5;
+}
+
+.adminDashboardShell .stickyActions {
+  padding: 0.85rem 1rem;
+}
+
 .dashboardMain {
   min-width: 0;
 }

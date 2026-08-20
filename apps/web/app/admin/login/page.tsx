@@ -8,6 +8,7 @@ import {
   isAdminCredentialPairValid,
   readAdminSession
 } from "../../../lib/admin-auth";
+import { getSessionCookieOptions } from "../../../lib/session-cookie";
 
 type PageSearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -33,11 +34,7 @@ async function loginAction(formData: FormData) {
   cookieStore.set({
     name: getAdminCookieName(),
     value: createAdminSessionToken(username),
-    httpOnly: true,
-    maxAge: getAdminSessionMaxAge(),
-    path: "/",
-    sameSite: "lax",
-    secure: (process.env.NEXT_PUBLIC_APP_URL ?? "").startsWith("https://")
+    ...(await getSessionCookieOptions(getAdminSessionMaxAge()))
   });
 
   redirect("/admin");

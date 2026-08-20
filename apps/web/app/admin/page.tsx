@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { getApiBaseUrl } from "../../lib/api";
 import { getAdminCookieName, readAdminSession } from "../../lib/admin-auth";
 import type { AdminOverview } from "../../lib/portal-types";
+import { getExpiredSessionCookieOptions } from "../../lib/session-cookie";
 
 type AdminSettingRecord = {
   defaultValue: string;
@@ -149,7 +150,10 @@ async function logoutAction() {
   "use server";
 
   const cookieStore = await cookies();
-  cookieStore.delete(getAdminCookieName());
+  cookieStore.set({
+    name: getAdminCookieName(),
+    ...(await getExpiredSessionCookieOptions())
+  });
   redirect("/admin/login?signedOut=1");
 }
 
@@ -210,7 +214,7 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
   const errorMessage = getSingleParam(searchParams.error);
 
   return (
-    <main className="shell dashboardShell">
+    <main className="shell dashboardShell adminDashboardShell">
       <aside className="panel sideNav">
         <span className="pill">Админ-панель</span>
         <p className="navMeta">
@@ -251,10 +255,10 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
         </div>
       </aside>
 
-      <section className="contentStack">
-        <article id="overview" className="panel hero">
+      <section className="contentStack adminContentStack">
+        <article id="overview" className="panel hero adminHero">
           <span className="statusTag">Живые настройки</span>
-          <h1 style={{ fontFamily: "var(--font-heading, sans-serif)", fontSize: "54px", lineHeight: 1 }}>
+          <h1>
             Админка управляет настройками, обзором клиентов и ручными действиями MVP.
           </h1>
           <p>
@@ -262,7 +266,7 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
             Telegram-ссылки и ручные назначения можно менять без редактирования исходников.
           </p>
 
-          <div className="miniGrid">
+          <div className="miniGrid adminOverviewGrid">
             <article className="metricCard">
               <div className="muted">Клиентов</div>
               <div className="metricValue" style={{ fontFamily: "var(--font-heading, sans-serif)" }}>
@@ -294,9 +298,9 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
         {createSuccessMessage ? <div className="banner successBanner">{createSuccessMessage}</div> : null}
         {errorMessage ? <div className="banner errorBanner">{errorMessage}</div> : null}
 
-        <section id="assign" className="panel sectionPanel">
+        <section id="assign" className="panel sectionPanel adminSectionPanel">
           <span className="pill">Ручная привязка</span>
-          <h2 style={{ marginTop: "18px", fontFamily: "var(--font-heading, sans-serif)", fontSize: "34px" }}>
+          <h2 className="adminSectionTitle">
             Создать устройство и назначить клиенту
           </h2>
           <form action={createRouterAction} className="contentStack">
@@ -371,12 +375,10 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
 
         <form action={saveSettingsAction} className="contentStack">
           {groupNames.map((groupName) => (
-            <section key={groupName} id={groupName} className="panel settingsSection">
+            <section key={groupName} id={groupName} className="panel settingsSection adminSettingsSection">
               <div className="sectionHeader">
                 <div>
-                  <h2 style={{ margin: 0, fontFamily: "var(--font-heading, sans-serif)", fontSize: "34px" }}>
-                    {groupName}
-                  </h2>
+                  <h2 className="adminSectionTitle">{groupName}</h2>
                   <p className="sectionLead" style={{ marginTop: "10px" }}>
                     {groupName === "Коммуникации"
                       ? "Эти значения уже можно показывать на публичной части сайта."
@@ -413,11 +415,11 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
           </div>
         </form>
 
-        <section id="clients" className="gridTwo sectionSplit">
-          <article className="panel sectionPanel">
+        <section id="clients" className="gridTwo sectionSplit adminDataGrid">
+          <article className="panel sectionPanel adminSectionPanel">
             <span className="pill">Клиенты</span>
-            <h2 style={{ fontFamily: "var(--font-heading, sans-serif)" }}>Последние профили</h2>
-            <ul className="list">
+            <h2 className="adminSectionTitle">Последние профили</h2>
+            <ul className="list adminList">
               {overview.users.map((user) => (
                 <li key={user.id}>
                   {user.name} · {user.email} · роутеров {user.routerCount} · код {user.referralCode}
@@ -426,10 +428,10 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
             </ul>
           </article>
 
-          <article id="routers" className="panel sectionPanel">
+          <article id="routers" className="panel sectionPanel adminSectionPanel">
             <span className="pill">Роутеры</span>
-            <h2 style={{ fontFamily: "var(--font-heading, sans-serif)" }}>Недавние назначения</h2>
-            <ul className="list">
+            <h2 className="adminSectionTitle">Недавние назначения</h2>
+            <ul className="list adminList">
               {overview.routers.map((router) => (
                 <li key={router.id}>
                   {router.displayName} · {router.ownerName} · {router.savedTemplate} · {formatDate(router.createdAt)}
@@ -439,11 +441,11 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
           </article>
         </section>
 
-        <section id="ops" className="gridTwo sectionSplit">
-          <article className="panel sectionPanel">
+        <section id="ops" className="gridTwo sectionSplit adminDataGrid">
+          <article className="panel sectionPanel adminSectionPanel">
             <span className="pill">Операции</span>
-            <h2 style={{ fontFamily: "var(--font-heading, sans-serif)" }}>Подписки, заказы и тикеты</h2>
-            <ul className="list">
+            <h2 className="adminSectionTitle">Подписки, заказы и тикеты</h2>
+            <ul className="list adminList">
               {overview.subscriptions.map((subscription) => (
                 <li key={subscription.id}>
                   {subscription.routerName} · {subscription.bundleLabel} · {subscription.priceLabel} · до{" "}
@@ -451,14 +453,14 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                 </li>
               ))}
             </ul>
-            <ul className="list" style={{ marginTop: "20px" }}>
+            <ul className="list adminList" style={{ marginTop: "20px" }}>
               {overview.orders.map((order) => (
                 <li key={order.id}>
                   Заказ {order.totalPriceLabel} · {order.customerName} · {order.status}
                 </li>
               ))}
             </ul>
-            <ul className="list" style={{ marginTop: "20px" }}>
+            <ul className="list adminList" style={{ marginTop: "20px" }}>
               {overview.tickets.map((ticket) => (
                 <li key={ticket.id}>
                   {ticket.customerName} · {ticket.category} · {ticket.status} · {ticket.routerName}
@@ -467,10 +469,10 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
             </ul>
           </article>
 
-          <article className="panel sectionPanel">
+          <article className="panel sectionPanel adminSectionPanel">
             <span className="pill">Аудит</span>
-            <h2 style={{ fontFamily: "var(--font-heading, sans-serif)" }}>Последние действия</h2>
-            <ul className="list">
+            <h2 className="adminSectionTitle">Последние действия</h2>
+            <ul className="list adminList">
               {overview.logs.length ? (
                 overview.logs.map((log) => (
                   <li key={log.id}>

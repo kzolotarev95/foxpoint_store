@@ -1,13 +1,10 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getApiBaseUrl } from "./api";
+import { getExpiredSessionCookieOptions, getSessionCookieOptions } from "./session-cookie";
 
 const CLIENT_COOKIE_NAME = "foxpoint_client_session";
 const CLIENT_SESSION_MAX_AGE = 60 * 60 * 24 * 30;
-
-function shouldUseSecureCookies(): boolean {
-  return (process.env.NEXT_PUBLIC_APP_URL ?? "").startsWith("https://");
-}
 
 export function getClientCookieName(): string {
   return CLIENT_COOKIE_NAME;
@@ -27,17 +24,16 @@ export async function setClientSessionCookie(token: string) {
   cookieStore.set({
     name: CLIENT_COOKIE_NAME,
     value: token,
-    httpOnly: true,
-    maxAge: CLIENT_SESSION_MAX_AGE,
-    path: "/",
-    sameSite: "lax",
-    secure: shouldUseSecureCookies()
+    ...(await getSessionCookieOptions(CLIENT_SESSION_MAX_AGE))
   });
 }
 
 export async function clearClientSessionCookie() {
   const cookieStore = await cookies();
-  cookieStore.delete(CLIENT_COOKIE_NAME);
+  cookieStore.set({
+    name: CLIENT_COOKIE_NAME,
+    ...(await getExpiredSessionCookieOptions())
+  });
 }
 
 export async function getClientRequestHeaders(): Promise<Headers> {
