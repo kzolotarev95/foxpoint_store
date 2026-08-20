@@ -119,19 +119,53 @@ function getRouterDeviceVariant(model: string | null, index: number): "netis" | 
 }
 
 function getRouterStatusLabel(router: RouterOverviewItem): string {
+  const statusLabels: Record<string, string> = {
+    ACTIVE: "Активен",
+    PENDING_ACTIVATION: "Ожидает активации",
+    DRAFT: "Черновик",
+    EXPIRED: "Истекла",
+    READY: "Готов",
+    INACTIVE: "Неактивен"
+  };
+
   if (router.currentSubscription?.pendingActivation) {
     return "Ожидает активации";
   }
 
   if (router.currentSubscription?.status) {
-    return router.currentSubscription.status;
+    return statusLabels[router.currentSubscription.status] ?? router.currentSubscription.status;
   }
 
   if (router.trial?.endAt) {
     return "Тестовый режим";
   }
 
-  return router.status;
+  return statusLabels[router.status] ?? router.status;
+}
+
+function extractIpAddress(value: string | null | undefined): string | null {
+  if (!value) {
+    return null;
+  }
+
+  const match = value.match(/\b(?:\d{1,3}\.){3}\d{1,3}\b/);
+  return match?.[0] ?? null;
+}
+
+function getRouterIdentity(router: RouterOverviewItem): { label: string; value: string } {
+  const ipAddress = extractIpAddress(router.adminNote);
+
+  if (ipAddress) {
+    return {
+      label: "IP-адрес",
+      value: ipAddress
+    };
+  }
+
+  return {
+    label: "ID устройства",
+    value: router.serialNumber ?? router.id.slice(0, 8).toUpperCase()
+  };
 }
 
 function IconShell({ children }: { children: ReactNode }) {
@@ -169,6 +203,15 @@ function ServerIcon() {
       <rect x="5" y="5" width="14" height="5" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
       <rect x="5" y="14" width="14" height="5" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
       <path d="M8 7.5h.01M8 16.5h.01M11 7.5h4M11 16.5h4" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+    </svg>
+  );
+}
+
+function MonitorIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="4" y="5" width="16" height="11" rx="2" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M10 19h4M12 16v3" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
     </svg>
   );
 }
@@ -215,6 +258,15 @@ function BellIcon() {
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path d="M12 4a4 4 0 0 0-4 4v2.4c0 .8-.2 1.7-.7 2.4L6 15h12l-1.3-2.2a4.8 4.8 0 0 1-.7-2.4V8a4 4 0 0 0-4-4Z" fill="none" stroke="currentColor" strokeWidth="1.8" />
       <path d="M10 18a2 2 0 0 0 4 0" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+    </svg>
+  );
+}
+
+function ClockIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M12 8v4l2.7 1.8" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
     </svg>
   );
 }
@@ -393,81 +445,85 @@ export default async function CabinetPage(props: { searchParams: PageSearchParam
               </section>
             ) : (
               <div className="clientRouterDeck">
-                {overview.routers.map((router, index) => (
-                  <article key={router.id} className="clientRouterRow" id={`router-${router.id}`}>
-                    <div className="clientRouterPreview">
-                      <DevicePreview router={router} index={index} />
-                    </div>
+                {overview.routers.map((router, index) => {
+                  const routerIdentity = getRouterIdentity(router);
 
-                    <div className="clientRouterContent">
-                      <div className="clientRouterHeading">
-                        <div>
-                          <h2>
-                            {router.displayName} {router.model ? `— ${router.model}` : ""}
-                          </h2>
-                          <p>{getRouterStatusLabel(router)}</p>
+                  return (
+                    <article key={router.id} className="clientRouterRow" id={`router-${router.id}`}>
+                      <div className="clientRouterPreview">
+                        <DevicePreview router={router} index={index} />
+                      </div>
+
+                      <div className="clientRouterContent">
+                        <div className="clientRouterHeading">
+                          <div className="clientRouterTitleStack">
+                            <h2>
+                              {router.displayName} {router.model ? `— ${router.model}` : ""}
+                            </h2>
+                            <p>{getRouterStatusLabel(router)}</p>
+                          </div>
+                        </div>
+
+                        <div className="clientRouterFacts">
+                          <div className="clientRouterFact">
+                            <span className="clientRouterFactLabel">
+                              <MonitorIcon />
+                              {routerIdentity.label}
+                            </span>
+                            <strong>{routerIdentity.value}</strong>
+                          </div>
+                          <div className="clientRouterFact">
+                            <span className="clientRouterFactLabel">
+                              <ShieldIcon />
+                              Поддержка до
+                            </span>
+                            <strong>{formatDate(router.currentSubscription?.endAt ?? router.trial?.endAt)}</strong>
+                          </div>
+                          <div className="clientRouterFact">
+                            <span className="clientRouterFactLabel">
+                              <ServerIcon />
+                              Работа сервера до
+                            </span>
+                            <strong>{formatDate(router.currentSubscription?.endAt ?? router.trial?.endAt)}</strong>
+                          </div>
+                          <div className="clientRouterFact">
+                            <span className="clientRouterFactLabel">
+                              <ClockIcon />
+                              Последняя проверка
+                            </span>
+                            <strong>{formatRelativeDateTime(getRouterLastActivity(router))}</strong>
+                          </div>
                         </div>
                       </div>
 
-                      <div className="clientRouterFacts">
-                        <div className="clientRouterFact">
-                          <span className="clientRouterFactLabel">
-                            <RouterIcon />
-                            ID устройства
-                          </span>
-                          <strong>{router.serialNumber ?? router.id.slice(0, 8).toUpperCase()}</strong>
-                        </div>
-                        <div className="clientRouterFact">
-                          <span className="clientRouterFactLabel">
-                            <ShieldIcon />
-                            Поддержка до
-                          </span>
-                          <strong>{formatDate(router.currentSubscription?.endAt ?? router.trial?.endAt)}</strong>
-                        </div>
-                        <div className="clientRouterFact">
-                          <span className="clientRouterFactLabel">
-                            <ServerIcon />
-                            Работа сервера до
-                          </span>
-                          <strong>{formatDate(router.currentSubscription?.endAt ?? router.trial?.endAt)}</strong>
-                        </div>
-                        <div className="clientRouterFact">
-                          <span className="clientRouterFactLabel">
-                            <BellIcon />
-                            Последняя проверка
-                          </span>
-                          <strong>{formatRelativeDateTime(getRouterLastActivity(router))}</strong>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="clientRouterActions">
-                      <Link className="clientRouterActionButton isGhost" href={`#router-controls-${router.id}`}>
-                        Подробнее
-                        <ChevronIcon />
-                      </Link>
-
-                      <form action={renewRouterAction}>
-                        <input name="routerId" type="hidden" value={router.id} />
-                        <button className="clientRouterActionButton isAccent" type="submit">
-                          <span className="clientRouterActionIcon">
-                            <ServerIcon />
-                          </span>
-                          Продлить
+                      <div className="clientRouterActions">
+                        <Link className="clientRouterActionButton isGhost" href={`#router-controls-${router.id}`}>
+                          Подробнее
                           <ChevronIcon />
-                        </button>
-                      </form>
+                        </Link>
 
-                      <Link className="clientRouterActionButton isGhost" href={overview.links.support} target="_blank">
-                        <span className="clientRouterActionIcon">
-                          <SupportIcon />
-                        </span>
-                        Поддержка
-                        <ChevronIcon />
-                      </Link>
-                    </div>
-                  </article>
-                ))}
+                        <form action={renewRouterAction}>
+                          <input name="routerId" type="hidden" value={router.id} />
+                          <button className="clientRouterActionButton isAccent" type="submit">
+                            <span className="clientRouterActionIcon">
+                              <ServerIcon />
+                            </span>
+                            Продлить
+                            <ChevronIcon />
+                          </button>
+                        </form>
+
+                        <Link className="clientRouterActionButton isGhost" href={overview.links.support} target="_blank">
+                          <span className="clientRouterActionIcon">
+                            <SupportIcon />
+                          </span>
+                          Поддержка
+                          <ChevronIcon />
+                        </Link>
+                      </div>
+                    </article>
+                  );
+                })}
               </div>
             )}
           </div>
