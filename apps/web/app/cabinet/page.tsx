@@ -15,6 +15,7 @@ import type { ClientOverview } from "../../lib/portal-types";
 type PageSearchParams = Promise<Record<string, string | string[] | undefined>>;
 
 type RouterOverviewItem = ClientOverview["routers"][number];
+type SupportTicketItem = ClientOverview["tickets"][number];
 
 function getSingleParam(value: string | string[] | undefined): string | null {
   if (typeof value === "string") {
@@ -85,6 +86,68 @@ function getNearestSubscriptionEnd(routers: RouterOverviewItem[]): string | null
     .sort((left, right) => new Date(left).getTime() - new Date(right).getTime());
 
   return dates[0] ?? null;
+}
+
+function formatSupportTicketCreatedAt(value: string): string {
+  return new Intl.DateTimeFormat("ru-RU", {
+    day: "numeric",
+    month: "long",
+    hour: "2-digit",
+    minute: "2-digit"
+  }).format(new Date(value));
+}
+
+function getSupportTicketDisplayCode(id: string): string {
+  const hash = Array.from(id).reduce((accumulator, symbol, index) => {
+    return accumulator + symbol.charCodeAt(0) * (index + 3);
+  }, 0);
+
+  return String((hash % 900) + 100);
+}
+
+function getSupportTicketTitle(ticket: SupportTicketItem): string {
+  const description = ticket.description.trim();
+  const category = ticket.category.trim();
+
+  if (description && description.length <= 42) {
+    return description;
+  }
+
+  if (category) {
+    return category;
+  }
+
+  return description.slice(0, 42) || "Обращение в поддержку";
+}
+
+function getSupportTicketStatusMeta(status: string): { label: string; tone: "open" | "progress" | "resolved" | "waiting" } {
+  const normalized = status.toUpperCase();
+
+  if (normalized === "RESOLVED" || normalized === "CLOSED") {
+    return {
+      label: normalized === "CLOSED" ? "Закрыто" : "Решено",
+      tone: "resolved"
+    };
+  }
+
+  if (normalized === "IN_PROGRESS") {
+    return {
+      label: "В работе",
+      tone: "progress"
+    };
+  }
+
+  if (normalized === "WAITING_CLIENT") {
+    return {
+      label: "Ожидает ответа",
+      tone: "waiting"
+    };
+  }
+
+  return {
+    label: "Новый запрос",
+    tone: "open"
+  };
 }
 
 function buildUserInitials(name: string): string {
@@ -350,6 +413,59 @@ function ClockIcon() {
   );
 }
 
+function CheckCircleIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <path d="m8.8 12.1 2.2 2.2 4.4-4.7" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+    </svg>
+  );
+}
+
+function TicketCreateIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M8 4.8h5.7L18 9.1V19a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V6.8a2 2 0 0 1 2-2Z" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M13.7 4.8v4.1H18M12 11v6M9 14h6" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+    </svg>
+  );
+}
+
+function TelegramIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="m20 5-3.2 14.2c-.2.9-.9 1.1-1.7.7l-4.6-3.4-2.2 2.2c-.3.3-.5.5-1 .5l.4-4.8L16.4 7c.4-.3-.1-.5-.6-.2L5 13.6l-4.6-1.5c-1-.3-1-.9.2-1.4L18.4 4c.8-.3 1.6.2 1.6 1Z" fill="none" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.8" />
+    </svg>
+  );
+}
+
+function RemoteCheckIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="4" y="5" width="16" height="10" rx="2" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M10 19h4M12 15v4M7.5 10.5h3l1.2-2.2 2.1 4 1.1-1.8h1.6" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+    </svg>
+  );
+}
+
+function SettingsIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="m12 4 1 .5 1.1 2.3 2.5.7 1.8-.8 1.5 1.5-.8 1.8.7 2.5L20 13l-.5 1-2.3 1.1-.7 2.5.8 1.8-1.5 1.5-1.8-.8-2.5.7L12 20l-1-.5-1.1-2.3-2.5-.7-1.8.8-1.5-1.5.8-1.8-.7-2.5L4 12l.5-1 2.3-1.1.7-2.5-.8-1.8 1.5-1.5 1.8.8 2.5-.7Z" fill="none" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.6" />
+      <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" strokeWidth="1.8" />
+    </svg>
+  );
+}
+
+function IdeaIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M9 18h6M9.5 21h5M8.3 14.7A6.5 6.5 0 1 1 15.7 14.7c-.9.8-1.5 1.8-1.7 2.8h-4c-.2-1-.8-2-1.7-2.8Z" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+      <path d="M12 3.5v1.7M5.7 6.2 7 7.4M18.3 6.2 17 7.4" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+    </svg>
+  );
+}
+
 function LogoutIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -437,6 +553,7 @@ export default async function CabinetPage(props: { searchParams: PageSearchParam
     : null;
   const nearestDeadline = getNearestSubscriptionEnd(overview.routers);
   const userInitials = buildUserInitials(overview.profile.name);
+  const featuredTickets = overview.tickets.slice(0, 3);
 
   return (
     <main className="shell portalPage clientDashboardPage clientRoutersExperience">
@@ -710,6 +827,118 @@ export default async function CabinetPage(props: { searchParams: PageSearchParam
         </section>
       ) : null}
 
+      <section id="support" className="clientSupportSection">
+        <article className="panel clientSupportHeroCard">
+          <div className="clientSupportHeroOrb">
+            <SupportIcon />
+          </div>
+          <div className="clientSupportHeroCopy">
+            <h2>Нужна помощь?</h2>
+            <p>
+              Опишите проблему, и мы проверим роутер удалённо.
+              <br />
+              Если удобнее, можно сразу открыть поддержку в Telegram.
+            </p>
+          </div>
+          <div className="clientSupportHeroActions">
+            <Link className="clientSupportHeroButton isPrimary" href="#support-form">
+              <TicketCreateIcon />
+              Создать обращение
+            </Link>
+            <Link className="clientSupportHeroButton isSecondary" href={overview.links.support} target="_blank">
+              <TelegramIcon />
+              Открыть Telegram
+            </Link>
+          </div>
+        </article>
+
+        <div className="clientSupportGrid">
+          <article className="panel clientSupportTicketsCard">
+            <h2>Мои обращения</h2>
+
+            {featuredTickets.length ? (
+              <>
+                <div className="clientSupportTicketList">
+                  {featuredTickets.map((ticket) => {
+                    const statusMeta = getSupportTicketStatusMeta(ticket.status);
+
+                    return (
+                      <article key={ticket.id} className="clientSupportTicketRow">
+                        <span className="clientSupportTicketIcon">
+                          <SupportIcon />
+                        </span>
+                        <div className="clientSupportTicketBody">
+                          <h3>
+                            #{getSupportTicketDisplayCode(ticket.id)} — {getSupportTicketTitle(ticket)}
+                          </h3>
+                          <p>Создано {formatSupportTicketCreatedAt(ticket.createdAt)}</p>
+                        </div>
+                        <span className={`clientSupportStatusBadge is-${statusMeta.tone}`}>
+                          {statusMeta.tone === "resolved" ? (
+                            <CheckCircleIcon />
+                          ) : statusMeta.tone === "waiting" ? (
+                            <ClockIcon />
+                          ) : (
+                            <SupportIcon />
+                          )}
+                          {statusMeta.label}
+                        </span>
+                        <span className="clientSupportTicketChevron" aria-hidden="true">
+                          <ChevronIcon />
+                        </span>
+                      </article>
+                    );
+                  })}
+                </div>
+
+                <Link className="clientSupportAllLink" href="#support-form">
+                  Показать все обращения
+                </Link>
+              </>
+            ) : (
+              <div className="clientSupportEmptyState">
+                <p>Обращений пока нет. Первый запрос можно создать через форму ниже или сразу открыть Telegram.</p>
+              </div>
+            )}
+          </article>
+
+          <article className="panel clientSupportInfoCard">
+            <h2>Как мы помогаем</h2>
+            <div className="clientSupportInfoList">
+              <div className="clientSupportInfoItem">
+                <span className="clientSupportInfoIcon">
+                  <RemoteCheckIcon />
+                </span>
+                <div>
+                  <h3>Проверяем роутер</h3>
+                  <p>Диагностируем соединение и настройки вашего роутера удалённо.</p>
+                </div>
+              </div>
+
+              <div className="clientSupportInfoItem">
+                <span className="clientSupportInfoIcon">
+                  <SettingsIcon />
+                </span>
+                <div>
+                  <h3>Исправляем удалённо</h3>
+                  <p>Устраняем большинство проблем без вашего участия.</p>
+                </div>
+              </div>
+
+              <div className="clientSupportInfoItem">
+                <span className="clientSupportInfoIcon">
+                  <IdeaIcon />
+                </span>
+                <div>
+                  <h3>Подсказываем следующий шаг</h3>
+                  <p>Если нужно ваше действие, подскажем простой и понятный шаг.</p>
+                </div>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
       <section className="clientDashboardLowerGrid">
         <article id="order" className="panel sectionPanel clientUtilityCard">
           <span className="pill">Заказать роутер</span>
@@ -739,7 +968,7 @@ export default async function CabinetPage(props: { searchParams: PageSearchParam
           </form>
         </article>
 
-        <article id="support" className="panel sectionPanel clientUtilityCard">
+        <article id="support-form" className="panel sectionPanel clientUtilityCard clientSupportFormCard">
           <span className="pill">Поддержка</span>
           <h2 className="sectionTitle">Создать обращение</h2>
           <form action={createSupportTicketAction} className="contentStack">
