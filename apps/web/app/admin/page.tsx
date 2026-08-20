@@ -258,14 +258,6 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
       <section className="contentStack adminContentStack">
         <article id="overview" className="panel hero adminHero">
           <span className="statusTag">Живые настройки</span>
-          <h1>
-            Админка управляет настройками, обзором клиентов и ручными действиями MVP.
-          </h1>
-          <p>
-            Изменения идут через backend и базу данных, поэтому клиентский кабинет, цены,
-            Telegram-ссылки и ручные назначения можно менять без редактирования исходников.
-          </p>
-
           <div className="miniGrid adminOverviewGrid">
             <article className="metricCard">
               <div className="muted">Клиентов</div>

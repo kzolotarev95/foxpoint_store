@@ -549,9 +549,13 @@ textarea {
 .adminSectionTitle {
   margin: 0;
   font-family: var(--font-heading, sans-serif);
-  font-size: clamp(1.45rem, 2.25vw, 2rem);
-  line-height: 1.05;
+  font-size: clamp(1.18rem, 1.7vw, 1.5rem);
+  line-height: 1.08;
   letter-spacing: -0.04em;
+}
+
+.adminSectionPanel > .adminSectionTitle {
+  margin-top: 0.75rem;
 }
 
 .adminDashboardShell .sectionLead {
