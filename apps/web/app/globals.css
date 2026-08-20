@@ -493,14 +493,6 @@ textarea {
   grid-template-columns: 220px minmax(0, 1fr);
 }
 
-@media (min-width: 1101px) {
-  .adminDashboardShell {
-    width: calc(100% / 0.85);
-    zoom: 0.85;
-    transform-origin: top left;
-  }
-}
-
 .adminContentStack {
   gap: 1rem;
 }
