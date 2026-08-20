@@ -2,9 +2,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSiteSnapshot, isTelegramBotConfigured } from "../../components/site-data";
+import { TelegramLoginWidget } from "../../components/telegram-login-widget";
 import { authenticateClientAction } from "../../lib/client-actions";
 import { getApiBaseUrl } from "../../lib/api";
 import { getClientRequestHeaders, getClientSessionToken } from "../../lib/client-auth";
+import { buildTelegramCallbackUrl, getTelegramBotUsername } from "../../lib/telegram-auth";
 
 type PageSearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -41,11 +43,13 @@ export default async function LoginPage(props: { searchParams: PageSearchParams 
   const savedLogin = getSingleParam(searchParams.login) ?? "";
   const referralCode = getSingleParam(searchParams.ref) ?? "";
   const botIsConfigured = isTelegramBotConfigured(site.links.telegramBot);
-  const primaryTelegramLink = botIsConfigured ? site.links.telegramBot : site.links.support;
-  const primaryTelegramLabel = botIsConfigured ? "Войти через Telegram-бота" : "Открыть поддержку";
+  const telegramBotUsername = botIsConfigured ? getTelegramBotUsername(site.links.telegramBot) : null;
   const telegramChannelLink = site.links.telegramChannel;
   const loginTabHref = `/login?mode=login${referralCode ? `&ref=${encodeURIComponent(referralCode)}` : ""}`;
   const registerTabHref = `/login?mode=register${referralCode ? `&ref=${encodeURIComponent(referralCode)}` : ""}`;
+  const telegramLoginUrl = buildTelegramCallbackUrl("login", {
+    referralCode
+  });
 
   return (
     <main className="shell authExperience authLoginExperience">
@@ -70,9 +74,18 @@ export default async function LoginPage(props: { searchParams: PageSearchParams 
           <p>Вход по логину и паролю, либо через Telegram и бота.</p>
 
           <div className="clientAuthActions authLoginActions">
-            <Link className="primaryButton fullWidthButton portalActionButton" href={primaryTelegramLink} target="_blank">
-              {primaryTelegramLabel}
-            </Link>
+            <TelegramLoginWidget
+              authUrl={telegramLoginUrl}
+              botUrl={botIsConfigured ? site.links.telegramBot : site.links.support}
+              botUsername={telegramBotUsername}
+              className="telegramAuthStack"
+              fallbackLabel={botIsConfigured ? "Открыть Telegram-бота" : "Открыть поддержку"}
+              hint={
+                botIsConfigured
+                  ? "Telegram сам вернет вас на сайт и завершит вход."
+                  : "Пока бот не настроен, вход доступен через логин и пароль."
+              }
+            />
             <Link
               className="secondaryButton fullWidthButton portalGhostButton authLoginChannelButton"
               href={telegramChannelLink}

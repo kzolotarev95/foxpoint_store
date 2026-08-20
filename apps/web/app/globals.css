@@ -855,6 +855,10 @@ textarea {
   justify-content: flex-end;
 }
 
+.profileInlineActionsWide {
+  align-items: flex-end;
+}
+
 .profileInlineForm {
   display: flex;
   align-items: center;
@@ -884,6 +888,36 @@ textarea {
 .profileStateEnabled,
 .profileStateCurrent {
   color: #83f0a6;
+}
+
+.telegramAuthStack {
+  display: grid;
+  gap: 0.55rem;
+  width: min(100%, 26rem);
+}
+
+.telegramAuthStackCompact {
+  width: min(100%, 24rem);
+}
+
+.telegramWidgetShell {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  min-height: 3.6rem;
+  padding: 0.8rem 1rem;
+  border: 1px solid rgba(157, 97, 255, 0.26);
+  border-radius: 1rem;
+  background: linear-gradient(180deg, rgba(17, 12, 26, 0.94) 0%, rgba(11, 8, 19, 0.96) 100%);
+  overflow: hidden;
+}
+
+.telegramWidgetHint {
+  margin: 0;
+  color: rgba(219, 208, 236, 0.68);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  text-align: center;
 }
 
 .profileSessionTitleLine {
@@ -1211,6 +1245,7 @@ textarea {
 .authLoginActions {
   gap: 0.65rem;
   margin-top: 0.05rem;
+  align-items: stretch;
 }
 
 .authLoginChannelButton {

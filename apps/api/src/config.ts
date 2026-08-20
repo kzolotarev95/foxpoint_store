@@ -6,6 +6,7 @@ const configSchema = z.object({
   API_PORT: z.coerce.number().int().positive().default(4000),
   NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
   TG_BOT_URL: z.string().url().default("https://t.me/example_bot"),
+  TG_BOT_TOKEN: z.string().min(1).default("telegram-bot-token-change-me"),
   TG_CHANNEL_URL: z.string().url().default("https://t.me/fox_point_net"),
   SUPPORT_CONTACT: z.string().url().default("https://t.me/Fox_point_support"),
   DATABASE_URL: z.string().min(1).default("postgresql://foxpoint:foxpoint@localhost:5432/foxpoint?schema=public"),

@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { PortalHeader } from "../../components/portal-header";
+import { TelegramLoginWidget } from "../../components/telegram-login-widget";
 import {
   attachProfileEmailAction,
   createRouterOrderAction,
@@ -16,6 +17,7 @@ import {
 } from "../../lib/client-actions";
 import { fetchClientApi } from "../../lib/client-auth";
 import type { ClientOverview } from "../../lib/portal-types";
+import { buildTelegramCallbackUrl, getTelegramBotUsername } from "../../lib/telegram-auth";
 
 export type PageSearchParams = Promise<Record<string, string | string[] | undefined>>;
 export type CabinetTab = "overview" | "routers" | "support" | "payments" | "profile";
@@ -691,6 +693,7 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
   const isProfileTab = props.activeTab === "profile";
   const telegramHandle = formatTelegramHandle(overview.profile.telegram);
   const hasTelegram = Boolean(overview.profile.telegram);
+  const telegramBotUsername = getTelegramBotUsername(overview.links.telegramBot);
   const profileSessions = overview.sessions.map((session) => ({
     ...session,
     ...getProfileSessionMeta(session)
@@ -1189,10 +1192,24 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                 <strong>Telegram</strong>
                 <span>{hasTelegram ? `Аккаунт ${telegramHandle} уже привязан к кабинету.` : "Привяжите Telegram для быстрых уведомлений и входа."}</span>
               </div>
-              <div className="profileInlineActions">
+              <div className="profileInlineActions profileInlineActionsWide">
                 <span className={hasTelegram ? "profileState profileStateLinked" : "profileState"}>
                   {hasTelegram ? "Привязан" : "Не подключен"}
                 </span>
+                <TelegramLoginWidget
+                  authUrl={buildTelegramCallbackUrl("link")}
+                  botUrl={telegramBotUsername ? overview.links.telegramBot : overview.links.support}
+                  botUsername={telegramBotUsername}
+                  className="telegramAuthStack telegramAuthStackCompact"
+                  fallbackLabel={telegramBotUsername ? (hasTelegram ? "Переподключить Telegram" : "Привязать Telegram") : "Открыть поддержку"}
+                  hint={
+                    telegramBotUsername
+                      ? hasTelegram
+                        ? "Можно перепривязать другой Telegram-аккаунт через ту же кнопку."
+                        : "После подтверждения Telegram сразу привяжется к текущему кабинету."
+                      : "Пока бот не настроен, запрос на привязку можно отправить через поддержку."
+                  }
+                />
                 {!overview.profile.email ? (
                   <form action={attachProfileEmailAction} className="profileInlineForm">
                     <input name="returnTo" type="hidden" value="/cabinet/profile" />

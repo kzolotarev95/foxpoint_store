@@ -4,8 +4,10 @@ import Fastify, { type FastifyRequest } from "fastify";
 import { z } from "zod";
 import { readAdminSession, readAdminSessionToken } from "./admin-auth.js";
 import {
+  bindTelegramIdentityForUser,
   getClientSessionFromRequest,
   loginClientFromCredentials,
+  loginClientFromTelegram,
   registerClientFromCredentials,
   revokeClientSessionForUser,
   revokeCurrentClientSession,
@@ -59,6 +61,17 @@ async function getAuthorizedUserId(request: FastifyRequest): Promise<string | nu
   return (await getClientSessionFromRequest(request))?.u ?? null;
 }
 
+const telegramAuthSchema = z.object({
+  authDate: z.string().trim().regex(/^\d+$/),
+  firstName: z.string().trim().min(1).max(120),
+  hash: z.string().trim().length(64),
+  id: z.string().trim().regex(/^\d+$/),
+  lastName: z.string().trim().max(120).optional(),
+  photoUrl: z.string().trim().url().max(512).optional(),
+  referralCode: z.string().trim().max(32).optional(),
+  username: z.string().trim().max(64).optional()
+});
+
 await app.register(cors, {
   origin: [config.NEXT_PUBLIC_APP_URL],
   credentials: true
@@ -95,9 +108,10 @@ app.get("/api/site", async () => {
 
 app.get("/api/routes", async () => {
   return {
-    public: ["/health", "/api/overview", "/api/site", "/api/routes", "/api/auth/email", "/api/auth/credentials"],
+    public: ["/health", "/api/overview", "/api/site", "/api/routes", "/api/auth/email", "/api/auth/credentials", "/api/auth/telegram"],
     planned: [
       "/api/me/overview",
+      "/api/me/profile/telegram",
       "/api/orders",
       "/api/support",
       "/api/routers/:routerId/template",
@@ -106,6 +120,31 @@ app.get("/api/routes", async () => {
       "/api/admin/routers"
     ]
   };
+});
+
+app.post("/api/auth/telegram", async (request, reply) => {
+  const body = telegramAuthSchema.parse(request.body);
+
+  try {
+    const result = await loginClientFromTelegram({
+      authDate: body.authDate,
+      firstName: body.firstName,
+      hash: body.hash,
+      id: body.id,
+      lastName: body.lastName,
+      photoUrl: body.photoUrl,
+      referralCode: body.referralCode,
+      request,
+      username: body.username
+    });
+    reply.code(result.isNew ? 201 : 200);
+    return result;
+  } catch (error) {
+    reply.code(400);
+    return {
+      error: error instanceof Error ? error.message : "Не удалось выполнить вход через Telegram."
+    };
+  }
 });
 
 app.post("/api/auth/email", async (request, reply) => {
@@ -203,6 +242,36 @@ app.post("/api/me/profile/email", async (request, reply) => {
     reply.code(400);
     return {
       error: error instanceof Error ? error.message : "Не удалось привязать email."
+    };
+  }
+});
+
+app.post("/api/me/profile/telegram", async (request, reply) => {
+  const userId = await getAuthorizedUserId(request);
+  if (!userId) {
+    reply.code(401);
+    return {
+      error: "unauthorized"
+    };
+  }
+
+  const body = telegramAuthSchema.parse(request.body);
+
+  try {
+    return await bindTelegramIdentityForUser({
+      authDate: body.authDate,
+      firstName: body.firstName,
+      hash: body.hash,
+      id: body.id,
+      lastName: body.lastName,
+      photoUrl: body.photoUrl,
+      userId,
+      username: body.username
+    });
+  } catch (error) {
+    reply.code(400);
+    return {
+      error: error instanceof Error ? error.message : "Не удалось привязать Telegram."
     };
   }
 });

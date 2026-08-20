@@ -179,10 +179,20 @@ function getPrimaryEmail(identities: Array<{ provider: string; email: string | n
 }
 
 function getTelegramIdentity(
-  identities: Array<{ provider: string; providerUserId: string }>
+  identities: Array<{ provider: string; providerUserId: string; email?: string | null }>
 ): string | null {
   const telegramIdentity = identities.find((identity) => identity.provider === "TELEGRAM");
-  return telegramIdentity ? `@${telegramIdentity.providerUserId}` : null;
+  if (!telegramIdentity) {
+    return null;
+  }
+
+  if (telegramIdentity.email) {
+    return `@${telegramIdentity.email.replace(/^@+/, "")}`;
+  }
+
+  return /^\d+$/.test(telegramIdentity.providerUserId)
+    ? `Telegram ID ${telegramIdentity.providerUserId}`
+    : `@${telegramIdentity.providerUserId}`;
 }
 
 function getLocalIdentity(

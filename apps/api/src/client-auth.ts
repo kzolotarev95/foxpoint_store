@@ -1,4 +1,4 @@
-import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { createHash, createHmac, randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import type { FastifyRequest } from "fastify";
 import { config } from "./config.js";
 import { prisma } from "./prisma.js";
@@ -16,6 +16,16 @@ type ClientSessionPayload = {
 type ClientRequestContext = {
   ipAddress: string | null;
   userAgent: string | null;
+};
+
+export type TelegramAuthInput = {
+  authDate: string;
+  firstName: string;
+  hash: string;
+  id: string;
+  lastName?: string;
+  photoUrl?: string;
+  username?: string;
 };
 
 export type VerifiedClientSession = ClientSessionPayload;
@@ -143,6 +153,83 @@ function verifyPassword(password: string, passwordHash: string): boolean {
   return safeEqual(actualHash, storedHash);
 }
 
+function normalizeTelegramUserId(value: string): string {
+  const normalized = value.trim();
+  if (!/^\d+$/.test(normalized)) {
+    throw new Error("Некорректный Telegram ID.");
+  }
+
+  return normalized;
+}
+
+function normalizeTelegramUsername(value: string | undefined): string | null {
+  const normalized = value?.trim().replace(/^@+/, "") ?? "";
+  if (!normalized) {
+    return null;
+  }
+
+  if (!/^[a-zA-Z0-9_]{5,32}$/.test(normalized)) {
+    return null;
+  }
+
+  return normalized;
+}
+
+function buildTelegramDisplayName(input: TelegramAuthInput): string | null {
+  const fullName = [input.firstName.trim(), input.lastName?.trim() ?? ""].filter(Boolean).join(" ").trim();
+  if (fullName) {
+    return fullName;
+  }
+
+  return normalizeTelegramUsername(input.username);
+}
+
+function validateTelegramAuth(input: TelegramAuthInput) {
+  const normalizedId = normalizeTelegramUserId(input.id);
+  const normalizedUsername = normalizeTelegramUsername(input.username);
+  const authDate = Number.parseInt(input.authDate, 10);
+
+  if (!Number.isFinite(authDate)) {
+    throw new Error("Некорректная дата авторизации Telegram.");
+  }
+
+  const authTimestampMs = authDate * 1000;
+  const maxAgeMs = 1000 * 60 * 15;
+  if (Math.abs(Date.now() - authTimestampMs) > maxAgeMs) {
+    throw new Error("Telegram-авторизация устарела. Повторите вход.");
+  }
+
+  const dataCheckString = [
+    ["auth_date", input.authDate],
+    ["first_name", input.firstName],
+    ["id", normalizedId],
+    ["last_name", input.lastName?.trim() ?? ""],
+    ["photo_url", input.photoUrl?.trim() ?? ""],
+    ["username", normalizedUsername ?? ""]
+  ]
+    .filter(([, value]) => value)
+    .map(([key, value]) => `${key}=${value}`)
+    .sort((left, right) => left.localeCompare(right))
+    .join("\n");
+
+  const secret = createHash("sha256").update(config.TG_BOT_TOKEN).digest();
+  const expectedHash = createHmac("sha256", secret).update(dataCheckString).digest("hex");
+  if (!safeEqual(expectedHash, input.hash)) {
+    throw new Error("Не удалось подтвердить Telegram-авторизацию.");
+  }
+
+  return {
+    authDate: new Date(authTimestampMs),
+    displayName: buildTelegramDisplayName({
+      ...input,
+      id: normalizedId,
+      username: normalizedUsername ?? undefined
+    }),
+    id: normalizedId,
+    username: normalizedUsername
+  };
+}
+
 export function getClientCookieName(): string {
   return CLIENT_COOKIE_NAME;
 }
@@ -209,6 +296,19 @@ async function createPersistedClientSession(input: { request: FastifyRequest; us
       sessionId: session.id,
       expiresAt
     })
+  };
+}
+
+async function createSessionResult(input: { isNew: boolean; request: FastifyRequest; userId: string }) {
+  const session = await createPersistedClientSession({
+    request: input.request,
+    userId: input.userId
+  });
+
+  return {
+    isNew: input.isNew,
+    token: session.token,
+    userId: input.userId
   };
 }
 
@@ -497,6 +597,89 @@ export async function upsertLocalCredentialsForUser(input: {
   });
 }
 
+export async function bindTelegramIdentityForUser(input: TelegramAuthInput & { userId: string }) {
+  const verified = validateTelegramAuth(input);
+
+  const [user, existingIdentity, conflictingIdentity] = await Promise.all([
+    prisma.user.findUnique({
+      where: {
+        id: input.userId
+      }
+    }),
+    prisma.authIdentity.findFirst({
+      where: {
+        userId: input.userId,
+        provider: "TELEGRAM"
+      }
+    }),
+    prisma.authIdentity.findFirst({
+      where: {
+        provider: "TELEGRAM",
+        providerUserId: verified.id
+      }
+    })
+  ]);
+
+  if (!user) {
+    throw new Error("Клиент не найден.");
+  }
+
+  if (conflictingIdentity && conflictingIdentity.userId !== input.userId) {
+    throw new Error("Этот Telegram уже привязан к другому аккаунту.");
+  }
+
+  const telegramData = {
+    email: verified.username,
+    providerUserId: verified.id,
+    verifiedAt: verified.authDate
+  };
+
+  if (existingIdentity) {
+    return prisma.$transaction(async (tx) => {
+      const identity = await tx.authIdentity.update({
+        where: {
+          id: existingIdentity.id
+        },
+        data: telegramData
+      });
+
+      await tx.user.update({
+        where: {
+          id: input.userId
+        },
+        data: {
+          lastActivityAt: new Date(),
+          name: user.name ?? verified.displayName ?? user.name
+        }
+      });
+
+      return identity;
+    });
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const identity = await tx.authIdentity.create({
+      data: {
+        userId: input.userId,
+        provider: "TELEGRAM",
+        ...telegramData
+      }
+    });
+
+    await tx.user.update({
+      where: {
+        id: input.userId
+      },
+      data: {
+        lastActivityAt: new Date(),
+        name: user.name ?? verified.displayName ?? user.name
+      }
+    });
+
+    return identity;
+  });
+}
+
 async function resolveReferrerByCode(referralCode: string) {
   if (!referralCode) {
     return null;
@@ -510,6 +693,91 @@ async function resolveReferrerByCode(referralCode: string) {
   const normalizedCode = normalizeReferralCode(referralCode);
 
   return users.find((user) => buildReferralCode(user.id) === normalizedCode) ?? null;
+}
+
+export async function loginClientFromTelegram(input: TelegramAuthInput & { referralCode?: string; request: FastifyRequest }) {
+  const verified = validateTelegramAuth(input);
+  const referralCode = input.referralCode?.trim() || "";
+
+  const existingIdentity = await prisma.authIdentity.findFirst({
+    where: {
+      provider: "TELEGRAM",
+      providerUserId: verified.id
+    },
+    include: {
+      user: true
+    }
+  });
+
+  if (existingIdentity) {
+    await prisma.$transaction(async (tx) => {
+      await tx.authIdentity.update({
+        where: {
+          id: existingIdentity.id
+        },
+        data: {
+          email: verified.username,
+          verifiedAt: verified.authDate
+        }
+      });
+
+      await tx.user.update({
+        where: {
+          id: existingIdentity.userId
+        },
+        data: {
+          lastActivityAt: new Date(),
+          name: existingIdentity.user.name ?? verified.displayName ?? existingIdentity.user.name
+        }
+      });
+    });
+
+    return createSessionResult({
+      isNew: false,
+      request: input.request,
+      userId: existingIdentity.userId
+    });
+  }
+
+  const referrer = await resolveReferrerByCode(referralCode);
+  const createdUser = await prisma.$transaction(async (tx) => {
+    const user = await tx.user.create({
+      data: {
+        name: verified.displayName,
+        status: "ACTIVE",
+        lastActivityAt: new Date()
+      }
+    });
+
+    await tx.authIdentity.create({
+      data: {
+        userId: user.id,
+        provider: "TELEGRAM",
+        providerUserId: verified.id,
+        email: verified.username,
+        verifiedAt: verified.authDate
+      }
+    });
+
+    if (referrer && referrer.id !== user.id) {
+      await tx.referral.create({
+        data: {
+          referrerUserId: referrer.id,
+          referredUserId: user.id,
+          referralCode: normalizeReferralCode(referralCode),
+          source: "site_telegram_mvp"
+        }
+      });
+    }
+
+    return user;
+  });
+
+  return createSessionResult({
+    isNew: true,
+    request: input.request,
+    userId: createdUser.id
+  });
 }
 
 export async function upsertClientFromEmail(input: {
@@ -543,16 +811,11 @@ export async function upsertClientFromEmail(input: {
       }
     });
 
-    const session = await createPersistedClientSession({
+    return createSessionResult({
+      isNew: false,
       request: input.request,
       userId: existingIdentity.userId
     });
-
-    return {
-      isNew: false,
-      token: session.token,
-      userId: existingIdentity.userId
-    };
   }
 
   const referrer = await resolveReferrerByCode(referralCode);
@@ -589,16 +852,11 @@ export async function upsertClientFromEmail(input: {
     return user;
   });
 
-  const session = await createPersistedClientSession({
+  return createSessionResult({
+    isNew: true,
     request: input.request,
     userId: createdUser.id
   });
-
-  return {
-    isNew: true,
-    token: session.token,
-    userId: createdUser.id
-  };
 }
 
 export async function registerClientFromCredentials(input: {
@@ -659,16 +917,11 @@ export async function registerClientFromCredentials(input: {
     return user;
   });
 
-  const session = await createPersistedClientSession({
+  return createSessionResult({
+    isNew: true,
     request: input.request,
     userId: createdUser.id
   });
-
-  return {
-    isNew: true,
-    token: session.token,
-    userId: createdUser.id
-  };
 }
 
 export async function loginClientFromCredentials(input: { login: string; password: string; request: FastifyRequest }) {
@@ -695,14 +948,9 @@ export async function loginClientFromCredentials(input: { login: string; passwor
     }
   });
 
-  const session = await createPersistedClientSession({
+  return createSessionResult({
+    isNew: false,
     request: input.request,
     userId: existingIdentity.userId
   });
-
-  return {
-    isNew: false,
-    token: session.token,
-    userId: existingIdentity.userId
-  };
 }
