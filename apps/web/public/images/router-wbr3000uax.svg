@@ -1,0 +1,36 @@
+<svg width="300" height="220" viewBox="0 0 300 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="cudyGlow" x1="150" y1="150" x2="150" y2="210" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7B29FF" stop-opacity="0.58"/>
+      <stop offset="1" stop-color="#7B29FF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="cudyBody" x1="150" y1="72" x2="150" y2="172" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#26242D"/>
+      <stop offset="1" stop-color="#09090E"/>
+    </linearGradient>
+    <filter id="cudyShadow" x="12" y="0" width="276" height="220" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#09070F" flood-opacity="0.48"/>
+    </filter>
+    <pattern id="cudyLines" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="10" height="10" fill="#111117"/>
+      <rect width="3" height="10" fill="#2A2A33"/>
+    </pattern>
+  </defs>
+  <ellipse cx="150" cy="188" rx="90" ry="22" fill="url(#cudyGlow)"/>
+  <g filter="url(#cudyShadow)">
+    <rect x="52" y="20" width="15" height="82" rx="5" fill="#1D1D24"/>
+    <rect x="92" y="10" width="16" height="92" rx="5" fill="#202129"/>
+    <rect x="192" y="10" width="16" height="92" rx="5" fill="#202129"/>
+    <rect x="233" y="20" width="15" height="82" rx="5" fill="#1D1D24"/>
+    <path d="M46 98C46 87.5066 54.5066 79 65 79H235C245.493 79 254 87.5066 254 98V154C254 164.493 245.493 173 235 173H65C54.5066 173 46 164.493 46 154V98Z" fill="url(#cudyBody)"/>
+    <path d="M61 94H239C244.523 94 249 98.4772 249 104V139H51V104C51 98.4772 55.4772 94 61 94Z" fill="url(#cudyLines)"/>
+    <rect x="58" y="144" width="184" height="10" rx="5" fill="#111116"/>
+    <circle cx="116" cy="149" r="2.2" fill="#76B4FF"/>
+    <circle cx="132" cy="149" r="2.2" fill="#76B4FF"/>
+    <circle cx="148" cy="149" r="2.2" fill="#76B4FF"/>
+    <circle cx="164" cy="149" r="2.2" fill="#76B4FF"/>
+    <circle cx="180" cy="149" r="2.2" fill="#76B4FF"/>
+    <text x="150" y="123" text-anchor="middle" fill="#FAFAFC" font-family="Arial, sans-serif" font-size="10" font-weight="700" letter-spacing="2.4">CUDY</text>
+    <text x="150" y="135" text-anchor="middle" fill="#A2A7B3" font-family="Arial, sans-serif" font-size="7" font-weight="700" letter-spacing="1.5">WBR3000UAX</text>
+  </g>
+</svg>

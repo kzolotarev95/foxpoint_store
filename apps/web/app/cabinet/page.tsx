@@ -101,8 +101,28 @@ function buildUserInitials(name: string): string {
   return parts.map((part) => part[0]?.toUpperCase() ?? "").join("");
 }
 
-function getRouterDeviceVariant(model: string | null, index: number): "netis" | "keenetic" | "cudy" {
+type RouterDeviceVariant = "netis" | "keenetic" | "cudy" | "xiaomi-ax3000t" | "cudy-wbr3000uax";
+
+type RouterDeviceSkin = {
+  antennaCount: number;
+  brandLabel: string;
+  imageAlt?: string;
+  imageClassName?: string;
+  imageSrc?: string;
+  modelLabel: string;
+  variant: RouterDeviceVariant;
+};
+
+function getRouterDeviceVariant(model: string | null, index: number): RouterDeviceVariant {
   const normalized = (model ?? "").toLowerCase();
+  if (normalized.includes("ax3000t")) {
+    return "xiaomi-ax3000t";
+  }
+
+  if (normalized.includes("wbr3000uax")) {
+    return "cudy-wbr3000uax";
+  }
+
   if (normalized.includes("keenetic")) {
     return "keenetic";
   }
@@ -116,6 +136,59 @@ function getRouterDeviceVariant(model: string | null, index: number): "netis" | 
   }
 
   return index % 3 === 1 ? "keenetic" : index % 3 === 2 ? "cudy" : "netis";
+}
+
+function getRouterDeviceSkin(router: RouterOverviewItem, index: number): RouterDeviceSkin {
+  const variant = getRouterDeviceVariant(router.model, index);
+
+  if (variant === "xiaomi-ax3000t") {
+    return {
+      antennaCount: 4,
+      brandLabel: "XIAOMI",
+      imageAlt: "Xiaomi Router AX3000T",
+      imageClassName: "isXiaomi",
+      imageSrc: "/images/router-ax3000t.svg",
+      modelLabel: "AX3000T",
+      variant
+    };
+  }
+
+  if (variant === "cudy-wbr3000uax") {
+    return {
+      antennaCount: 4,
+      brandLabel: "CUDY",
+      imageAlt: "Cudy WBR3000UAX",
+      imageClassName: "isCudyWbr",
+      imageSrc: "/images/router-wbr3000uax.svg",
+      modelLabel: "WBR3000UAX",
+      variant
+    };
+  }
+
+  if (variant === "keenetic") {
+    return {
+      antennaCount: 2,
+      brandLabel: "KEENETIC",
+      modelLabel: router.model ?? "Keenetic",
+      variant
+    };
+  }
+
+  if (variant === "cudy") {
+    return {
+      antennaCount: 6,
+      brandLabel: "CUDY",
+      modelLabel: router.model ?? "Cudy",
+      variant
+    };
+  }
+
+  return {
+    antennaCount: 4,
+    brandLabel: "NETIS",
+    modelLabel: router.model ?? "Netis",
+    variant
+  };
 }
 
 function getRouterStatusLabel(router: RouterOverviewItem): string {
@@ -289,28 +362,44 @@ function ChevronIcon() {
 }
 
 function DevicePreview({ router, index }: { router: RouterOverviewItem; index: number }) {
-  const variant = getRouterDeviceVariant(router.model, index);
-  const antennaCount = variant === "keenetic" ? 2 : variant === "cudy" ? 6 : 4;
-  const antennaIndices = Array.from({ length: antennaCount }, (_, item) => item);
+  const skin = getRouterDeviceSkin(router, index);
+  const antennaIndices = Array.from({ length: skin.antennaCount }, (_, item) => item);
 
   return (
-    <div className={`routerDeviceStage is-${variant}`}>
-      <div className={`routerDevice is-${variant}`}>
-        <div className="routerDeviceAntennaRow">
-          {antennaIndices.map((item) => (
-            <span key={item} className="routerAntenna" />
-          ))}
-        </div>
-        <div className="routerDeviceBody">
-          <span className="routerDeviceBrand">{variant === "keenetic" ? "KEENETIC" : variant.toUpperCase()}</span>
-          <div className="routerDeviceLights">
-            <span />
-            <span />
-            <span />
-            <span />
+    <div className={`routerDeviceStage is-${skin.variant}`}>
+      {skin.imageSrc ? (
+        <div className="routerDeviceImageWrap">
+          <Image
+            alt={skin.imageAlt ?? skin.modelLabel}
+            className={skin.imageClassName ? `routerDeviceImage ${skin.imageClassName}` : "routerDeviceImage"}
+            height={220}
+            priority={false}
+            src={skin.imageSrc}
+            width={300}
+          />
+          <div className="routerDeviceModelBadge">
+            <span>{skin.brandLabel}</span>
+            <strong>{skin.modelLabel}</strong>
           </div>
         </div>
-      </div>
+      ) : (
+        <div className={`routerDevice is-${skin.variant}`}>
+          <div className="routerDeviceAntennaRow">
+            {antennaIndices.map((item) => (
+              <span key={item} className="routerAntenna" />
+            ))}
+          </div>
+          <div className="routerDeviceBody">
+            <span className="routerDeviceBrand">{skin.brandLabel}</span>
+            <div className="routerDeviceLights">
+              <span />
+              <span />
+              <span />
+              <span />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

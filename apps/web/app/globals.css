@@ -2045,6 +2045,12 @@ textarea {
   overflow: hidden;
 }
 
+.routerDeviceStage.is-xiaomi-ax3000t,
+.routerDeviceStage.is-cudy-wbr3000uax {
+  align-items: end;
+  padding: 0.8rem 0.7rem 0.6rem;
+}
+
 .routerDeviceStage::after {
   content: "";
   position: absolute;
@@ -2056,6 +2062,55 @@ textarea {
   border: 1px solid rgba(157, 90, 255, 0.56);
   background: radial-gradient(circle, rgba(122, 42, 227, 0.16), transparent 72%);
   filter: blur(0.1px);
+}
+
+.routerDeviceImageWrap {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  width: 100%;
+  gap: 0.45rem;
+}
+
+.routerDeviceImage {
+  width: min(100%, 15.5rem);
+  height: auto;
+  filter: drop-shadow(0 18px 28px rgba(0, 0, 0, 0.3));
+}
+
+.routerDeviceImage.isXiaomi {
+  width: min(100%, 14.8rem);
+}
+
+.routerDeviceImage.isCudyWbr {
+  width: min(100%, 15.9rem);
+}
+
+.routerDeviceModelBadge {
+  display: inline-grid;
+  gap: 0.14rem;
+  justify-items: center;
+  padding: 0.45rem 0.72rem;
+  border: 1px solid rgba(151, 96, 255, 0.26);
+  border-radius: 0.95rem;
+  background: rgba(10, 9, 17, 0.76);
+  backdrop-filter: blur(8px);
+}
+
+.routerDeviceModelBadge span {
+  color: rgba(204, 188, 236, 0.74);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+.routerDeviceModelBadge strong {
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
 }
 
 .routerDevice {
