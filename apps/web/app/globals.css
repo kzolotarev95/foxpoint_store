@@ -928,6 +928,7 @@ textarea {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 0.65rem;
   min-height: 3rem;
   width: min(100%, 18rem);
   border-radius: 0.9rem;
@@ -943,7 +944,41 @@ textarea {
 }
 
 .telegramWidgetTriggerButton {
+  gap: 0.65rem;
+  background: linear-gradient(135deg, #34ace8 0%, #229ed9 100%);
+  border-color: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  box-shadow: 0 16px 30px rgba(34, 158, 217, 0.28);
   justify-content: center;
+}
+
+.telegramWidgetTriggerButton:hover {
+  background: linear-gradient(135deg, #42b5ec 0%, #28a6e0 100%);
+}
+
+.telegramWidgetButtonContent,
+.telegramWidgetError strong {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+}
+
+.telegramWidgetIconShell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  flex: none;
+}
+
+.telegramWidgetIconShell svg {
+  width: 0.95rem;
+  height: 0.95rem;
 }
 
 .telegramWidgetError {

@@ -12,6 +12,17 @@ type TelegramLoginWidgetProps = {
   hint?: string;
 };
 
+function TelegramIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24">
+      <path
+        d="M21 4.8 3.8 11.4c-1 .4-1 1.8.1 2.1l4.4 1.4 1.8 4.6c.3.8 1.4 1 1.9.3l2.4-2.6 4.8 3.5c.7.5 1.7.1 2-.8l2.7-13.3c.2-1.1-.8-2-1.9-1.7Zm-7.8 8.7-3.1 2.8-.8-3.8 7.7-6.1-3.8 7.1Z"
+        fill="currentColor"
+      />
+    </svg>
+  );
+}
+
 export function TelegramLoginWidget({
   authUrl,
   botUrl,
@@ -99,13 +110,30 @@ export function TelegramLoginWidget({
             type="button"
             onClick={() => setShouldLoadWidget(true)}
           >
-            {fallbackLabel}
+            <span className="telegramWidgetButtonContent">
+              <span className="telegramWidgetIconShell">
+                <TelegramIcon />
+              </span>
+              <span>{fallbackLabel}</span>
+            </span>
           </button>
         ) : null}
-        {widgetStatus === "loading" ? <div className="telegramWidgetLoading">Подключаем Telegram...</div> : null}
+        {widgetStatus === "loading" ? (
+          <div className="telegramWidgetLoading">
+            <span className="telegramWidgetIconShell">
+              <TelegramIcon />
+            </span>
+            <span>Подключаем Telegram...</span>
+          </div>
+        ) : null}
         {widgetStatus === "error" ? (
           <div className="telegramWidgetError" role="alert">
-            <strong>Включите VPN для входа через Telegram</strong>
+            <strong>
+              <span className="telegramWidgetIconShell">
+                <TelegramIcon />
+              </span>
+              <span>Включите VPN для входа через Telegram</span>
+            </strong>
             <span>Сам сайт работает без VPN. VPN нужен только если Telegram-кнопка не загружается.</span>
           </div>
         ) : null}
