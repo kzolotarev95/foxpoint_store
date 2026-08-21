@@ -2,11 +2,15 @@ import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSiteSnapshot, isTelegramBotConfigured } from "../../components/site-data";
-import { TelegramBotLogin } from "../../components/telegram-bot-login";
+import { TelegramLoginWidget } from "../../components/telegram-login-widget";
 import { authenticateClientAction } from "../../lib/client-actions";
 import { getApiBaseUrl } from "../../lib/api";
 import { getClientRequestHeaders, getClientSessionToken } from "../../lib/client-auth";
-import { getTelegramBotUsername, getTelegramCallbackPayload } from "../../lib/telegram-auth";
+import {
+  buildTelegramCallbackUrlForRequest,
+  getTelegramBotUsername,
+  getTelegramCallbackPayload
+} from "../../lib/telegram-auth";
 import { buildTelegramBotUrl } from "../../lib/telegram-bot";
 
 type PageSearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -73,6 +77,11 @@ export default async function LoginPage(props: { searchParams: PageSearchParams 
   const telegramBotUrl = botIsConfigured
     ? buildTelegramBotUrl(site.links.telegramBot, "login", referralCode)
     : site.links.support;
+  const telegramAuthUrl = botIsConfigured
+    ? await buildTelegramCallbackUrlForRequest("login", {
+        referralCode
+      })
+    : "";
 
   return (
     <main className="shell authExperience authLoginExperience">
@@ -97,14 +106,15 @@ export default async function LoginPage(props: { searchParams: PageSearchParams 
           <p>Вход по логину и паролю, либо через Telegram и бота.</p>
 
           <div className="clientAuthActions authLoginActions">
-            <TelegramBotLogin
+            <TelegramLoginWidget
+              authUrl={telegramAuthUrl}
               botUrl={telegramBotUrl}
               botUsername={telegramBotUsername}
               className="telegramAuthStack"
               fallbackLabel={botIsConfigured ? "Войти через Telegram" : "Открыть поддержку"}
               hint={
                 botIsConfigured
-                  ? "Откроется Telegram-бот, который завершит вход через кнопку login_url."
+                  ? "Telegram подтвердит вход и сразу вернёт вас в кабинет на сайте."
                   : "Пока бот не настроен, вход доступен через логин и пароль."
               }
             />

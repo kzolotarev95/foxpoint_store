@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { PortalHeader } from "../../components/portal-header";
-import { TelegramBotLogin } from "../../components/telegram-bot-login";
+import { TelegramLoginWidget } from "../../components/telegram-login-widget";
 import {
   attachProfileEmailAction,
   createRouterOrderAction,
@@ -17,7 +17,7 @@ import {
 } from "../../lib/client-actions";
 import { fetchClientApi } from "../../lib/client-auth";
 import type { ClientOverview } from "../../lib/portal-types";
-import { getTelegramBotUsername } from "../../lib/telegram-auth";
+import { buildTelegramCallbackUrlForRequest, getTelegramBotUsername } from "../../lib/telegram-auth";
 import { buildTelegramBotUrl } from "../../lib/telegram-bot";
 
 export type PageSearchParams = Promise<Record<string, string | string[] | undefined>>;
@@ -698,6 +698,7 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
   const telegramBotUrl = telegramBotUsername
     ? buildTelegramBotUrl(overview.links.telegramBot, "link")
     : overview.links.support;
+  const telegramLinkAuthUrl = telegramBotUsername ? await buildTelegramCallbackUrlForRequest("link") : "";
   const profileSessions = overview.sessions.map((session) => ({
     ...session,
     ...getProfileSessionMeta(session)
@@ -1200,7 +1201,8 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                 <span className={hasTelegram ? "profileState profileStateLinked" : "profileState"}>
                   {hasTelegram ? "Привязан" : "Не подключен"}
                 </span>
-                <TelegramBotLogin
+                <TelegramLoginWidget
+                  authUrl={telegramLinkAuthUrl}
                   botUrl={telegramBotUrl}
                   botUsername={telegramBotUsername}
                   className="telegramAuthStack telegramAuthStackCompact"
