@@ -36,6 +36,26 @@ export function getTelegramBotUsername(value: string): string | null {
   }
 }
 
+export function buildTelegramBotStartPayload(action: "login" | "link", referralCode?: string): string {
+  const normalizedReferralCode = referralCode?.trim() ?? "";
+  return normalizedReferralCode ? `${action}:${normalizedReferralCode}` : action;
+}
+
+export function buildTelegramBotUrl(
+  value: string,
+  action: "login" | "link",
+  referralCode?: string
+): string {
+  const payload = buildTelegramBotStartPayload(action, referralCode);
+  try {
+    const url = new URL(value.trim());
+    url.searchParams.set("start", payload);
+    return url.toString();
+  } catch {
+    return value.trim();
+  }
+}
+
 function getAppBaseUrl(): string {
   return (process.env.NEXT_PUBLIC_APP_URL ?? DEFAULT_APP_URL).replace(/\/+$/, "");
 }

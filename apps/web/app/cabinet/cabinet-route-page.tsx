@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { PortalHeader } from "../../components/portal-header";
-import { TelegramLoginWidget } from "../../components/telegram-login-widget";
+import { TelegramBotLogin } from "../../components/telegram-bot-login";
 import {
   attachProfileEmailAction,
   createRouterOrderAction,
@@ -17,7 +17,8 @@ import {
 } from "../../lib/client-actions";
 import { fetchClientApi } from "../../lib/client-auth";
 import type { ClientOverview } from "../../lib/portal-types";
-import { buildTelegramCallbackUrlForRequest, getTelegramBotUsername } from "../../lib/telegram-auth";
+import { getTelegramBotUsername } from "../../lib/telegram-auth";
+import { buildTelegramBotUrl } from "../../lib/telegram-bot";
 
 export type PageSearchParams = Promise<Record<string, string | string[] | undefined>>;
 export type CabinetTab = "overview" | "routers" | "support" | "payments" | "profile";
@@ -694,9 +695,9 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
   const telegramHandle = formatTelegramHandle(overview.profile.telegram);
   const hasTelegram = Boolean(overview.profile.telegram);
   const telegramBotUsername = getTelegramBotUsername(overview.links.telegramBot);
-  const telegramLinkUrl = await buildTelegramCallbackUrlForRequest("link", {
-    fallbackAppUrl: overview.links.appUrl
-  });
+  const telegramBotUrl = telegramBotUsername
+    ? buildTelegramBotUrl(overview.links.telegramBot, "link")
+    : overview.links.support;
   const profileSessions = overview.sessions.map((session) => ({
     ...session,
     ...getProfileSessionMeta(session)
@@ -1199,9 +1200,8 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                 <span className={hasTelegram ? "profileState profileStateLinked" : "profileState"}>
                   {hasTelegram ? "Привязан" : "Не подключен"}
                 </span>
-                <TelegramLoginWidget
-                  authUrl={telegramLinkUrl}
-                  botUrl={telegramBotUsername ? overview.links.telegramBot : overview.links.support}
+                <TelegramBotLogin
+                  botUrl={telegramBotUrl}
                   botUsername={telegramBotUsername}
                   className="telegramAuthStack telegramAuthStackCompact"
                   fallbackLabel={telegramBotUsername ? (hasTelegram ? "Переподключить Telegram" : "Привязать Telegram") : "Открыть поддержку"}
