@@ -295,7 +295,7 @@ setup_nginx() {
   systemctl reload nginx
 }
 
-setup_nginx_8443() {
+setup_nginx_tls() {
   local cert_dir
 
   if [ -z "$APP_DOMAIN" ]; then
@@ -307,8 +307,9 @@ setup_nginx_8443() {
     return
   fi
 
-  render_template "$APP_DIR/deploy/nginx/foxpoint-8443.conf" "/etc/nginx/sites-available/foxpoint-8443" "$(command -v npm)" "$APP_DOMAIN"
-  ln -sf /etc/nginx/sites-available/foxpoint-8443 /etc/nginx/sites-enabled/foxpoint-8443
+  render_template "$APP_DIR/deploy/nginx/foxpoint-tls.conf" "/etc/nginx/sites-available/foxpoint" "$(command -v npm)" "$APP_DOMAIN"
+  rm -f /etc/nginx/sites-enabled/foxpoint-8443 /etc/nginx/sites-available/foxpoint-8443
+  ln -sf /etc/nginx/sites-available/foxpoint /etc/nginx/sites-enabled/foxpoint
   nginx -t
   systemctl reload nginx
 }
@@ -324,7 +325,7 @@ enable_https_if_ready() {
 
   if certbot --nginx --non-interactive --agree-tos -m "$CERTBOT_EMAIL" -d "$APP_DOMAIN" --redirect; then
     HTTPS_ENABLED=1
-    setup_nginx_8443
+    setup_nginx_tls
     return
   fi
 

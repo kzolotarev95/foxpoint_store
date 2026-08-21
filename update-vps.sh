@@ -42,13 +42,16 @@ sync_nginx_configs() {
   local app_host
 
   app_url="$(grep '^NEXT_PUBLIC_APP_URL=' "$APP_DIR/.env" | tail -n 1 | cut -d= -f2-)"
-  app_host="$(printf '%s' "$app_url" | sed -E 's#^https?://##; s#/.*$##')"
+  app_host="$(printf '%s' "$app_url" | sed -E 's#^https?://##; s#/.*$##; s#:[0-9]+$##')"
 
   cert_dir="/etc/letsencrypt/live/$app_host"
   if [ -n "$app_host" ] && ! is_ip_address "$app_host" && [ -f "$cert_dir/fullchain.pem" ] && [ -f "$cert_dir/privkey.pem" ]; then
-    render_template "$APP_DIR/deploy/nginx/foxpoint-8443.conf" "/etc/nginx/sites-available/foxpoint-8443" "$(command -v npm)" "$app_host"
-    ln -sf /etc/nginx/sites-available/foxpoint-8443 /etc/nginx/sites-enabled/foxpoint-8443
+    render_template "$APP_DIR/deploy/nginx/foxpoint-tls.conf" "/etc/nginx/sites-available/foxpoint" "$(command -v npm)" "$app_host"
+    ln -sf /etc/nginx/sites-available/foxpoint /etc/nginx/sites-enabled/foxpoint
+    rm -f /etc/nginx/sites-enabled/foxpoint-8443 /etc/nginx/sites-available/foxpoint-8443
   else
+    render_template "$APP_DIR/deploy/nginx/foxpoint.conf" "/etc/nginx/sites-available/foxpoint" "$(command -v npm)" "${app_host:-_}"
+    ln -sf /etc/nginx/sites-available/foxpoint /etc/nginx/sites-enabled/foxpoint
     rm -f /etc/nginx/sites-enabled/foxpoint-8443 /etc/nginx/sites-available/foxpoint-8443
   fi
 
