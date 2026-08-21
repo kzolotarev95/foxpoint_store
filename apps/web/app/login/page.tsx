@@ -103,7 +103,7 @@ export default async function LoginPage(props: { searchParams: PageSearchParams 
             <span>Свободный</span>
             <span>интернет</span>
           </h1>
-          <p>Вход по логину и паролю, либо через Telegram и бота.</p>
+          <p>Вход по логину и паролю, либо через Telegram-аккаунт.</p>
 
           <div className="clientAuthActions authLoginActions">
             <TelegramLoginWidget
@@ -114,7 +114,7 @@ export default async function LoginPage(props: { searchParams: PageSearchParams 
               fallbackLabel={botIsConfigured ? "Войти через Telegram" : "Открыть поддержку"}
               hint={
                 botIsConfigured
-                  ? "Telegram подтвердит вход и сразу вернёт вас в кабинет на сайте."
+                  ? "Telegram подтвердит вход и сразу вернёт вас в кабинет на сайте. Это вход через Telegram-аккаунт, не по номеру телефона."
                   : "Пока бот не настроен, вход доступен через логин и пароль."
               }
             />

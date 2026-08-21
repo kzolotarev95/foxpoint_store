@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { type MouseEvent, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type TelegramLoginWidgetProps = {
   authUrl: string;
@@ -23,28 +23,6 @@ function TelegramIcon() {
   );
 }
 
-function buildTelegramAppUrl(botUsername: string, botUrl: string): string {
-  try {
-    const start = new URL(botUrl).searchParams.get("start") ?? "";
-    const telegramUrl = new URL("tg://resolve");
-    telegramUrl.searchParams.set("domain", botUsername);
-    if (start) {
-      telegramUrl.searchParams.set("start", start);
-    }
-    return telegramUrl.toString();
-  } catch {
-    return botUrl;
-  }
-}
-
-function isLikelyMobileDevice(): boolean {
-  if (typeof navigator === "undefined") {
-    return false;
-  }
-
-  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-}
-
 export function TelegramLoginWidget({
   authUrl,
   botUrl,
@@ -54,16 +32,11 @@ export function TelegramLoginWidget({
   hint
 }: TelegramLoginWidgetProps) {
   const widgetRef = useRef<HTMLDivElement | null>(null);
-  const [isMobileDevice, setIsMobileDevice] = useState(false);
-  const [shouldLoadWidget, setShouldLoadWidget] = useState(false);
+  const [shouldLoadWidget] = useState(Boolean(botUsername));
   const [widgetStatus, setWidgetStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
 
   useEffect(() => {
-    setIsMobileDevice(isLikelyMobileDevice());
-  }, []);
-
-  useEffect(() => {
-    if (!botUsername || isMobileDevice || !widgetRef.current || !shouldLoadWidget) {
+    if (!botUsername || !widgetRef.current || !shouldLoadWidget) {
       setWidgetStatus("idle");
       return;
     }
@@ -114,16 +87,7 @@ export function TelegramLoginWidget({
       observer.disconnect();
       widgetNode.innerHTML = "";
     };
-  }, [authUrl, botUsername, isMobileDevice, shouldLoadWidget]);
-
-  function handleMobileClick(event: MouseEvent<HTMLAnchorElement>) {
-    if (!botUsername || !isMobileDevice) {
-      return;
-    }
-
-    event.preventDefault();
-    window.location.href = buildTelegramAppUrl(botUsername, botUrl);
-  }
+  }, [authUrl, botUsername, shouldLoadWidget]);
 
   if (!botUsername) {
     return (
@@ -139,59 +103,26 @@ export function TelegramLoginWidget({
   return (
     <div className={className}>
       <div className={`telegramWidgetShell ${widgetStatus === "error" ? "isError" : ""}`}>
-        {isMobileDevice ? (
-          <Link
-            className="primaryButton fullWidthButton portalActionButton telegramWidgetTriggerButton"
-            href={botUrl}
-            onClick={handleMobileClick}
-            rel="noreferrer"
-            target="_blank"
-          >
-            <span className="telegramWidgetButtonContent">
+        <div ref={widgetRef} className="telegramWidgetMount" />
+        {widgetStatus === "loading" ? (
+          <div className="telegramWidgetLoading">
+            <span className="telegramWidgetIconShell">
+              <TelegramIcon />
+            </span>
+            <span>Подключаем Telegram...</span>
+          </div>
+        ) : null}
+        {widgetStatus === "error" ? (
+          <div className="telegramWidgetError" role="alert">
+            <strong>
               <span className="telegramWidgetIconShell">
                 <TelegramIcon />
               </span>
-              <span>{fallbackLabel}</span>
-            </span>
-          </Link>
-        ) : (
-          <>
-            <div ref={widgetRef} className="telegramWidgetMount" />
-            {!shouldLoadWidget ? (
-              <button
-                className="primaryButton fullWidthButton portalActionButton telegramWidgetTriggerButton"
-                type="button"
-                onClick={() => setShouldLoadWidget(true)}
-              >
-                <span className="telegramWidgetButtonContent">
-                  <span className="telegramWidgetIconShell">
-                    <TelegramIcon />
-                  </span>
-                  <span>{fallbackLabel}</span>
-                </span>
-              </button>
-            ) : null}
-            {widgetStatus === "loading" ? (
-              <div className="telegramWidgetLoading">
-                <span className="telegramWidgetIconShell">
-                  <TelegramIcon />
-                </span>
-                <span>Подключаем Telegram...</span>
-              </div>
-            ) : null}
-            {widgetStatus === "error" ? (
-              <div className="telegramWidgetError" role="alert">
-                <strong>
-                  <span className="telegramWidgetIconShell">
-                    <TelegramIcon />
-                  </span>
-                  <span>Включите VPN для входа через Telegram</span>
-                </strong>
-                <span>Сам сайт работает без VPN. VPN нужен только если Telegram-кнопка не загружается.</span>
-              </div>
-            ) : null}
-          </>
-        )}
+              <span>Включите VPN для входа через Telegram</span>
+            </strong>
+            <span>Сам сайт работает без VPN. VPN нужен только если Telegram-кнопка не загружается.</span>
+          </div>
+        ) : null}
       </div>
       {hint ? <p className={`telegramWidgetHint ${widgetStatus === "error" ? "isError" : ""}`}>{hint}</p> : null}
       <noscript>
