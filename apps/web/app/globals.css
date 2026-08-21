@@ -942,6 +942,10 @@ textarea {
   justify-content: center;
 }
 
+.telegramWidgetTriggerButton {
+  justify-content: center;
+}
+
 .telegramWidgetError {
   display: grid;
   gap: 0.45rem;

@@ -21,10 +21,11 @@ export function TelegramLoginWidget({
   hint
 }: TelegramLoginWidgetProps) {
   const widgetRef = useRef<HTMLDivElement | null>(null);
-  const [widgetStatus, setWidgetStatus] = useState<"idle" | "loading" | "ready" | "error">(botUsername ? "loading" : "idle");
+  const [shouldLoadWidget, setShouldLoadWidget] = useState(false);
+  const [widgetStatus, setWidgetStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
 
   useEffect(() => {
-    if (!botUsername || !widgetRef.current) {
+    if (!botUsername || !widgetRef.current || !shouldLoadWidget) {
       setWidgetStatus("idle");
       return;
     }
@@ -75,7 +76,7 @@ export function TelegramLoginWidget({
       observer.disconnect();
       widgetNode.innerHTML = "";
     };
-  }, [authUrl, botUsername]);
+  }, [authUrl, botUsername, shouldLoadWidget]);
 
   if (!botUsername) {
     return (
@@ -92,11 +93,20 @@ export function TelegramLoginWidget({
     <div className={className}>
       <div className={`telegramWidgetShell ${widgetStatus === "error" ? "isError" : ""}`}>
         <div ref={widgetRef} className="telegramWidgetMount" />
+        {!shouldLoadWidget ? (
+          <button
+            className="primaryButton fullWidthButton portalActionButton telegramWidgetTriggerButton"
+            type="button"
+            onClick={() => setShouldLoadWidget(true)}
+          >
+            {fallbackLabel}
+          </button>
+        ) : null}
         {widgetStatus === "loading" ? <div className="telegramWidgetLoading">Подключаем Telegram...</div> : null}
         {widgetStatus === "error" ? (
           <div className="telegramWidgetError" role="alert">
-            <strong>Включите VPN для авторизации</strong>
-            <span>Без VPN Telegram-кнопка может не загрузиться. После включения VPN обновите страницу и попробуйте снова.</span>
+            <strong>Включите VPN для входа через Telegram</strong>
+            <span>Сам сайт работает без VPN. VPN нужен только если Telegram-кнопка не загружается.</span>
           </div>
         ) : null}
       </div>
