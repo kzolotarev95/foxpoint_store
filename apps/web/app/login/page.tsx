@@ -6,7 +6,11 @@ import { TelegramLoginWidget } from "../../components/telegram-login-widget";
 import { authenticateClientAction } from "../../lib/client-actions";
 import { getApiBaseUrl } from "../../lib/api";
 import { getClientRequestHeaders, getClientSessionToken } from "../../lib/client-auth";
-import { buildTelegramCallbackUrlForRequest, getTelegramBotUsername } from "../../lib/telegram-auth";
+import {
+  buildTelegramCallbackUrlForRequest,
+  getTelegramBotUsername,
+  getTelegramCallbackPayload
+} from "../../lib/telegram-auth";
 
 type PageSearchParams = Promise<Record<string, string | string[] | undefined>>;
 
@@ -16,6 +20,23 @@ function getSingleParam(value: string | string[] | undefined): string | null {
   }
 
   return Array.isArray(value) ? value[0] ?? null : null;
+}
+
+function buildUrlSearchParams(searchParams: Record<string, string | string[] | undefined>): URLSearchParams {
+  const result = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(searchParams)) {
+    if (typeof value === "string") {
+      result.set(key, value);
+      continue;
+    }
+
+    for (const item of value ?? []) {
+      result.append(key, item);
+    }
+  }
+
+  return result;
 }
 
 export default async function LoginPage(props: { searchParams: PageSearchParams }) {
@@ -36,6 +57,11 @@ export default async function LoginPage(props: { searchParams: PageSearchParams 
   }
 
   const searchParams = await props.searchParams;
+  const telegramSearchParams = buildUrlSearchParams(searchParams);
+  if (getTelegramCallbackPayload(telegramSearchParams)) {
+    redirect(`/telegram/login?${telegramSearchParams.toString()}`);
+  }
+
   const site = await getSiteSnapshot();
   const errorMessage = getSingleParam(searchParams.error);
   const signedOutMessage = getSingleParam(searchParams.signedOut) ? "Сессия завершена." : null;
