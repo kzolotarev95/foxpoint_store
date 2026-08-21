@@ -88,6 +88,8 @@ ADMIN_SESSION_SECRET=replace_with_a_long_random_secret
 curl -fsSL "https://raw.githubusercontent.com/kzolotarev95/foxpoint_store/main/update-vps.sh?v=$(date +%s)" | sudo bash
 ```
 
+Если домен уже на HTTPS через Let's Encrypt, `update-vps.sh` также поднимет дополнительный HTTPS-вход на `https://ваш-домен:8443`.
+
 Если меняешь `ADMIN_*`, достаточно перезапустить сервисы:
 
 ```bash

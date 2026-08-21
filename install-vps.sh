@@ -295,6 +295,24 @@ setup_nginx() {
   systemctl reload nginx
 }
 
+setup_nginx_8443() {
+  local cert_dir
+
+  if [ -z "$APP_DOMAIN" ]; then
+    return
+  fi
+
+  cert_dir="/etc/letsencrypt/live/$APP_DOMAIN"
+  if [ ! -f "$cert_dir/fullchain.pem" ] || [ ! -f "$cert_dir/privkey.pem" ]; then
+    return
+  fi
+
+  render_template "$APP_DIR/deploy/nginx/foxpoint-8443.conf" "/etc/nginx/sites-available/foxpoint-8443" "$(command -v npm)" "$APP_DOMAIN"
+  ln -sf /etc/nginx/sites-available/foxpoint-8443 /etc/nginx/sites-enabled/foxpoint-8443
+  nginx -t
+  systemctl reload nginx
+}
+
 enable_https_if_ready() {
   if [ -z "$APP_DOMAIN" ] || [ -z "$CERTBOT_EMAIL" ]; then
     log ""
@@ -306,6 +324,7 @@ enable_https_if_ready() {
 
   if certbot --nginx --non-interactive --agree-tos -m "$CERTBOT_EMAIL" -d "$APP_DOMAIN" --redirect; then
     HTTPS_ENABLED=1
+    setup_nginx_8443
     return
   fi
 
