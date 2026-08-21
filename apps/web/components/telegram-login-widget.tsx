@@ -12,15 +12,6 @@ type TelegramLoginWidgetProps = {
   hint?: string;
 };
 
-function isLikelyMobileDevice(): boolean {
-  if (typeof navigator === "undefined") {
-    return false;
-  }
-
-  const userAgent = navigator.userAgent || "";
-  return /android|iphone|ipad|ipod|mobile/i.test(userAgent);
-}
-
 export function TelegramLoginWidget({
   authUrl,
   botUrl,
@@ -99,16 +90,17 @@ export function TelegramLoginWidget({
 
   return (
     <div className={className}>
-      <div className="telegramWidgetShell">
+      <div className={`telegramWidgetShell ${widgetStatus === "error" ? "isError" : ""}`}>
         <div ref={widgetRef} className="telegramWidgetMount" />
         {widgetStatus === "loading" ? <div className="telegramWidgetLoading">Подключаем Telegram...</div> : null}
         {widgetStatus === "error" ? (
-          <Link className="primaryButton fullWidthButton portalActionButton telegramWidgetFallbackButton" href={botUrl} target="_blank">
-            {fallbackLabel}
-          </Link>
+          <div className="telegramWidgetError" role="alert">
+            <strong>Включите VPN для авторизации</strong>
+            <span>Без VPN Telegram-кнопка может не загрузиться. После включения VPN обновите страницу и попробуйте снова.</span>
+          </div>
         ) : null}
       </div>
-      {hint ? <p className="telegramWidgetHint">{hint}</p> : null}
+      {hint ? <p className={`telegramWidgetHint ${widgetStatus === "error" ? "isError" : ""}`}>{hint}</p> : null}
       <noscript>
         <Link className="secondaryButton fullWidthButton portalGhostButton" href={botUrl} target="_blank">
           {fallbackLabel}

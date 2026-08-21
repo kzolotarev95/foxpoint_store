@@ -913,6 +913,11 @@ textarea {
   overflow: hidden;
 }
 
+.telegramWidgetShell.isError {
+  border-color: rgba(255, 114, 114, 0.72);
+  background: linear-gradient(180deg, rgba(78, 18, 25, 0.96) 0%, rgba(51, 10, 16, 0.98) 100%);
+}
+
 .telegramWidgetMount {
   display: flex;
   justify-content: center;
@@ -937,6 +942,27 @@ textarea {
   justify-content: center;
 }
 
+.telegramWidgetError {
+  display: grid;
+  gap: 0.45rem;
+  width: 100%;
+  padding: 0.15rem 0;
+  color: rgba(255, 231, 231, 0.96);
+  text-align: center;
+}
+
+.telegramWidgetError strong {
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.telegramWidgetError span {
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: rgba(255, 214, 214, 0.92);
+}
+
 .telegramWidgetAppButton {
   justify-content: center;
 }
@@ -955,6 +981,10 @@ textarea {
   font-size: 0.9rem;
   line-height: 1.5;
   text-align: center;
+}
+
+.telegramWidgetHint.isError {
+  color: rgba(255, 192, 192, 0.9);
 }
 
 .profileSessionTitleLine {
