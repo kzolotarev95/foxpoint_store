@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { type MouseEvent, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type TelegramLoginWidgetProps = {
   authUrl: string;
@@ -21,28 +21,6 @@ function isLikelyMobileDevice(): boolean {
   return /android|iphone|ipad|ipod|mobile/i.test(userAgent);
 }
 
-function buildTelegramAppUrl(botUsername: string, botUrl: string): string {
-  try {
-    const parsed = new URL(botUrl);
-    const segment = parsed.pathname.split("/").filter(Boolean)[0] ?? botUsername;
-    const deepLink = new URL("tg://resolve");
-    deepLink.searchParams.set("domain", segment);
-
-    for (const key of ["start", "startattach", "startapp", "attach", "choose", "ref"] as const) {
-      const value = parsed.searchParams.get(key);
-      if (value) {
-        deepLink.searchParams.set(key, value);
-      }
-    }
-
-    return deepLink.toString();
-  } catch {
-    const deepLink = new URL("tg://resolve");
-    deepLink.searchParams.set("domain", botUsername);
-    return deepLink.toString();
-  }
-}
-
 export function TelegramLoginWidget({
   authUrl,
   botUrl,
@@ -53,11 +31,6 @@ export function TelegramLoginWidget({
 }: TelegramLoginWidgetProps) {
   const widgetRef = useRef<HTMLDivElement | null>(null);
   const [widgetStatus, setWidgetStatus] = useState<"idle" | "loading" | "ready" | "error">(botUsername ? "loading" : "idle");
-  const [isMobileDevice, setIsMobileDevice] = useState(false);
-
-  useEffect(() => {
-    setIsMobileDevice(isLikelyMobileDevice());
-  }, []);
 
   useEffect(() => {
     if (!botUsername || !widgetRef.current) {
@@ -113,34 +86,6 @@ export function TelegramLoginWidget({
     };
   }, [authUrl, botUsername]);
 
-  function handleTelegramAppOpen(event: MouseEvent<HTMLAnchorElement>) {
-    if (!botUsername || !isMobileDevice) {
-      return;
-    }
-
-    event.preventDefault();
-
-    const fallbackTimer = window.setTimeout(() => {
-      window.location.href = botUrl;
-    }, 900);
-
-    const clearFallback = () => {
-      window.clearTimeout(fallbackTimer);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("pagehide", clearFallback);
-    };
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "hidden") {
-        clearFallback();
-      }
-    };
-
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener("pagehide", clearFallback, { once: true });
-    window.location.href = buildTelegramAppUrl(botUsername, botUrl);
-  }
-
   if (!botUsername) {
     return (
       <div className={className}>
@@ -154,20 +99,6 @@ export function TelegramLoginWidget({
 
   return (
     <div className={className}>
-      {isMobileDevice ? (
-        <>
-          <a
-            className="secondaryButton fullWidthButton portalGhostButton telegramWidgetAppButton"
-            href={botUrl}
-            onClick={handleTelegramAppOpen}
-          >
-            Открыть Telegram приложение
-          </a>
-          <p className="telegramWidgetAppHint">
-            Если Telegram установлен на телефоне, сначала попробуем открыть приложение, а затем можно подтвердить вход.
-          </p>
-        </>
-      ) : null}
       <div className="telegramWidgetShell">
         <div ref={widgetRef} className="telegramWidgetMount" />
         {widgetStatus === "loading" ? <div className="telegramWidgetLoading">Подключаем Telegram...</div> : null}
