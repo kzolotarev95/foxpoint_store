@@ -937,6 +937,18 @@ textarea {
   justify-content: center;
 }
 
+.telegramWidgetAppButton {
+  justify-content: center;
+}
+
+.telegramWidgetAppHint {
+  margin: 0;
+  color: rgba(219, 208, 236, 0.72);
+  font-size: 0.88rem;
+  line-height: 1.45;
+  text-align: center;
+}
+
 .telegramWidgetHint {
   margin: 0;
   color: rgba(219, 208, 236, 0.68);
