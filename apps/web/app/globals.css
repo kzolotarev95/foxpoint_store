@@ -3441,6 +3441,331 @@ textarea {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.clientPaymentsPage {
+  display: grid;
+  gap: 1.15rem;
+}
+
+.clientPaymentsIntro {
+  display: grid;
+  gap: 0.45rem;
+  max-width: 52rem;
+}
+
+.clientPaymentsIntro h1 {
+  margin: 0;
+  font-family: var(--font-heading, sans-serif);
+  font-size: clamp(2rem, 4vw, 3.35rem);
+  line-height: 0.98;
+  color: #fff8ef;
+}
+
+.clientPaymentsIntro p {
+  margin: 0;
+  color: rgba(223, 214, 241, 0.72);
+  font-size: 1.02rem;
+  line-height: 1.6;
+}
+
+.clientPaymentsHeroGrid,
+.clientPaymentsContentGrid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1.42fr) minmax(320px, 0.98fr);
+}
+
+.clientPaymentsServiceCard {
+  display: grid;
+  grid-template-columns: 5.2rem minmax(0, 1fr);
+  gap: 1.15rem;
+  align-items: center;
+  padding: 1.6rem;
+  background:
+    radial-gradient(circle at top left, rgba(160, 84, 255, 0.22), transparent 42%),
+    radial-gradient(circle at 78% 18%, rgba(255, 111, 40, 0.16), transparent 36%),
+    linear-gradient(180deg, rgba(11, 14, 24, 0.98), rgba(10, 11, 22, 0.94));
+}
+
+.clientPaymentsServiceBadge,
+.clientPaymentsTariffIcon {
+  display: grid;
+  place-items: center;
+  width: 5.2rem;
+  height: 5.2rem;
+  border-radius: 50%;
+  border: 1px solid rgba(174, 113, 255, 0.45);
+  background: radial-gradient(circle, rgba(255, 138, 43, 0.2), rgba(109, 69, 255, 0.1));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 0 28px rgba(175, 98, 255, 0.24);
+}
+
+.clientPaymentsServiceBadge svg,
+.clientPaymentsTariffIcon svg {
+  width: 2rem;
+  height: 2rem;
+}
+
+.clientPaymentsServiceBody {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.clientPaymentsServiceBody h2 {
+  margin: 0;
+  color: #fff8ef;
+  font-family: var(--font-heading, sans-serif);
+  font-size: clamp(1.45rem, 2.6vw, 2.2rem);
+  line-height: 1.02;
+}
+
+.clientPaymentsStatusLine {
+  margin: 0;
+  color: #78d56a;
+  font-size: 1.02rem;
+  font-weight: 600;
+}
+
+.clientPaymentsMuted {
+  margin: 0;
+  color: rgba(217, 208, 237, 0.7);
+}
+
+.clientPaymentsMethodGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.3rem;
+}
+
+.clientPaymentsMethodGrid form {
+  margin: 0;
+}
+
+.clientPaymentsMethodButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3.4rem;
+  padding: 0.85rem 1.15rem;
+  border: 1px solid rgba(179, 127, 255, 0.28);
+  border-radius: 1rem;
+  color: #efe6ff;
+  background: linear-gradient(180deg, rgba(17, 13, 28, 0.92), rgba(11, 11, 21, 0.9));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  text-decoration: none;
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.clientPaymentsMethodButton:hover {
+  transform: translateY(-1px);
+  border-color: rgba(255, 135, 48, 0.5);
+  box-shadow: 0 16px 28px rgba(0, 0, 0, 0.18);
+}
+
+.clientPaymentsMethodButton.isPrimary {
+  border-color: rgba(255, 132, 38, 0.5);
+  background: linear-gradient(135deg, #ff8d31, #ff5f1f);
+  color: #fff8ef;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 18px 34px rgba(255, 109, 34, 0.22);
+}
+
+.clientPaymentsMethodButton.isSecondary {
+  background: linear-gradient(180deg, rgba(28, 20, 43, 0.95), rgba(14, 11, 23, 0.92));
+}
+
+.clientPaymentsMethodButton.isGhost {
+  background: transparent;
+}
+
+.clientPaymentsTariffCard {
+  display: grid;
+  gap: 0.7rem;
+  align-content: start;
+  padding: 1.4rem;
+  background:
+    radial-gradient(circle at 20% 12%, rgba(170, 88, 255, 0.2), transparent 28%),
+    linear-gradient(180deg, rgba(16, 16, 29, 0.98), rgba(11, 12, 24, 0.94));
+}
+
+.clientPaymentsLabel {
+  color: rgba(221, 211, 238, 0.7);
+  font-size: 0.98rem;
+}
+
+.clientPaymentsTariffCard strong {
+  color: #fff8ef;
+  font-family: var(--font-heading, sans-serif);
+  font-size: clamp(2.2rem, 4vw, 3.15rem);
+  line-height: 1;
+}
+
+.clientPaymentsTariffPeriod {
+  color: rgba(215, 206, 233, 0.68);
+}
+
+.clientPaymentsTariffDivider {
+  height: 1px;
+  margin: 0.35rem 0 0.2rem;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.clientPaymentsTariffFeature {
+  display: grid;
+  grid-template-columns: 1.3rem minmax(0, 1fr);
+  gap: 0.85rem;
+  align-items: start;
+}
+
+.clientPaymentsTariffFeature svg {
+  width: 1.3rem;
+  height: 1.3rem;
+  color: #a8ff8e;
+}
+
+.clientPaymentsTariffFeature b {
+  display: block;
+  margin-bottom: 0.15rem;
+  color: #fff8ef;
+}
+
+.clientPaymentsTariffFeature p {
+  margin: 0;
+  color: rgba(218, 209, 235, 0.7);
+  line-height: 1.5;
+}
+
+.clientPaymentsHistoryCard,
+.clientPaymentsSupportCard {
+  padding: 1.4rem;
+}
+
+.clientPaymentsCardHeader h2,
+.clientPaymentsSupportCard h2 {
+  margin: 0.4rem 0 0;
+  color: #fff8ef;
+  font-family: var(--font-heading, sans-serif);
+  font-size: clamp(1.35rem, 2.1vw, 2rem);
+  line-height: 1.04;
+}
+
+.clientPaymentsHistoryTable {
+  display: grid;
+  gap: 0.55rem;
+  margin-top: 1rem;
+}
+
+.clientPaymentsHistoryHead,
+.clientPaymentsHistoryRow {
+  display: grid;
+  grid-template-columns: 0.9fr 1.55fr 0.95fr 0.8fr 0.9fr;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.clientPaymentsHistoryHead {
+  padding: 0 1rem;
+  color: rgba(222, 214, 240, 0.56);
+  font-size: 0.9rem;
+}
+
+.clientPaymentsHistoryRow {
+  padding: 0.95rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.clientPaymentsHistoryRow strong {
+  color: #fff8ef;
+  font-weight: 700;
+}
+
+.clientPaymentsStatusBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.clientPaymentsStatusBadge.is-paid {
+  background: rgba(72, 196, 102, 0.18);
+  color: #86ea97;
+}
+
+.clientPaymentsStatusBadge.is-pending {
+  background: rgba(255, 183, 74, 0.16);
+  color: #ffd08a;
+}
+
+.clientPaymentsStatusBadge.is-failed {
+  background: rgba(255, 93, 93, 0.14);
+  color: #ff9c9c;
+}
+
+.clientPaymentsEmptyState {
+  margin-top: 1rem;
+  padding: 1rem 1.1rem;
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  border-radius: 1rem;
+  color: rgba(223, 215, 239, 0.68);
+}
+
+.clientPaymentsSupportCard {
+  display: grid;
+  align-content: start;
+  background:
+    radial-gradient(circle at 70% 18%, rgba(152, 87, 255, 0.18), transparent 35%),
+    linear-gradient(180deg, rgba(17, 15, 32, 0.98), rgba(12, 11, 24, 0.94));
+}
+
+.clientPaymentsSupportCard p {
+  margin: 0.6rem 0 0;
+  color: rgba(220, 212, 236, 0.72);
+  line-height: 1.6;
+}
+
+.clientPaymentsSupportList {
+  display: grid;
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.clientPaymentsSupportItem {
+  padding: 0.9rem 0.95rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.clientPaymentsSupportItem strong {
+  display: block;
+  color: #fff8ef;
+}
+
+.clientPaymentsSupportItem span {
+  display: block;
+  margin-top: 0.18rem;
+  color: rgba(215, 207, 233, 0.68);
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.clientPaymentsSupportActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: auto;
+}
+
 .clientRouterControlCard,
 .clientUtilityCard {
   border: 1px solid var(--cabinet-line);
@@ -3590,6 +3915,8 @@ textarea {
   .clientRoutersStage,
   .clientSupportGrid,
   .clientRouterControlsGrid,
+  .clientPaymentsHeroGrid,
+  .clientPaymentsContentGrid,
   .clientDashboardLowerGrid,
   .clientRouterControlLayout {
     grid-template-columns: 1fr;
@@ -3824,6 +4151,23 @@ textarea {
   .clientSupportTicketsCard,
   .clientSupportInfoCard {
     padding: 1rem;
+  }
+
+  .clientPaymentsCardHeader h2,
+  .clientPaymentsSupportCard h2 {
+    font-size: clamp(1.2rem, 5vw, 1.7rem);
+  }
+
+  .clientPaymentsHistoryHead {
+    display: none;
+  }
+
+  .clientPaymentsHistoryRow {
+    grid-template-columns: 1fr;
+  }
+
+  .clientPaymentsMethodButton {
+    width: 100%;
   }
 
   .clientSupportTicketRow {

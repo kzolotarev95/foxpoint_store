@@ -1,6 +1,8 @@
+import { createHmac, timingSafeEqual } from "node:crypto";
 import {
   ConfigurationType,
   OrderStatus,
+  PaymentStatus,
   RewardStatus,
   RouterStatus,
   SubscriptionStatus,
@@ -20,6 +22,9 @@ import { config } from "./config.js";
 import { prisma } from "./prisma.js";
 
 type SettingMap = Map<string, string>;
+type PublicLinks = Awaited<ReturnType<typeof getPublicSettingLinks>>;
+type PaymentProviderId = "manual_mvp" | "platega" | "yoomoney";
+type ClientPaymentMethodId = Exclude<PaymentProviderId, "manual_mvp">;
 type RouterTemplateLike = {
   accessEnabled: boolean;
   supportType: SupportType;
@@ -63,6 +68,429 @@ function getNumericSetting(settings: SettingMap, key: string, fallback: number):
 
   const parsed = Number(rawValue);
   return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function getBooleanSetting(settings: SettingMap, key: string, fallback = false): boolean {
+  const rawValue = settings.get(key)?.trim().toLowerCase();
+  if (!rawValue) {
+    return fallback;
+  }
+
+  return rawValue === "true" || rawValue === "1" || rawValue === "yes" || rawValue === "on";
+}
+
+function getSettingValue(settings: SettingMap, key: string, fallback = ""): string {
+  const value = settings.get(key)?.trim();
+  return value || fallback;
+}
+
+function ensureConfiguredSetting(settings: SettingMap, key: string, label: string, placeholder?: string): string {
+  const value = getSettingValue(settings, key);
+  if (!value || (placeholder && value === placeholder)) {
+    throw new Error(`Настройте "${label}" в админке, чтобы принимать оплату этим способом.`);
+  }
+
+  return value;
+}
+
+function formatDecimalAmount(amount: number): string {
+  return amount.toFixed(2);
+}
+
+function buildPaymentLabel(paymentId: string): string {
+  return `fp_${paymentId}`;
+}
+
+function extractPaymentIdFromLabel(label: string | null | undefined): string | null {
+  if (!label) {
+    return null;
+  }
+
+  return label.startsWith("fp_") ? label.slice(3) : null;
+}
+
+function buildCallbackUrl(links: PublicLinks, provider: ClientPaymentMethodId): string {
+  return `${links.apiUrl}/api/payments/${provider}/callback`;
+}
+
+function buildCabinetPaymentSuccessUrl(links: PublicLinks): string {
+  return `${links.appUrl}/cabinet/payments?success=${encodeURIComponent("Оплата принята. Статус обновится автоматически.")}`;
+}
+
+function buildCabinetPaymentFailedUrl(links: PublicLinks): string {
+  return `${links.appUrl}/cabinet/payments?error=${encodeURIComponent("Платеж не был завершен.")}`;
+}
+
+function buildYooMoneyCheckoutUrl(links: PublicLinks, paymentId: string): string {
+  return `${links.apiUrl}/api/payments/${paymentId}/checkout`;
+}
+
+function getYooMoneyPaymentType(settings: SettingMap): "AC" | "PC" {
+  return getSettingValue(settings, "yoomoney_payment_type", "AC").toUpperCase() === "PC" ? "PC" : "AC";
+}
+
+function getEnabledPaymentMethods(settings: SettingMap) {
+  return [
+    {
+      id: "platega" as const,
+      label: "Platega",
+      description: "Быстрый checkout с автоматическим подтверждением статуса.",
+      enabled: getBooleanSetting(settings, "platega_enabled", true)
+    },
+    {
+      id: "yoomoney" as const,
+      label: "ЮMoney",
+      description: "Оплата через кошелек ЮMoney или банковскую карту.",
+      enabled: getBooleanSetting(settings, "yoomoney_enabled", true)
+    }
+  ];
+}
+
+function getPaymentProviderLabel(provider: string): string {
+  if (provider === "platega") {
+    return "Platega";
+  }
+
+  if (provider === "yoomoney") {
+    return "ЮMoney";
+  }
+
+  return "Ручная оплата";
+}
+
+function resolveRequestedPaymentProvider(
+  settings: SettingMap,
+  requestedProvider: string | null | undefined
+): PaymentProviderId {
+  const normalized = requestedProvider?.trim().toLowerCase();
+  if (normalized === "platega" && getBooleanSetting(settings, "platega_enabled", true)) {
+    return "platega";
+  }
+
+  if (normalized === "yoomoney" && getBooleanSetting(settings, "yoomoney_enabled", true)) {
+    return "yoomoney";
+  }
+
+  if (getBooleanSetting(settings, "platega_enabled", true)) {
+    return "platega";
+  }
+
+  if (getBooleanSetting(settings, "yoomoney_enabled", true)) {
+    return "yoomoney";
+  }
+
+  return "manual_mvp";
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function encodeRfc3986Component(value: string): string {
+  return encodeURIComponent(value).replace(/[!'()*]/g, (symbol) =>
+    `%${symbol.charCodeAt(0).toString(16).toUpperCase()}`
+  );
+}
+
+function buildYooMoneyNotificationSignature(
+  payload: Record<string, string>,
+  secret: string
+): string {
+  const signatureBase = Object.entries(payload)
+    .filter(([key]) => key !== "sign")
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, value]) => `${key}=${encodeRfc3986Component(value)}`)
+    .join("&");
+
+  return createHmac("sha256", secret).update(signatureBase).digest("hex");
+}
+
+function hasMatchingSignature(expected: string, actual: string): boolean {
+  const expectedBuffer = Buffer.from(expected, "utf8");
+  const actualBuffer = Buffer.from(actual, "utf8");
+  if (expectedBuffer.length !== actualBuffer.length) {
+    return false;
+  }
+
+  return timingSafeEqual(expectedBuffer, actualBuffer);
+}
+
+async function createPlategaTransaction(input: {
+  amount: number;
+  description: string;
+  links: PublicLinks;
+  paymentId: string;
+  settings: SettingMap;
+  userId: string;
+}) {
+  const merchantId = ensureConfiguredSetting(
+    input.settings,
+    "platega_merchant_id",
+    "Platega Merchant ID",
+    "merchant-id-change-me"
+  );
+  const secret = ensureConfiguredSetting(
+    input.settings,
+    "platega_secret",
+    "Platega Secret",
+    "platega-secret-change-me"
+  );
+  const apiBaseUrl = ensureConfiguredSetting(input.settings, "platega_api_base_url", "Platega API URL").replace(
+    /\/+$/,
+    ""
+  );
+  const response = await fetch(`${apiBaseUrl}/transaction/process`, {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      "X-MerchantId": merchantId,
+      "X-Secret": secret
+    },
+    body: JSON.stringify({
+      description: input.description,
+      failedUrl: buildCabinetPaymentFailedUrl(input.links),
+      metadata: {
+        callback: buildCallbackUrl(input.links, "platega"),
+        userId: input.userId
+      },
+      payload: input.paymentId,
+      paymentDetails: {
+        amount: input.amount,
+        currency: "RUB"
+      },
+      return: buildCabinetPaymentSuccessUrl(input.links)
+    })
+  });
+
+  const payload = (await response.json().catch(() => null)) as
+    | {
+        redirect?: string;
+        status?: string;
+        transactionId?: string;
+      }
+    | null;
+
+  if (!response.ok || !payload?.transactionId || !payload.redirect) {
+    throw new Error("Platega не вернула ссылку на оплату. Проверьте Merchant ID, Secret и базовый URL API.");
+  }
+
+  return {
+    paymentUrl: payload.redirect,
+    providerPaymentId: payload.transactionId
+  };
+}
+
+async function applyPaymentSuccess(input: {
+  paidAt?: Date;
+  paymentId: string;
+  providerPaymentId?: string | null;
+  providerStatus?: string | null;
+}) {
+  const settings = await getSettingMap();
+
+  const payment = await prisma.payment.findUnique({
+    where: {
+      id: input.paymentId
+    }
+  });
+
+  if (!payment) {
+    throw new Error("Платеж не найден.");
+  }
+
+  if (payment.status === "PAID") {
+    return {
+      paymentId: payment.id,
+      status: payment.status
+    };
+  }
+
+  const snapshot = (payment.payloadSnapshot ?? {}) as {
+    accessEnabled?: boolean;
+    requiresActivation?: boolean;
+    supportType?: SupportType;
+    type?: string;
+  };
+
+  await prisma.$transaction(async (tx) => {
+    await tx.payment.update({
+      where: {
+        id: payment.id
+      },
+      data: {
+        paidAt: input.paidAt ?? payment.paidAt ?? new Date(),
+        providerPaymentId: input.providerPaymentId ?? payment.providerPaymentId,
+        payloadSnapshot: {
+          ...(snapshot as Record<string, unknown>),
+          providerStatus: input.providerStatus ?? null
+        } as Prisma.InputJsonValue,
+        status: "PAID"
+      }
+    });
+
+    if (payment.orderId) {
+      await tx.routerOrder.update({
+        where: {
+          id: payment.orderId
+        },
+        data: {
+          status: "PAID"
+        }
+      });
+    }
+
+    if (!payment.routerId) {
+      return;
+    }
+
+    const router = await tx.router.findUnique({
+      where: {
+        id: payment.routerId
+      },
+      include: {
+        subscriptions: {
+          orderBy: {
+            endAt: "desc"
+          }
+        },
+        template: true
+      }
+    });
+
+    if (!router) {
+      return;
+    }
+
+    const currentSubscription =
+      router.subscriptions.find((subscription) => subscription.status === "ACTIVE") ??
+      router.subscriptions.find((subscription) => subscription.status === "PENDING_ACTIVATION") ??
+      router.subscriptions[0] ??
+      null;
+    const accessEnabled = snapshot.accessEnabled ?? router.template?.accessEnabled ?? false;
+    const supportType = snapshot.supportType ?? router.template?.supportType ?? "NONE";
+    const requiresActivation =
+      snapshot.requiresActivation ??
+      (router.configurationType === "BASIC" && (accessEnabled || supportType === "EXTENDED"));
+    const periodDays = getNumericSetting(settings, "subscription_period_days", 30);
+    const now = new Date();
+    const activeEndAt = currentSubscription?.endAt ?? null;
+    const nextEndAt = new Date(
+      (activeEndAt && activeEndAt.getTime() > now.getTime() ? activeEndAt : now).getTime() +
+        periodDays * 24 * 60 * 60 * 1000
+    );
+
+    if (currentSubscription) {
+      await tx.subscription.update({
+        where: {
+          id: currentSubscription.id
+        },
+        data: {
+          accessEnabled,
+          endAt: nextEndAt,
+          lastPaymentId: payment.id,
+          pendingActivation: requiresActivation,
+          priceSnapshot: payment.amount,
+          startAt: currentSubscription.startAt ?? now,
+          status: requiresActivation ? "PENDING_ACTIVATION" : "ACTIVE",
+          supportType
+        }
+      });
+
+      return;
+    }
+
+    await tx.subscription.create({
+      data: {
+        accessEnabled,
+        endAt: nextEndAt,
+        lastPaymentId: payment.id,
+        pendingActivation: requiresActivation,
+        priceSnapshot: payment.amount,
+        routerId: payment.routerId,
+        startAt: now,
+        status: requiresActivation ? "PENDING_ACTIVATION" : "ACTIVE",
+        supportType
+      }
+    });
+  });
+
+  await recordAdminAction({
+    action: "payment_paid",
+    entityType: "Payment",
+    entityId: payment.id,
+    afterData: {
+      paidAt: (input.paidAt ?? new Date()).toISOString(),
+      providerPaymentId: input.providerPaymentId ?? payment.providerPaymentId ?? null,
+      providerStatus: input.providerStatus ?? null,
+      status: "PAID"
+    }
+  });
+
+  return {
+    paymentId: payment.id,
+    status: "PAID"
+  };
+}
+
+async function applyPaymentFailure(input: {
+  paymentId: string;
+  providerPaymentId?: string | null;
+  providerStatus?: string | null;
+  status: "CANCELED" | "FAILED" | "REFUNDED";
+}) {
+  const payment = await prisma.payment.findUnique({
+    where: {
+      id: input.paymentId
+    }
+  });
+
+  if (!payment) {
+    throw new Error("Платеж не найден.");
+  }
+
+  if (payment.status === "PAID") {
+    return {
+      paymentId: payment.id,
+      status: payment.status
+    };
+  }
+
+  const snapshot = (payment.payloadSnapshot ?? {}) as Record<string, unknown>;
+  await prisma.payment.update({
+    where: {
+      id: payment.id
+    },
+    data: {
+      providerPaymentId: input.providerPaymentId ?? payment.providerPaymentId,
+      payloadSnapshot: {
+        ...snapshot,
+        providerStatus: input.providerStatus ?? null
+      } as Prisma.InputJsonValue,
+      status: input.status
+    }
+  });
+
+  await recordAdminAction({
+    action: "payment_status_updated",
+    entityType: "Payment",
+    entityId: payment.id,
+    afterData: {
+      providerPaymentId: input.providerPaymentId ?? payment.providerPaymentId ?? null,
+      providerStatus: input.providerStatus ?? null,
+      status: input.status
+    }
+  });
+
+  return {
+    paymentId: payment.id,
+    status: input.status
+  };
 }
 
 function getSupportLabel(supportType: SupportType): string {
@@ -468,11 +896,13 @@ export async function buildClientOverview(input: { currentSessionId?: string; us
     },
     sessions: clientSessions,
     links: {
+      apiUrl: links.apiUrl,
       appUrl: links.appUrl,
       support: links.support,
       telegramBot: links.telegramBot,
       telegramChannel: links.telegramChannel
     },
+    paymentMethods: getEnabledPaymentMethods(settings),
     stats: {
       routerCount: user.routers.length,
       activeRouterCount: user.routers.filter((router) => router.status === "ACTIVE").length,
@@ -522,6 +952,8 @@ export async function buildClientOverview(input: { currentSessionId?: string; us
       id: payment.id,
       amount: toNumber(payment.amount),
       amountLabel: formatMoney(toNumber(payment.amount)),
+      provider: payment.provider,
+      providerLabel: getPaymentProviderLabel(payment.provider),
       status: payment.status,
       routerName: payment.router?.displayName ?? null,
       createdAt: payment.createdAt.toISOString(),
@@ -560,16 +992,21 @@ export async function buildClientOverview(input: { currentSessionId?: string; us
   };
 }
 
-export async function createRouterOrderForUser(userId: string) {
+export async function createRouterOrderForUser(input: {
+  provider?: string | null;
+  userId: string;
+}) {
   const [links, settings] = await Promise.all([getPublicSettingLinks(), getSettingMap()]);
   const routerPrice = getNumericSetting(settings, "router_price", 4499);
   const setupPrice = getNumericSetting(settings, "setup_price", 4999);
   const totalPrice = routerPrice + setupPrice;
+  const provider = resolveRequestedPaymentProvider(settings, input.provider);
+  const description = "Заказ роутера FoxPoint";
 
   const result = await prisma.$transaction(async (tx) => {
     const order = await tx.routerOrder.create({
       data: {
-        userId,
+        userId: input.userId,
         routerPrice,
         setupPrice,
         totalPrice,
@@ -579,13 +1016,13 @@ export async function createRouterOrderForUser(userId: string) {
 
     const payment = await tx.payment.create({
       data: {
-        userId,
+        userId: input.userId,
         orderId: order.id,
-        provider: "manual_mvp",
+        provider,
         amount: totalPrice,
-        status: "PENDING",
-        paymentUrl: buildPaymentUrl(links.support, "order", order.id),
+        status: "CREATED",
         payloadSnapshot: {
+          description,
           type: "router_order",
           orderId: order.id
         }
@@ -598,10 +1035,53 @@ export async function createRouterOrderForUser(userId: string) {
     };
   });
 
+  let paymentUrl = buildPaymentUrl(links.support, "order", result.order.id);
+  let providerPaymentId: string | null = null;
+  let paymentStatus: PaymentStatus = "PENDING";
+  let payloadSnapshot = {
+    description,
+    orderId: result.order.id,
+    type: "router_order" as const
+  } as unknown as Prisma.InputJsonValue;
+
+  if (provider === "platega") {
+    const transaction = await createPlategaTransaction({
+      amount: totalPrice,
+      description,
+      links,
+      paymentId: result.payment.id,
+      settings,
+      userId: input.userId
+    });
+    paymentUrl = transaction.paymentUrl;
+    providerPaymentId = transaction.providerPaymentId;
+  } else if (provider === "yoomoney") {
+    paymentUrl = buildYooMoneyCheckoutUrl(links, result.payment.id);
+    payloadSnapshot = {
+      ...(payloadSnapshot as Record<string, unknown>),
+      paymentLabel: buildPaymentLabel(result.payment.id),
+      successUrl: buildCabinetPaymentSuccessUrl(links)
+    } as unknown as Prisma.InputJsonValue;
+  }
+
+  await prisma.payment.update({
+    where: {
+      id: result.payment.id
+    },
+    data: {
+      paymentUrl,
+      payloadSnapshot,
+      providerPaymentId,
+      status: paymentStatus
+    }
+  });
+
   return {
     orderId: result.order.id,
     paymentId: result.payment.id,
-    paymentUrl: result.payment.paymentUrl,
+    paymentUrl,
+    provider,
+    providerLabel: getPaymentProviderLabel(provider),
     totalPrice,
     totalPriceLabel: formatMoney(totalPrice)
   };
@@ -795,6 +1275,7 @@ export async function updateRouterTemplateForUser(input: {
 }
 
 export async function createRenewalPaymentForUser(input: {
+  provider?: string | null;
   routerId: string;
   userId: string;
 }) {
@@ -828,6 +1309,8 @@ export async function createRenewalPaymentForUser(input: {
       supportType: "NONE" as const
     };
   const amount = calculateBundlePrice(settings, activeTemplate);
+  const provider = resolveRequestedPaymentProvider(settings, input.provider);
+  const description = `Продление обслуживания: ${router.displayName}`;
 
   if (amount <= 0) {
     throw new Error("Сначала выберите пакет для продления.");
@@ -841,11 +1324,11 @@ export async function createRenewalPaymentForUser(input: {
     data: {
       userId: input.userId,
       routerId: input.routerId,
-      provider: "manual_mvp",
+      provider,
       amount,
-      status: "PENDING",
-      paymentUrl: buildPaymentUrl(links.support, "renewal", input.routerId),
+      status: "CREATED",
       payloadSnapshot: {
+        description,
         type: "subscription_renewal",
         routerId: input.routerId,
         accessEnabled: activeTemplate.accessEnabled,
@@ -855,13 +1338,280 @@ export async function createRenewalPaymentForUser(input: {
     }
   });
 
+  let paymentUrl = buildPaymentUrl(links.support, "renewal", input.routerId);
+  let providerPaymentId: string | null = null;
+  let payloadSnapshot = {
+    accessEnabled: activeTemplate.accessEnabled,
+    description,
+    requiresActivation,
+    routerId: input.routerId,
+    supportType: activeTemplate.supportType,
+    type: "subscription_renewal" as const
+  } as unknown as Prisma.InputJsonValue;
+
+  if (provider === "platega") {
+    const transaction = await createPlategaTransaction({
+      amount,
+      description,
+      links,
+      paymentId: payment.id,
+      settings,
+      userId: input.userId
+    });
+    paymentUrl = transaction.paymentUrl;
+    providerPaymentId = transaction.providerPaymentId;
+  } else if (provider === "yoomoney") {
+    paymentUrl = buildYooMoneyCheckoutUrl(links, payment.id);
+    payloadSnapshot = {
+      ...(payloadSnapshot as Record<string, unknown>),
+      paymentLabel: buildPaymentLabel(payment.id),
+      successUrl: buildCabinetPaymentSuccessUrl(links)
+    } as unknown as Prisma.InputJsonValue;
+  }
+
+  await prisma.payment.update({
+    where: {
+      id: payment.id
+    },
+    data: {
+      paymentUrl,
+      payloadSnapshot,
+      providerPaymentId,
+      status: "PENDING"
+    }
+  });
+
   return {
     paymentId: payment.id,
-    paymentUrl: payment.paymentUrl,
+    paymentUrl,
     amount,
     amountLabel: formatMoney(amount),
+    provider,
+    providerLabel: getPaymentProviderLabel(provider),
     requiresActivation
   };
+}
+
+export async function buildYooMoneyCheckoutHtml(paymentId: string) {
+  const [links, settings, payment] = await Promise.all([
+    getPublicSettingLinks(),
+    getSettingMap(),
+    prisma.payment.findUnique({
+      where: {
+        id: paymentId
+      }
+    })
+  ]);
+
+  if (!payment || payment.provider !== "yoomoney") {
+    throw new Error("Страница оплаты не найдена.");
+  }
+
+  const snapshot = (payment.payloadSnapshot ?? {}) as {
+    description?: string;
+    paymentLabel?: string;
+    successUrl?: string;
+  };
+  const receiver = ensureConfiguredSetting(
+    settings,
+    "yoomoney_receiver",
+    "ЮMoney кошелек",
+    "41001xxxxxxxxxxxx"
+  );
+  const description = snapshot.description ?? "Оплата FoxPoint";
+  const successUrl = snapshot.successUrl ?? buildCabinetPaymentSuccessUrl(links);
+  const paymentLabel = snapshot.paymentLabel ?? buildPaymentLabel(payment.id);
+  const amount = formatDecimalAmount(toNumber(payment.amount));
+  const paymentType = getYooMoneyPaymentType(settings);
+
+  return `<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Переход к оплате</title>
+    <style>
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: #090713;
+        color: #fff8ef;
+        font: 16px/1.5 system-ui, sans-serif;
+      }
+      .card {
+        width: min(100% - 24px, 440px);
+        padding: 28px;
+        border: 1px solid rgba(170, 112, 255, 0.26);
+        border-radius: 24px;
+        background: linear-gradient(180deg, rgba(18, 14, 32, 0.98), rgba(10, 8, 18, 0.96));
+        box-shadow: 0 30px 64px rgba(0, 0, 0, 0.34);
+      }
+      h1 {
+        margin: 0 0 10px;
+        font-size: 28px;
+        line-height: 1.05;
+      }
+      p {
+        margin: 0 0 18px;
+        color: rgba(235, 226, 248, 0.78);
+      }
+      button {
+        width: 100%;
+        min-height: 52px;
+        border: 0;
+        border-radius: 14px;
+        background: linear-gradient(135deg, #ff7a1d, #ff8f26 52%, #ff6220);
+        color: #fff8ef;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <h1>Переводим на оплату</h1>
+      <p>Если страница провайдера не открылась автоматически, нажмите кнопку ниже.</p>
+      <form id="checkout-form" method="POST" action="https://yoomoney.ru/quickpay/confirm">
+        <input type="hidden" name="receiver" value="${escapeHtml(receiver)}" />
+        <input type="hidden" name="quickpay-form" value="button" />
+        <input type="hidden" name="paymentType" value="${escapeHtml(paymentType)}" />
+        <input type="hidden" name="sum" value="${escapeHtml(amount)}" />
+        <input type="hidden" name="label" value="${escapeHtml(paymentLabel)}" />
+        <input type="hidden" name="targets" value="${escapeHtml(description)}" />
+        <input type="hidden" name="successURL" value="${escapeHtml(successUrl)}" />
+        <button type="submit">Открыть ЮMoney</button>
+      </form>
+    </main>
+    <script>document.getElementById("checkout-form")?.submit();</script>
+  </body>
+</html>`;
+}
+
+export async function handlePlategaCallback(input: {
+  amount: number;
+  merchantIdHeader?: string | null;
+  providerPaymentId: string;
+  secretHeader?: string | null;
+  status: string;
+}) {
+  const settings = await getSettingMap();
+  const expectedMerchantId = ensureConfiguredSetting(
+    settings,
+    "platega_merchant_id",
+    "Platega Merchant ID",
+    "merchant-id-change-me"
+  );
+  const expectedSecret = ensureConfiguredSetting(
+    settings,
+    "platega_secret",
+    "Platega Secret",
+    "platega-secret-change-me"
+  );
+
+  if (input.merchantIdHeader !== expectedMerchantId || input.secretHeader !== expectedSecret) {
+    throw new Error("Некорректная подпись callback Platega.");
+  }
+
+  const payment = await prisma.payment.findUnique({
+    where: {
+      providerPaymentId: input.providerPaymentId
+    }
+  });
+
+  if (!payment) {
+    throw new Error("Платеж Platega не найден.");
+  }
+
+  if (Math.abs(toNumber(payment.amount) - input.amount) > 0.01) {
+    throw new Error("Сумма callback Platega не совпадает с суммой платежа.");
+  }
+
+  const normalizedStatus = input.status.trim().toUpperCase();
+  if (normalizedStatus === "CONFIRMED") {
+    return applyPaymentSuccess({
+      paymentId: payment.id,
+      providerPaymentId: input.providerPaymentId,
+      providerStatus: normalizedStatus
+    });
+  }
+
+  if (normalizedStatus === "CHARGEBACKED") {
+    return applyPaymentFailure({
+      paymentId: payment.id,
+      providerPaymentId: input.providerPaymentId,
+      providerStatus: normalizedStatus,
+      status: "REFUNDED"
+    });
+  }
+
+  if (normalizedStatus === "CANCELED") {
+    return applyPaymentFailure({
+      paymentId: payment.id,
+      providerPaymentId: input.providerPaymentId,
+      providerStatus: normalizedStatus,
+      status: "CANCELED"
+    });
+  }
+
+  return {
+    paymentId: payment.id,
+    status: payment.status
+  };
+}
+
+export async function handleYooMoneyCallback(payload: Record<string, string>) {
+  const settings = await getSettingMap();
+  const secret = ensureConfiguredSetting(
+    settings,
+    "yoomoney_notification_secret",
+    "ЮMoney секрет уведомлений",
+    "yoomoney-secret-change-me"
+  );
+  const receivedSignature = payload.sign?.trim().toLowerCase();
+  if (!receivedSignature) {
+    throw new Error("В callback ЮMoney отсутствует подпись.");
+  }
+
+  const expectedSignature = buildYooMoneyNotificationSignature(payload, secret);
+  if (!hasMatchingSignature(expectedSignature, receivedSignature)) {
+    throw new Error("Некорректная подпись callback ЮMoney.");
+  }
+
+  const paymentId = extractPaymentIdFromLabel(payload.label);
+  if (!paymentId) {
+    throw new Error("В callback ЮMoney отсутствует корректная метка платежа.");
+  }
+
+  const payment = await prisma.payment.findUnique({
+    where: {
+      id: paymentId
+    }
+  });
+
+  if (!payment) {
+    throw new Error("Платеж ЮMoney не найден.");
+  }
+
+  const paidAmount = Number(payload.withdraw_amount ?? payload.amount ?? "0");
+  if (!Number.isFinite(paidAmount) || Math.abs(toNumber(payment.amount) - paidAmount) > 0.01) {
+    throw new Error("Сумма callback ЮMoney не совпадает с суммой платежа.");
+  }
+
+  if (payload.unaccepted?.trim().toLowerCase() === "true") {
+    return {
+      paymentId: payment.id,
+      status: payment.status
+    };
+  }
+
+  return applyPaymentSuccess({
+    paymentId: payment.id,
+    providerPaymentId: payload.operation_id ?? payment.providerPaymentId ?? null,
+    providerStatus: payload.notification_type ?? "p2p-incoming"
+  });
 }
 
 export async function buildAdminOverview() {

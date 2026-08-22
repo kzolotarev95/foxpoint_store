@@ -11,7 +11,7 @@ type AdminSettingRecord = {
   defaultValue: string;
   description: string;
   group: string;
-  input: "number" | "password" | "text" | "url";
+  input: "boolean" | "number" | "password" | "text" | "url";
   key: string;
   label: string;
   public: boolean;
@@ -187,6 +187,9 @@ async function saveSettingsAction(formData: FormData) {
   revalidatePath("/");
   revalidatePath("/admin");
   revalidatePath("/login");
+  revalidatePath("/cabinet");
+  revalidatePath("/cabinet/payments");
+  revalidatePath("/cabinet/routers");
   redirect("/admin?success=Настройки%20сохранены.");
 }
 
@@ -509,21 +512,31 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                 {settingsByGroup[groupName].map((setting) => (
                   <label key={setting.key} className="fieldStack">
                     <span className="fieldLabel">{setting.label}</span>
-                    <input
-                      className="textInput"
-                      defaultValue={setting.value}
-                      inputMode={getFieldInputMode(setting.input)}
-                      name={setting.key}
-                      type={
-                        setting.input === "number"
-                          ? "number"
-                          : setting.input === "url"
-                            ? "url"
-                            : setting.input === "password"
-                              ? "password"
-                              : "text"
-                      }
-                    />
+                    {setting.input === "boolean" ? (
+                      <>
+                        <input name={setting.key} type="hidden" value="false" />
+                        <label className="checkboxRow">
+                          <input defaultChecked={setting.value === "true"} name={setting.key} type="checkbox" value="true" />
+                          <span>{setting.value === "true" ? "Включено" : "Выключено"}</span>
+                        </label>
+                      </>
+                    ) : (
+                      <input
+                        className="textInput"
+                        defaultValue={setting.value}
+                        inputMode={getFieldInputMode(setting.input)}
+                        name={setting.key}
+                        type={
+                          setting.input === "number"
+                            ? "number"
+                            : setting.input === "url"
+                              ? "url"
+                              : setting.input === "password"
+                                ? "password"
+                                : "text"
+                        }
+                      />
+                    )}
                     <span className="helperText">
                       {setting.description}
                       {setting.public ? " Это значение используется на публичных страницах." : ""}

@@ -110,6 +110,64 @@ function getNearestSubscriptionEnd(routers: RouterOverviewItem[]): string | null
   return dates[0] ?? null;
 }
 
+function getPrimaryPaymentRouter(routers: RouterOverviewItem[]): RouterOverviewItem | null {
+  const sorted = [...routers].sort((left, right) => {
+    const leftDate = left.currentSubscription?.endAt ?? left.trial?.endAt ?? "9999-12-31T00:00:00.000Z";
+    const rightDate = right.currentSubscription?.endAt ?? right.trial?.endAt ?? "9999-12-31T00:00:00.000Z";
+    return new Date(leftDate).getTime() - new Date(rightDate).getTime();
+  });
+
+  return sorted[0] ?? null;
+}
+
+function formatRemainingDays(days: number | null | undefined): string {
+  if (days == null) {
+    return "Срок не определен";
+  }
+
+  if (days <= 0) {
+    return "Требуется продление";
+  }
+
+  if (days === 1) {
+    return "Остался 1 день";
+  }
+
+  const lastDigit = days % 10;
+  const lastTwoDigits = days % 100;
+  const suffix =
+    lastDigit === 1 && lastTwoDigits !== 11
+      ? "день"
+      : lastDigit >= 2 && lastDigit <= 4 && (lastTwoDigits < 12 || lastTwoDigits > 14)
+        ? "дня"
+        : "дней";
+
+  return `Осталось ${days} ${suffix}`;
+}
+
+function getPaymentStatusMeta(status: string): { label: string; tone: "paid" | "pending" | "failed" } {
+  const normalized = status.toUpperCase();
+
+  if (normalized === "PAID") {
+    return {
+      label: "Оплачено",
+      tone: "paid"
+    };
+  }
+
+  if (normalized === "PENDING" || normalized === "CREATED") {
+    return {
+      label: "Ожидает оплаты",
+      tone: "pending"
+    };
+  }
+
+  return {
+    label: normalized === "REFUNDED" ? "Возврат" : normalized === "CANCELED" ? "Отменено" : "Ошибка",
+    tone: "failed"
+  };
+}
+
 function formatSupportTicketCreatedAt(value: string): string {
   return new Intl.DateTimeFormat("ru-RU", {
     day: "numeric",
@@ -703,6 +761,15 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
     ...session,
     ...getProfileSessionMeta(session)
   }));
+  const primaryPaymentRouter = getPrimaryPaymentRouter(overview.routers);
+  const paymentDeadline = primaryPaymentRouter?.currentSubscription?.endAt ?? primaryPaymentRouter?.trial?.endAt ?? null;
+  const paymentDaysRemaining =
+    primaryPaymentRouter?.currentSubscription?.daysRemaining ?? primaryPaymentRouter?.trial?.daysRemaining ?? null;
+  const paymentCurrentPriceLabel =
+    primaryPaymentRouter?.currentSubscription?.priceLabel ??
+    primaryPaymentRouter?.savedTemplate.nextPriceLabel ??
+    overview.catalog.recommendedPriceLabel;
+  const enabledPaymentMethods = overview.paymentMethods.filter((method) => method.enabled);
 
   return (
     <main className="shell portalPage clientDashboardPage clientRoutersExperience">
@@ -1369,7 +1436,156 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
       </section>
       ) : null}
 
-      {isOverviewTab || isSupportTab || isPaymentsTab ? (
+      {isPaymentsTab ? (
+      <section id="payments" className="clientPaymentsPage">
+        <div className="clientPaymentsIntro">
+          <h1>Платежи и продление</h1>
+          <p>Следите за сроком обслуживания и выбирайте удобный способ оплаты без переписки и ручных реквизитов.</p>
+        </div>
+
+        <div className="clientPaymentsHeroGrid">
+          <article className="panel clientPaymentsServiceCard">
+            <div className="clientPaymentsServiceBadge">
+              <ShieldIcon />
+            </div>
+            <div className="clientPaymentsServiceBody">
+              <span className="pill">Текущее обслуживание</span>
+              <h2>
+                {primaryPaymentRouter
+                  ? `${primaryPaymentRouter.displayName}${primaryPaymentRouter.model ? ` - ${primaryPaymentRouter.model}` : ""}`
+                  : "Роутер еще не подключен"}
+              </h2>
+              <p className="clientPaymentsStatusLine">
+                {paymentDeadline ? `Активно до ${formatDate(paymentDeadline)}` : "Платный пакет пока не активирован"}
+              </p>
+              <p className="clientPaymentsMuted">{formatRemainingDays(paymentDaysRemaining)}</p>
+
+              <div className="clientPaymentsMethodGrid">
+                {enabledPaymentMethods.length ? (
+                  enabledPaymentMethods.map((method, index) =>
+                    primaryPaymentRouter ? (
+                      <form key={method.id} action={renewRouterAction}>
+                        <input name="provider" type="hidden" value={method.id} />
+                        <input name="returnTo" type="hidden" value="/cabinet/payments" />
+                        <input name="routerId" type="hidden" value={primaryPaymentRouter.id} />
+                        <button
+                          className={index === 0 ? "clientPaymentsMethodButton isPrimary" : "clientPaymentsMethodButton isSecondary"}
+                          type="submit"
+                        >
+                          Продлить через {method.label}
+                        </button>
+                      </form>
+                    ) : (
+                      <form key={method.id} action={createRouterOrderAction}>
+                        <input name="provider" type="hidden" value={method.id} />
+                        <input name="returnTo" type="hidden" value="/cabinet/payments" />
+                        <button
+                          className={index === 0 ? "clientPaymentsMethodButton isPrimary" : "clientPaymentsMethodButton isSecondary"}
+                          type="submit"
+                        >
+                          Заказать роутер через {method.label}
+                        </button>
+                      </form>
+                    )
+                  )
+                ) : (
+                  <Link className="clientPaymentsMethodButton isSecondary" href={overview.links.support} target="_blank">
+                    Написать в поддержку
+                  </Link>
+                )}
+              </div>
+            </div>
+          </article>
+
+          <article className="panel clientPaymentsTariffCard">
+            <div className="clientPaymentsTariffIcon">
+              <PaymentIcon />
+            </div>
+            <span className="clientPaymentsLabel">Тариф обслуживания</span>
+            <strong>{paymentCurrentPriceLabel}</strong>
+            <span className="clientPaymentsTariffPeriod">за {overview.catalog.periodDays} дней</span>
+            <div className="clientPaymentsTariffDivider" />
+            <div className="clientPaymentsTariffFeature">
+              <CheckCircleIcon />
+              <div>
+                <b>{primaryPaymentRouter?.currentPackage ?? overview.catalog.recommendedPackage}</b>
+                <p>
+                  {primaryPaymentRouter
+                    ? "Продление привязано к выбранному роутеру и обновляет его текущий пакет."
+                    : "После заказа роутера оплата и продление будут доступны здесь автоматически."}
+                </p>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <div className="clientPaymentsContentGrid">
+          <article className="panel clientPaymentsHistoryCard">
+            <div className="clientPaymentsCardHeader">
+              <div>
+                <span className="pill">История платежей</span>
+                <h2>Последние оплаты</h2>
+              </div>
+            </div>
+
+            {overview.payments.length ? (
+              <div className="clientPaymentsHistoryTable">
+                <div className="clientPaymentsHistoryHead">
+                  <span>Дата</span>
+                  <span>Описание</span>
+                  <span>Способ</span>
+                  <span>Сумма</span>
+                  <span>Статус</span>
+                </div>
+                {overview.payments.map((payment) => {
+                  const statusMeta = getPaymentStatusMeta(payment.status);
+
+                  return (
+                    <div key={payment.id} className="clientPaymentsHistoryRow">
+                      <span>{formatDate(payment.paidAt ?? payment.createdAt)}</span>
+                      <span>{payment.routerName ?? "Заказ роутера"}</span>
+                      <span>{payment.providerLabel}</span>
+                      <strong>{payment.amountLabel}</strong>
+                      <span className={`clientPaymentsStatusBadge is-${statusMeta.tone}`}>{statusMeta.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="clientPaymentsEmptyState">
+                Оплат пока нет. Как только вы оплатите продление или заказ, история появится здесь.
+              </div>
+            )}
+          </article>
+
+          <article className="panel clientPaymentsSupportCard">
+            <span className="pill">Другой способ</span>
+            <h2>Нужен другой способ оплаты?</h2>
+            <p>Если нужен корпоративный счет, нестандартная сумма или помощь с оплатой, напишите нам в поддержку.</p>
+
+            <div className="clientPaymentsSupportList">
+              {enabledPaymentMethods.map((method) => (
+                <div key={method.id} className="clientPaymentsSupportItem">
+                  <strong>{method.label}</strong>
+                  <span>{method.description}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="clientPaymentsSupportActions">
+              <Link className="clientPaymentsMethodButton isSecondary" href={overview.links.support} target="_blank">
+                Написать в поддержку
+              </Link>
+              <Link className="clientPaymentsMethodButton isGhost" href={getCabinetTabHref("routers")}>
+                Открыть мои роутеры
+              </Link>
+            </div>
+          </article>
+        </div>
+      </section>
+      ) : null}
+
+      {isOverviewTab || isSupportTab ? (
       <section className="clientDashboardLowerGrid">
         {isOverviewTab ? (
         <article id="order" className="panel sectionPanel clientUtilityCard">
@@ -1450,7 +1666,7 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
         </article>
         ) : null}
 
-        {isOverviewTab || isPaymentsTab ? (
+        {isOverviewTab ? (
         <article id="payments" className="panel sectionPanel clientUtilityCard">
           <span className="pill">Платежи</span>
           <h2 className="sectionTitle">Последние оплаты</h2>
@@ -1458,7 +1674,7 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
             {overview.payments.length ? (
               overview.payments.map((payment) => (
                 <li key={payment.id}>
-                  {payment.amountLabel} · {payment.status} · {payment.routerName ?? "Заказ роутера"} ·{" "}
+                  {payment.amountLabel} · {payment.providerLabel} · {payment.status} · {payment.routerName ?? "Заказ роутера"} ·{" "}
                   {formatDate(payment.createdAt)}
                 </li>
               ))

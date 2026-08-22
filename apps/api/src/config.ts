@@ -4,6 +4,7 @@ const configSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
   API_HOST: z.string().default("0.0.0.0"),
   API_PORT: z.coerce.number().int().positive().default(4000),
+  API_PUBLIC_URL: z.string().url().default("http://127.0.0.1:4000"),
   NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
   TG_BOT_URL: z.string().url().default("https://t.me/example_bot"),
   TG_BOT_TOKEN: z.string().min(1).default("telegram-bot-token-change-me"),

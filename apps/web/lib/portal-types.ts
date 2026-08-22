@@ -26,11 +26,18 @@ export type ClientOverview = {
     ipAddress: string | null;
   }>;
   links: {
+    apiUrl: string;
     appUrl: string;
     support: string;
     telegramBot: string;
     telegramChannel: string;
   };
+  paymentMethods: Array<{
+    id: "platega" | "yoomoney";
+    label: string;
+    description: string;
+    enabled: boolean;
+  }>;
   stats: {
     routerCount: number;
     activeRouterCount: number;
@@ -123,6 +130,8 @@ export type ClientOverview = {
     id: string;
     amount: number;
     amountLabel: string;
+    provider: string;
+    providerLabel: string;
     status: string;
     routerName: string | null;
     createdAt: string;
@@ -171,7 +180,7 @@ export type AdminOverview = {
     defaultValue: string;
     description: string;
     group: string;
-    input: "number" | "password" | "text" | "url";
+    input: "boolean" | "number" | "password" | "text" | "url";
     key: string;
     label: string;
     public: boolean;

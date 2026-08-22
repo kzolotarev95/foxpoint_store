@@ -20,11 +20,14 @@ import {
   buildAdminOverview,
   buildClientOverview,
   buildSiteSnapshot,
+  buildYooMoneyCheckoutHtml,
   createProfileRequestForUser,
   createAdminRouterAssignment,
   createRenewalPaymentForUser,
   createRouterOrderForUser,
   createSupportTicketForUser,
+  handlePlategaCallback,
+  handleYooMoneyCallback,
   attachEmailForUser,
   saveLocalCredentialsForUser,
   updateAdminOrder,
@@ -78,6 +81,14 @@ await app.register(cors, {
 });
 
 await app.register(sensible);
+
+app.addContentTypeParser(
+  /^application\/x-www-form-urlencoded(?:\s*;.*)?$/i,
+  { parseAs: "string" },
+  (_request, body, done) => {
+    done(null, Object.fromEntries(new URLSearchParams(body as string).entries()));
+  }
+);
 
 app.get("/health", async () => {
   let database = "not_checked";
@@ -348,7 +359,19 @@ app.post("/api/orders", async (request, reply) => {
     };
   }
 
-  return createRouterOrderForUser(userId);
+  const body = z
+    .object({
+      provider: z.string().trim().min(1).optional()
+    })
+    .catch({
+      provider: undefined
+    })
+    .parse(request.body ?? {});
+
+  return createRouterOrderForUser({
+    userId,
+    provider: body.provider
+  });
 });
 
 app.post("/api/me/logout", async (request, reply) => {
@@ -464,16 +487,83 @@ app.post("/api/routers/:routerId/renew", async (request, reply) => {
   }
 
   const params = z.object({ routerId: z.string().min(1) }).parse(request.params);
+  const body = z
+    .object({
+      provider: z.string().trim().min(1).optional()
+    })
+    .catch({
+      provider: undefined
+    })
+    .parse(request.body ?? {});
 
   try {
     return await createRenewalPaymentForUser({
       userId,
-      routerId: params.routerId
+      routerId: params.routerId,
+      provider: body.provider
     });
   } catch (error) {
     reply.code(400);
     return {
       error: error instanceof Error ? error.message : "Не удалось создать продление."
+    };
+  }
+});
+
+app.get("/api/payments/:paymentId/checkout", async (request, reply) => {
+  const params = z.object({ paymentId: z.string().trim().min(1) }).parse(request.params);
+
+  try {
+    const html = await buildYooMoneyCheckoutHtml(params.paymentId);
+    reply.type("text/html; charset=utf-8");
+    return html;
+  } catch (error) {
+    reply.code(404);
+    reply.type("text/plain; charset=utf-8");
+    return error instanceof Error ? error.message : "Страница оплаты не найдена.";
+  }
+});
+
+app.post("/api/payments/platega/callback", async (request, reply) => {
+  const body = z
+    .object({
+      amount: z.coerce.number(),
+      id: z.string().trim().min(1),
+      status: z.string().trim().min(1)
+    })
+    .parse(request.body);
+
+  try {
+    await handlePlategaCallback({
+      amount: body.amount,
+      merchantIdHeader: request.headers["x-merchantid"] as string | undefined,
+      providerPaymentId: body.id,
+      secretHeader: request.headers["x-secret"] as string | undefined,
+      status: body.status
+    });
+    return {
+      ok: true
+    };
+  } catch (error) {
+    reply.code(400);
+    return {
+      error: error instanceof Error ? error.message : "Platega callback rejected."
+    };
+  }
+});
+
+app.post("/api/payments/yoomoney/callback", async (request, reply) => {
+  const body = z.record(z.string(), z.string()).parse(request.body);
+
+  try {
+    await handleYooMoneyCallback(body);
+    return {
+      ok: true
+    };
+  } catch (error) {
+    reply.code(400);
+    return {
+      error: error instanceof Error ? error.message : "YooMoney callback rejected."
     };
   }
 });

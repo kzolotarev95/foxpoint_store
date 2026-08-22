@@ -124,8 +124,15 @@ export async function revokeClientSessionAction(formData: FormData) {
 
 export async function createRouterOrderAction(formData: FormData) {
   const returnTo = getReturnToPath(formData, "/cabinet");
+  const provider = String(formData.get("provider") ?? "").trim();
   const payload = await fetchClientApi<{ paymentUrl: string; totalPriceLabel: string }>("/api/orders", {
-    method: "POST"
+    method: "POST",
+    headers: {
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({
+      provider: provider || undefined
+    })
   });
 
   redirect(
@@ -283,6 +290,7 @@ export async function saveRouterTemplateAction(formData: FormData) {
 export async function renewRouterAction(formData: FormData) {
   const returnTo = getReturnToPath(formData, "/cabinet/routers");
   const routerId = String(formData.get("routerId") ?? "").trim();
+  const provider = String(formData.get("provider") ?? "").trim();
 
   try {
     const payload = await fetchClientApi<{
@@ -290,7 +298,13 @@ export async function renewRouterAction(formData: FormData) {
       paymentUrl: string;
       requiresActivation: boolean;
     }>(`/api/routers/${routerId}/renew`, {
-      method: "POST"
+      method: "POST",
+      headers: {
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        provider: provider || undefined
+      })
     });
     const activationMessage = payload.requiresActivation
       ? " После оплаты заявка уйдет на ручную перенастройку."

@@ -1,7 +1,7 @@
 import { config } from "./config.js";
 import { prisma } from "./prisma.js";
 
-export type AdminSettingInput = "number" | "password" | "text" | "url";
+export type AdminSettingInput = "boolean" | "number" | "password" | "text" | "url";
 
 export type AdminSettingDefinition = {
   defaultValue: string;
@@ -65,6 +65,87 @@ function normalizeBaseUrl(value: string, fallback: string): string {
 }
 
 const adminSettingDefinitions: AdminSettingDefinition[] = [
+  {
+    key: "api_public_url",
+    label: "Публичный URL API",
+    description: "Публичный адрес backend. Используется для checkout-страниц и callback URL платежных систем.",
+    group: "Платежи",
+    input: "url",
+    defaultValue: config.API_PUBLIC_URL,
+    public: false
+  },
+  {
+    key: "platega_enabled",
+    label: "Platega включена",
+    description: "Показывать оплату через Platega в личном кабинете и при заказе роутера.",
+    group: "Платежи",
+    input: "boolean",
+    defaultValue: "true",
+    public: false
+  },
+  {
+    key: "platega_api_base_url",
+    label: "Platega API URL",
+    description: "Базовый URL Platega API. По документации обычно используется https://app.platega.io",
+    group: "Платежи",
+    input: "url",
+    defaultValue: "https://app.platega.io",
+    public: false
+  },
+  {
+    key: "platega_merchant_id",
+    label: "Platega Merchant ID",
+    description: "Идентификатор магазина из кабинета Platega.",
+    group: "Платежи",
+    input: "text",
+    defaultValue: "merchant-id-change-me",
+    public: false
+  },
+  {
+    key: "platega_secret",
+    label: "Platega Secret",
+    description: "Секретный ключ Platega для создания платежей и проверки callback.",
+    group: "Платежи",
+    input: "password",
+    defaultValue: "platega-secret-change-me",
+    public: false
+  },
+  {
+    key: "yoomoney_enabled",
+    label: "ЮMoney включена",
+    description: "Показывать оплату через ЮMoney в личном кабинете и при заказе роутера.",
+    group: "Платежи",
+    input: "boolean",
+    defaultValue: "true",
+    public: false
+  },
+  {
+    key: "yoomoney_receiver",
+    label: "ЮMoney кошелек",
+    description: "Номер кошелька ЮMoney, на который будут приходить оплаты.",
+    group: "Платежи",
+    input: "text",
+    defaultValue: "41001xxxxxxxxxxxx",
+    public: false
+  },
+  {
+    key: "yoomoney_payment_type",
+    label: "ЮMoney тип оплаты",
+    description: "AC - оплата банковской картой, PC - из кошелька ЮMoney.",
+    group: "Платежи",
+    input: "text",
+    defaultValue: "AC",
+    public: false
+  },
+  {
+    key: "yoomoney_notification_secret",
+    label: "ЮMoney секрет уведомлений",
+    description: "Секретный ключ из настроек HTTP-уведомлений ЮMoney.",
+    group: "Платежи",
+    input: "password",
+    defaultValue: "yoomoney-secret-change-me",
+    public: false
+  },
   {
     key: "router_price",
     label: "Цена роутера",
@@ -222,6 +303,10 @@ const adminSettingDefinitions: AdminSettingDefinition[] = [
 
 function normalizeValue(definition: AdminSettingDefinition, rawValue: string | undefined): string {
   const nextValue = (rawValue ?? "").trim();
+  if (definition.input === "boolean") {
+    return nextValue === "true" || nextValue === "1" || nextValue === "on" ? "true" : "false";
+  }
+
   if (!nextValue) {
     throw new Error(`Setting "${definition.label}" is required.`);
   }
@@ -313,6 +398,7 @@ export async function getAdminSettingValue(key: string, fallback: string): Promi
 }
 
 export async function getPublicSettingLinks(): Promise<{
+  apiUrl: string;
   appUrl: string;
   support: string;
   telegramBot: string;
@@ -322,6 +408,7 @@ export async function getPublicSettingLinks(): Promise<{
   const valueByKey = new Map(settings.map((setting) => [setting.key, setting.value]));
 
   return {
+    apiUrl: normalizeBaseUrl(valueByKey.get("api_public_url") ?? "", config.API_PUBLIC_URL),
     appUrl: normalizeBaseUrl(valueByKey.get("app_url") ?? "", config.NEXT_PUBLIC_APP_URL),
     telegramBot: normalizeTelegramUrl(valueByKey.get("tg_bot_url") ?? "", config.TG_BOT_URL),
     telegramChannel: normalizeTelegramUrl(
