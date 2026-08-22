@@ -186,8 +186,8 @@ function getSupportTicketDisplayCode(id: string): string {
 }
 
 function getSupportTicketTitle(ticket: SupportTicketItem): string {
-  const description = ticket.description.trim();
-  const category = ticket.category.trim();
+  const description = String(ticket.description ?? "").trim();
+  const category = String(ticket.category ?? "").trim();
 
   if (description && description.length <= 42) {
     return description;
@@ -201,7 +201,7 @@ function getSupportTicketTitle(ticket: SupportTicketItem): string {
 }
 
 function getSupportTicketStatusMeta(status: string): { label: string; tone: "open" | "progress" | "resolved" | "waiting" } {
-  const normalized = status.toUpperCase();
+  const normalized = String(status ?? "").toUpperCase();
 
   if (normalized === "RESOLVED" || normalized === "CLOSED") {
     return {
