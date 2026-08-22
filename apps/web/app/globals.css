@@ -784,18 +784,6 @@ textarea {
   padding: 1rem 0 0.3rem;
 }
 
-.profileCabinetPage::before {
-  content: "";
-  position: absolute;
-  inset: -1.5rem -5vw auto;
-  height: 16rem;
-  background:
-    radial-gradient(circle at 18% 18%, rgba(150, 74, 255, 0.18), transparent 28%),
-    radial-gradient(circle at 82% 0%, rgba(255, 128, 48, 0.12), transparent 24%);
-  pointer-events: none;
-  z-index: 0;
-}
-
 .profileCabinetPage::after {
   content: "";
   position: absolute;
