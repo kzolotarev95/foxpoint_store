@@ -166,6 +166,22 @@ export async function revokeAllClientSessionsAction(formData: FormData) {
   redirect(`${returnTo}?success=Все%20сессии%20завершены.`);
 }
 
+export async function clearClientNotificationsAction(formData: FormData) {
+  const returnTo = getReturnToPath(formData, "/cabinet/profile");
+
+  try {
+    await fetchClientApi("/api/me/notifications/clear", {
+      method: "POST"
+    });
+  } catch (error) {
+    redirect(
+      `${returnTo}?error=${encodeMessage(error instanceof Error ? error.message : "Не удалось очистить уведомления.")}`
+    );
+  }
+
+  redirect(`${returnTo}?success=Уведомления%20очищены.`);
+}
+
 export async function createRouterOrderAction(formData: FormData) {
   const returnTo = getReturnToPath(formData, "/cabinet");
   const provider = String(formData.get("provider") ?? "").trim();

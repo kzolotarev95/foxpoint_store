@@ -1111,6 +1111,22 @@ export async function createRouterOrderForUser(input: {
   };
 }
 
+export async function markClientNotificationsRead(input: { userId: string }) {
+  const result = await prisma.notification.updateMany({
+    where: {
+      userId: input.userId,
+      readAt: null
+    },
+    data: {
+      readAt: new Date()
+    }
+  });
+
+  return {
+    updatedCount: result.count
+  };
+}
+
 export async function createSupportTicketForUser(input: {
   category: string;
   description: string;

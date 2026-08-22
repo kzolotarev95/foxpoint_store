@@ -5,6 +5,7 @@ import { PortalHeader } from "../../components/portal-header";
 import { TelegramLoginWidget } from "../../components/telegram-login-widget";
 import {
   attachProfileEmailAction,
+  clearClientNotificationsAction,
   createRouterOrderAction,
   createSupportTicketAction,
   logoutClientAction,
@@ -535,7 +536,7 @@ function buildNotificationFeed(overview: ClientOverview, sessions: ProfileSessio
       href: "/cabinet/payments",
       icon: <PaymentIcon />,
       id: `payment-${payment.id}`,
-      isUnread: paymentMeta.tone === "pending",
+      isUnread: false,
       meta: formatRelativeDateTime(payment.paidAt ?? payment.createdAt),
       title: `Платеж: ${paymentMeta.label}`
     };
@@ -550,7 +551,7 @@ function buildNotificationFeed(overview: ClientOverview, sessions: ProfileSessio
       href: "/cabinet/support",
       icon: <SupportIcon />,
       id: `ticket-${ticket.id}`,
-      isUnread: ticketMeta.tone !== "resolved",
+      isUnread: false,
       meta: formatRelativeDateTime(ticket.updatedAt),
       title: `Поддержка #${getSupportTicketDisplayCode(ticket.id)}`
     };
@@ -562,7 +563,7 @@ function buildNotificationFeed(overview: ClientOverview, sessions: ProfileSessio
     href: "/cabinet#order",
     icon: <CartIcon />,
     id: `order-${order.id}`,
-    isUnread: !order.receivedAt && String(order.status ?? "").toUpperCase() !== "COMPLETED",
+    isUnread: false,
     meta: formatRelativeDateTime(order.receivedAt ?? order.createdAt),
     title: "Заказ роутера"
   }));
@@ -1055,10 +1056,7 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
     }))
   );
   const notificationFeed = buildNotificationFeed(overview, profileSessions);
-  const unreadNotificationCount = Math.max(
-    overview.stats.unreadNotificationCount,
-    notificationFeed.filter((item) => item.isUnread).length
-  );
+  const unreadNotificationCount = overview.stats.unreadNotificationCount;
   const primaryPaymentRouter = getPrimaryPaymentRouter(overview.routers);
   const paymentDeadline = primaryPaymentRouter?.currentSubscription?.endAt ?? primaryPaymentRouter?.trial?.endAt ?? null;
   const paymentDaysRemaining =
@@ -1119,14 +1117,12 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                     </div>
                   )}
                 </div>
-                <div className="portalNotificationFooter">
-                  <Link className="portalNotificationLink" href="/cabinet/profile">
-                    Профиль и безопасность
-                  </Link>
-                  <Link className="portalNotificationLink" href="/cabinet/support">
-                    Поддержка
-                  </Link>
-                </div>
+                <form action={clearClientNotificationsAction} className="portalNotificationFooter">
+                  <input name="returnTo" type="hidden" value="/cabinet/profile" />
+                  <button className="secondaryButton portalGhostButton portalNotificationClear" type="submit">
+                    Очистить уведомления
+                  </button>
+                </form>
               </div>
             </details>
             <span className="portalUserChip portalUserChipRich">
