@@ -2,6 +2,7 @@ import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import type { ReactNode } from "react";
 import { getApiBaseUrl } from "../../lib/api";
 import { getAdminCookieName, readAdminSession } from "../../lib/admin-auth";
 import type { AdminOverview } from "../../lib/portal-types";
@@ -79,6 +80,146 @@ function formatDateTimeInputValue(value: string | null | undefined): string {
   const offset = date.getTimezoneOffset();
   const normalized = new Date(date.getTime() - offset * 60_000);
   return normalized.toISOString().slice(0, 16);
+}
+
+function AdminNavIcon({ children }: { children: ReactNode }) {
+  return (
+    <span className="adminSideNavIcon" aria-hidden="true">
+      {children}
+    </span>
+  );
+}
+
+function DashboardIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 11.5 12 5l8 6.5V20a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1z" fill="none" stroke="currentColor" strokeWidth="1.8" />
+    </svg>
+  );
+}
+
+function PlugIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M9 3.8v5m6-5v5M8 8.8h8" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+      <path d="M7 9.2v2.2a5 5 0 0 0 10 0V9.2" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M10 14.5v3.3M14 14.5v3.3" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+    </svg>
+  );
+}
+
+function UsersIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="9" cy="8" r="3.2" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M3.8 19a5.2 5.2 0 0 1 10.4 0" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+      <circle cx="17" cy="10" r="2.3" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M14.6 19a4.4 4.4 0 0 1 7.2 0" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+    </svg>
+  );
+}
+
+function RouterRackIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="5" y="5" width="14" height="5" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <rect x="5" y="14" width="14" height="5" rx="1.5" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M8 7.5h.01M8 16.5h.01M11 7.5h4M11 16.5h4" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+    </svg>
+  );
+}
+
+function CalendarIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="4" y="5.5" width="16" height="14" rx="2" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M7 3.8v4M17 3.8v4M4 10h16" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+    </svg>
+  );
+}
+
+function CartIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 5h2l2 10h9l3-7H8" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+      <circle cx="10" cy="19" r="1.5" fill="currentColor" />
+      <circle cx="17" cy="19" r="1.5" fill="currentColor" />
+    </svg>
+  );
+}
+
+function PaymentIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="4" y="6" width="16" height="12" rx="2" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M4 10h16M8 14h4" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+    </svg>
+  );
+}
+
+function MessageIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M8 18 4 20V8a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H8z" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M9 10h6M9 14h4" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+    </svg>
+  );
+}
+
+function GiftIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 10h16v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M12 10v12M4 14h16M4 10V7.8A1.8 1.8 0 0 1 5.8 6h12.4A1.8 1.8 0 0 1 20 7.8V10" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
+      <path d="M12 10H9.3a2.15 2.15 0 1 1 0-4.3c2.1 0 2.7 2.4 2.7 4.3Zm0 0h2.7a2.15 2.15 0 1 0 0-4.3C12.6 5.7 12 8.1 12 10Z" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.4" />
+    </svg>
+  );
+}
+
+function AuditIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M6 5.5h9l3 3V19a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6.5a1 1 0 0 1 1-1Z" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M9 11h6M9 15h4M15 5.5V9h3" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+    </svg>
+  );
+}
+
+function SettingsIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="m12 4 1 .5 1.1 2.3 2.5.7 1.8-.8 1.5 1.5-.8 1.8.7 2.5L20 13l-.5 1-2.3 1.1-.7 2.5.8 1.8-1.5 1.5-1.8-.8-2.5.7L12 20l-1-.5-1.1-2.3-2.5-.7-1.8.8-1.5-1.5.8-1.8-.7-2.5L4 12l.5-1 2.3-1.1.7-2.5-.8-1.8 1.5-1.5 1.8.8 2.5-.7Z" fill="none" stroke="currentColor" strokeLinejoin="round" strokeWidth="1.6" />
+      <circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" strokeWidth="1.8" />
+    </svg>
+  );
+}
+
+function getGroupNavIcon(groupName: string) {
+  switch (true) {
+    case /коммуника/i.test(groupName):
+      return <MessageIcon />;
+    case /платеж/i.test(groupName):
+      return <PaymentIcon />;
+    case /продаж/i.test(groupName):
+      return <CartIcon />;
+    case /подпис/i.test(groupName):
+      return <CalendarIcon />;
+    case /пробн/i.test(groupName):
+      return <ClockIcon />;
+    case /реферал/i.test(groupName):
+      return <GiftIcon />;
+    default:
+      return <SettingsIcon />;
+  }
+}
+
+function ClockIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M12 8v4l2.7 1.8" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+    </svg>
+  );
 }
 
 function getAdminUserStatusLabel(status: string): string {
@@ -435,42 +576,37 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
   const appLoginUrl = appUrlSetting ? `${appUrlSetting.value.replace(/\/+$/, "")}/login` : null;
   const successMessage = getSingleParam(searchParams.success);
   const errorMessage = getSingleParam(searchParams.error);
+  const adminNavItems = [
+    { href: "#overview", label: "Сводка", icon: <DashboardIcon /> },
+    { href: "#assign", label: "Привязать роутер", icon: <PlugIcon /> },
+    { href: "#clients", label: "Клиенты", icon: <UsersIcon /> },
+    { href: "#routers", label: "Роутеры", icon: <RouterRackIcon /> },
+    { href: "#subscriptions", label: "Подписки", icon: <CalendarIcon /> },
+    { href: "#orders", label: "Заказы", icon: <CartIcon /> },
+    { href: "#tickets", label: "Обращения", icon: <MessageIcon /> },
+    { href: "#rewards", label: "Рефералки", icon: <GiftIcon /> },
+    { href: "#audit", label: "Аудит", icon: <AuditIcon /> }
+  ];
 
   return (
     <main className="shell dashboardShell adminDashboardShell">
       <aside className="panel sideNav" aria-label="Навигация по админке">
         <span className="pill">Навигация</span>
         <ul>
-          <li>
-            <a href="#overview">Сводка</a>
-          </li>
-          <li>
-            <a href="#assign">Привязать роутер</a>
-          </li>
-          <li>
-            <a href="#clients">Клиенты</a>
-          </li>
-          <li>
-            <a href="#routers">Роутеры</a>
-          </li>
-          <li>
-            <a href="#subscriptions">Подписки</a>
-          </li>
-          <li>
-            <a href="#orders">Заказы</a>
-          </li>
-          <li>
-            <a href="#tickets">Обращения</a>
-          </li>
-          <li>
-            <a href="#rewards">Рефералки</a>
-          </li>
-          <li>
-            <a href="#audit">Аудит</a>
-          </li>
+          {adminNavItems.map((item) => (
+            <li key={item.href}>
+              <a className="adminSideNavLink" href={item.href}>
+                <AdminNavIcon>{item.icon}</AdminNavIcon>
+                <span className="adminSideNavLabel">{item.label}</span>
+              </a>
+            </li>
+          ))}
           {groupNames.map((groupName) => (
             <li key={groupName}>
-              <a href={`#${groupName}`}>{groupName}</a>
+              <a className="adminSideNavLink" href={`#${groupName}`}>
+                <AdminNavIcon>{getGroupNavIcon(groupName)}</AdminNavIcon>
+                <span className="adminSideNavLabel">{groupName}</span>
+              </a>
             </li>
           ))}
         </ul>
