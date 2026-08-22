@@ -1404,10 +1404,14 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
               <strong className="isWarm">{overview.referrals.availableRewardsLabel}</strong>
             </div>
 
-            <a className="secondaryButton portalGhostButton profileReferralAction" href={overview.profile.referralLink} target="_blank">
-              Открыть реферальную ссылку
-              <ExternalLinkIcon />
-            </a>
+            <div className="profileReferralLinkBlock">
+              <span className="profileCardLabel">Реферальная ссылка</span>
+              <a className="profileReferralLink" href={overview.profile.referralLink} rel="noreferrer" target="_blank">
+                {overview.profile.referralLink}
+                <ExternalLinkIcon />
+              </a>
+              <span className="profileReferralHint">Ссылка показана прямо в профиле и откроется в новой вкладке.</span>
+            </div>
           </div>
         </article>
 

@@ -1088,16 +1088,21 @@ textarea {
 
 .profileReferralGrid {
   display: grid;
-  gap: 0.85rem;
-  grid-template-columns: minmax(0, 1.25fr) repeat(2, minmax(0, 0.82fr)) minmax(250px, auto);
+  gap: 0.7rem;
+  grid-template-columns: minmax(0, 1.15fr) repeat(2, minmax(0, 0.72fr)) minmax(0, 1.05fr);
   align-items: stretch;
 }
 
 .profileReferralCodeBlock,
-.profileReferralMetric {
-  padding: 0.85rem 1rem;
+.profileReferralMetric,
+.profileReferralLinkBlock {
+  display: grid;
+  align-content: start;
+  gap: 0.35rem;
+  min-height: 5.7rem;
+  padding: 0.7rem 0.9rem;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 0.95rem;
+  border-radius: 0.9rem;
   background: rgba(255, 255, 255, 0.03);
 }
 
@@ -1105,15 +1110,15 @@ textarea {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.8rem;
-  margin-top: 0.35rem;
+  gap: 0.65rem;
+  margin-top: 0.15rem;
 }
 
 .profileReferralCodeBlock strong,
 .profileReferralMetric strong {
   display: block;
   font-family: var(--font-heading, sans-serif);
-  font-size: 1.15rem;
+  font-size: 1.02rem;
   line-height: 1.05;
   letter-spacing: -0.03em;
   color: #b160ff;
@@ -1125,24 +1130,41 @@ textarea {
 }
 
 .profileIconButton {
-  width: 2.75rem;
-  height: 2.75rem;
+  width: 2.35rem;
+  height: 2.35rem;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 0.8rem;
+  border-radius: 0.7rem;
   background: rgba(255, 255, 255, 0.03);
   color: rgba(236, 229, 246, 0.8);
 }
 
-.profileReferralAction {
+.profileReferralLinkBlock {
+  background:
+    linear-gradient(180deg, rgba(28, 21, 47, 0.72), rgba(18, 14, 30, 0.92)),
+    rgba(255, 255, 255, 0.03);
+}
+
+.profileReferralLink {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.7rem;
-  min-height: 100%;
-  border-color: rgba(255, 132, 40, 0.55);
-  color: #b56fff;
-  font-size: 1rem;
+  gap: 0.45rem;
+  min-width: 0;
+  color: #d9b1ff;
+  font-size: 0.9rem;
   font-weight: 600;
+  line-height: 1.45;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.profileReferralLink:hover {
+  color: #f1dcff;
+}
+
+.profileReferralHint {
+  color: rgba(219, 208, 236, 0.62);
+  font-size: 0.8rem;
+  line-height: 1.4;
 }
 
 .profileDeletePanel {
@@ -4177,15 +4199,14 @@ select.textInput option {
   }
 
   .profileTelegramWidget,
-  .profileReferralAction,
+  .profileReferralLinkBlock,
   .profileDeleteButton {
     width: 100%;
   }
 
   .profileInlineActions,
-  .profileReferralAction {
+  .profileReferralLinkBlock {
     justify-self: start;
-    justify-content: flex-start;
   }
 
   .sideNav {
