@@ -3353,9 +3353,9 @@ select.textInput option {
   display: flex;
   align-items: flex-start;
   justify-content: flex-start;
-  width: min(100%, 35rem);
+  width: min(100%, 32rem);
   min-height: calc(var(--router-row-min-height) * 2 + 1rem);
-  padding: 0 0 0.4rem;
+  padding: 0 0 0.9rem;
   isolation: isolate;
 }
 
@@ -3405,7 +3405,7 @@ select.textInput option {
   width: 100%;
   display: flex;
   min-height: 100%;
-  padding: 0.42rem;
+  padding: 0.82rem;
   border: 1px solid rgba(160, 93, 255, 0.28);
   border-radius: 2.2rem;
   background:
@@ -3445,9 +3445,7 @@ select.textInput option {
   height: 100%;
   border-radius: 1.55rem;
   object-fit: cover;
-  object-position: center 8%;
-  transform: scale(1.18);
-  transform-origin: center top;
+  object-position: center top;
   filter:
     saturate(1.08)
     contrast(1.08)
@@ -4441,7 +4439,7 @@ select.textInput option {
 
   .clientRoutersMascotCard {
     min-height: 0;
-    padding: 0.62rem;
+    padding: 0.72rem;
     border-radius: 1.9rem;
   }
 
@@ -4449,7 +4447,6 @@ select.textInput option {
     min-height: 0;
     height: auto;
     border-radius: 1.3rem;
-    transform: scale(1.08);
   }
 
   .clientRouterRow {
@@ -4983,7 +4980,6 @@ select.textInput option {
     min-height: 0;
     height: auto;
     border-radius: 1.08rem;
-    transform: none;
   }
 
   .clientSummaryCard,
