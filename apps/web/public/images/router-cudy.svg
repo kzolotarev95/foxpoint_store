@@ -1,0 +1,47 @@
+<svg width="300" height="220" viewBox="0 0 300 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="cudyGlowGeneric" x1="150" y1="154" x2="150" y2="214" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7A32FF" stop-opacity="0.42"/>
+      <stop offset="1" stop-color="#7A32FF" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="cudyBodyTopGeneric" x1="150" y1="82" x2="150" y2="170" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2F3239"/>
+      <stop offset="0.56" stop-color="#17191F"/>
+      <stop offset="1" stop-color="#0B0D11"/>
+    </linearGradient>
+    <linearGradient id="cudyBodyFrontGeneric" x1="150" y1="105" x2="150" y2="174" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1A1C21"/>
+      <stop offset="1" stop-color="#090A0D"/>
+    </linearGradient>
+    <linearGradient id="cudyAntennaGeneric" x1="0" y1="8" x2="0" y2="98" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2E3137"/>
+      <stop offset="1" stop-color="#0E1015"/>
+    </linearGradient>
+    <filter id="cudyShadowGeneric" x="8" y="0" width="284" height="220" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#08070E" flood-opacity="0.5"/>
+    </filter>
+  </defs>
+
+  <ellipse cx="150" cy="189" rx="94" ry="21" fill="url(#cudyGlowGeneric)"/>
+
+  <g filter="url(#cudyShadowGeneric)">
+    <rect x="38" y="18" width="13" height="94" rx="6.5" fill="url(#cudyAntennaGeneric)" transform="rotate(-15 38 18)"/>
+    <rect x="72" y="10" width="13" height="102" rx="6.5" fill="url(#cudyAntennaGeneric)" transform="rotate(-9 72 10)"/>
+    <rect x="108" y="8" width="13" height="104" rx="6.5" fill="url(#cudyAntennaGeneric)" transform="rotate(-3 108 8)"/>
+    <rect x="179" y="8" width="13" height="104" rx="6.5" fill="url(#cudyAntennaGeneric)" transform="rotate(3 179 8)"/>
+    <rect x="215" y="10" width="13" height="102" rx="6.5" fill="url(#cudyAntennaGeneric)" transform="rotate(9 215 10)"/>
+    <rect x="249" y="18" width="13" height="94" rx="6.5" fill="url(#cudyAntennaGeneric)" transform="rotate(15 249 18)"/>
+
+    <path d="M48 108C48 95.8 57.8 86 70 86H230C242.2 86 252 95.8 252 108V136C252 151.5 239.5 164 224 164H76C60.5 164 48 151.5 48 136V108Z" fill="url(#cudyBodyFrontGeneric)"/>
+    <path d="M61 96H239C245.1 96 250 100.9 250 107V126H50V107C50 100.9 54.9 96 61 96Z" fill="url(#cudyBodyTopGeneric)"/>
+    <path d="M72 104H228C231.3 104 234 106.7 234 110V118C234 121.3 231.3 124 228 124H72C68.7 124 66 121.3 66 118V110C66 106.7 68.7 104 72 104Z" fill="#0F1115"/>
+    <path d="M82 111H218" stroke="#4A4E57" stroke-width="1.4" stroke-linecap="round" stroke-dasharray="4 5"/>
+    <rect x="74" y="141" width="152" height="11" rx="5.5" fill="#090A0E"/>
+    <circle cx="116" cy="146.5" r="2.2" fill="#7BD2FF"/>
+    <circle cx="130" cy="146.5" r="2.2" fill="#7BD2FF"/>
+    <circle cx="144" cy="146.5" r="2.2" fill="#77FFA1"/>
+    <circle cx="158" cy="146.5" r="2.2" fill="#77FFA1"/>
+    <circle cx="172" cy="146.5" r="2.2" fill="#FFC86A"/>
+    <text x="150" y="120" text-anchor="middle" fill="#F4F6FA" font-family="Arial, sans-serif" font-size="9.4" font-weight="700" letter-spacing="2.4">CUDY</text>
+  </g>
+</svg>

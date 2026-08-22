@@ -638,9 +638,12 @@ function getRouterDeviceSkin(router: RouterOverviewItem, index: number): RouterD
 
   if (variant === "keenetic") {
     return {
-      antennaCount: 2,
+      antennaCount: 4,
       brandLabel: "KEENETIC",
-      modelLabel: router.model ?? "Keenetic",
+      imageAlt: router.model ? `Keenetic ${router.model}` : "Keenetic router",
+      imageClassName: "isKeenetic",
+      imageSrc: "/images/router-keenetic.svg",
+      modelLabel: router.model ?? "Hopper",
       variant
     };
   }
@@ -649,7 +652,10 @@ function getRouterDeviceSkin(router: RouterOverviewItem, index: number): RouterD
     return {
       antennaCount: 6,
       brandLabel: "CUDY",
-      modelLabel: router.model ?? "Cudy",
+      imageAlt: router.model ? `Cudy ${router.model}` : "Cudy router",
+      imageClassName: "isCudy",
+      imageSrc: "/images/router-cudy.svg",
+      modelLabel: router.model ?? "WR3000",
       variant
     };
   }
@@ -657,7 +663,10 @@ function getRouterDeviceSkin(router: RouterOverviewItem, index: number): RouterD
   return {
     antennaCount: 4,
     brandLabel: "NETIS",
-    modelLabel: router.model ?? "Netis",
+    imageAlt: router.model ? `Netis ${router.model}` : "Netis router",
+    imageClassName: "isNetis",
+    imageSrc: "/images/router-netis.svg",
+    modelLabel: router.model ?? "NX31",
     variant
   };
 }

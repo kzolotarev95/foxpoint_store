@@ -2889,10 +2889,11 @@ select.textInput option {
 }
 
 .clientRoutersStage {
+  --router-row-min-height: 19.4rem;
   display: grid;
   gap: clamp(1rem, 2vw, 1.65rem);
   grid-template-columns: minmax(0, 1fr) minmax(360px, 468px);
-  align-items: stretch;
+  align-items: start;
 }
 
 .clientRoutersColumn {
@@ -2904,16 +2905,17 @@ select.textInput option {
 
 .clientRouterDeck {
   display: grid;
-  gap: 0.9rem;
+  gap: 1rem;
 }
 
 .clientRouterRow {
   position: relative;
   display: grid;
-  grid-template-columns: 206px minmax(0, 1fr) 210px;
+  grid-template-columns: minmax(214px, 228px) minmax(0, 1fr) minmax(212px, 220px);
   gap: 1.25rem;
-  align-items: center;
-  padding: 0.95rem 1rem 0.95rem 0.85rem;
+  align-items: stretch;
+  min-height: var(--router-row-min-height);
+  padding: 1rem 1.05rem 1rem 0.95rem;
   border: 1px solid var(--cabinet-line);
   border-radius: 1.85rem;
   background:
@@ -2937,6 +2939,7 @@ select.textInput option {
 }
 
 .clientRouterPreview {
+  display: flex;
   min-width: 0;
 }
 
@@ -2944,10 +2947,11 @@ select.textInput option {
   position: relative;
   display: grid;
   place-items: center;
-  min-height: 11rem;
+  width: 100%;
+  min-height: 100%;
   grid-template-rows: minmax(0, 1fr) auto;
   gap: 0.7rem;
-  padding: 0.45rem 0.55rem 0.95rem;
+  padding: 0.85rem 0.75rem 0.95rem;
   border: 1px solid rgba(149, 91, 255, 0.12);
   border-radius: 1.5rem;
   background:
@@ -2958,17 +2962,23 @@ select.textInput option {
 }
 
 .routerDeviceStage.is-xiaomi-ax3000t,
-.routerDeviceStage.is-cudy-wbr3000uax {
+.routerDeviceStage.is-cudy-wbr3000uax,
+.routerDeviceStage.is-keenetic,
+.routerDeviceStage.is-cudy,
+.routerDeviceStage.is-netis {
   align-items: end;
-  padding: 0.8rem 0.7rem 0.75rem;
+  padding: 0.95rem 0.7rem 0.85rem;
 }
 
 .routerDeviceImageWrap {
   position: relative;
   z-index: 1;
   display: grid;
+  align-self: stretch;
+  align-items: end;
   justify-items: center;
   width: 100%;
+  min-height: 10rem;
   gap: 0.58rem;
 }
 
@@ -3004,8 +3014,20 @@ select.textInput option {
   width: min(100%, 14.8rem);
 }
 
+.routerDeviceImage.isKeenetic {
+  width: min(100%, 15.1rem);
+}
+
+.routerDeviceImage.isCudy {
+  width: min(100%, 15.7rem);
+}
+
 .routerDeviceImage.isCudyWbr {
   width: min(100%, 15.9rem);
+}
+
+.routerDeviceImage.isNetis {
+  width: min(100%, 15.35rem);
 }
 
 .routerDeviceModelBadge {
@@ -3133,7 +3155,9 @@ select.textInput option {
 .clientRouterContent {
   display: grid;
   gap: 0.7rem;
+  align-content: start;
   min-width: 0;
+  padding-block: 0.18rem;
 }
 
 .clientRouterHeading h2 {
@@ -3168,22 +3192,27 @@ select.textInput option {
 
 .clientRouterFacts {
   display: grid;
-  gap: 0.38rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.62rem 0.72rem;
+  align-content: start;
 }
 
 .clientRouterFact {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  min-height: 2.18rem;
-  padding-bottom: 0.34rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 0.5rem;
+  min-height: 4.35rem;
+  padding: 0.8rem 0.95rem 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 1rem;
+  background: linear-gradient(180deg, rgba(15, 12, 28, 0.56), rgba(9, 8, 17, 0.44));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
 }
 
 .clientRouterFact:last-child {
-  border-bottom: 0;
-  padding-bottom: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
 }
 
 .clientRouterFactLabel {
@@ -3205,17 +3234,20 @@ select.textInput option {
   color: #fff8ef;
   font-size: 1rem;
   font-weight: 600;
-  text-align: right;
+  text-align: left;
 }
 
 .clientRouterActions {
   display: grid;
+  align-self: stretch;
+  grid-auto-rows: 1fr;
   gap: 0.55rem;
   position: relative;
   z-index: 1;
 }
 
 .clientRouterActions form {
+  display: grid;
   margin: 0;
 }
 
@@ -3226,7 +3258,8 @@ select.textInput option {
   justify-content: center;
   gap: 0.7rem;
   width: 100%;
-  min-height: 3.05rem;
+  min-height: 3.35rem;
+  height: 100%;
   padding: 0.76rem 0.95rem;
   border: 1px solid rgba(156, 95, 255, 0.46);
   border-radius: 1.08rem;
@@ -3292,7 +3325,7 @@ select.textInput option {
   display: flex;
   align-items: flex-start;
   justify-content: flex-start;
-  min-height: 0;
+  min-height: calc(var(--router-row-min-height) * 2 + 1rem);
   margin-left: 0;
   padding: 0;
   pointer-events: none;
@@ -3320,8 +3353,8 @@ select.textInput option {
   display: flex;
   align-items: flex-start;
   justify-content: flex-start;
-  width: min(100%, 31rem);
-  min-height: 0;
+  width: min(100%, 32rem);
+  min-height: calc(var(--router-row-min-height) * 2 + 1rem);
   padding: 0 0 0.9rem;
   isolation: isolate;
 }
@@ -3370,6 +3403,8 @@ select.textInput option {
 .clientRoutersMascotCard {
   position: relative;
   width: 100%;
+  display: flex;
+  min-height: 100%;
   padding: 0.82rem;
   border: 1px solid rgba(160, 93, 255, 0.28);
   border-radius: 2.2rem;
@@ -3406,7 +3441,8 @@ select.textInput option {
   position: relative;
   z-index: 1;
   width: 100%;
-  height: auto;
+  min-height: 100%;
+  height: 100%;
   border-radius: 1.55rem;
   object-fit: cover;
   object-position: center top;
@@ -4302,6 +4338,7 @@ select.textInput option {
 
   .clientRoutersMascotShell {
     width: min(100%, 24rem);
+    min-height: 0;
     padding-bottom: 0.7rem;
   }
 
@@ -4341,16 +4378,20 @@ select.textInput option {
   }
 
   .clientRoutersMascotCard {
+    min-height: 0;
     padding: 0.72rem;
     border-radius: 1.9rem;
   }
 
   .clientRoutersMascotImage {
+    min-height: 0;
+    height: auto;
     border-radius: 1.3rem;
   }
 
   .clientRouterRow {
     grid-template-columns: 1fr;
+    min-height: 0;
   }
 
   .profileActionGrid,
@@ -4541,6 +4582,10 @@ select.textInput option {
 
   .clientRouterActions {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .clientRouterFacts {
+    grid-template-columns: 1fr;
   }
 
   .clientRouterControlHeader {
@@ -4863,14 +4908,18 @@ select.textInput option {
 
   .clientRoutersMascotShell {
     width: min(100%, 19.5rem);
+    min-height: 0;
   }
 
   .clientRoutersMascotCard {
+    min-height: 0;
     padding: 0.58rem;
     border-radius: 1.5rem;
   }
 
   .clientRoutersMascotImage {
+    min-height: 0;
+    height: auto;
     border-radius: 1.08rem;
   }
 
@@ -4892,15 +4941,6 @@ select.textInput option {
   .clientRouterActions {
     order: 3;
     grid-template-columns: 1fr;
-  }
-
-  .clientRouterFact {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-
-  .clientRouterFact strong {
-    text-align: left;
   }
 
   .authStage {

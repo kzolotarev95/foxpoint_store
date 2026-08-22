@@ -1,30 +1,52 @@
 <svg width="300" height="220" viewBox="0 0 300 220" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="axGlow" x1="150" y1="150" x2="150" y2="208" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#7A2BFF" stop-opacity="0.55"/>
-      <stop offset="1" stop-color="#7A2BFF" stop-opacity="0"/>
+    <linearGradient id="axGlow" x1="150" y1="156" x2="150" y2="212" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7D35FF" stop-opacity="0.46"/>
+      <stop offset="1" stop-color="#7D35FF" stop-opacity="0"/>
     </linearGradient>
-    <linearGradient id="axBody" x1="150" y1="86" x2="150" y2="176" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#FCFCFE"/>
-      <stop offset="1" stop-color="#DBDCE2"/>
+    <linearGradient id="axBodyTop" x1="150" y1="66" x2="150" y2="168" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FDFDFF"/>
+      <stop offset="0.52" stop-color="#F2F3F6"/>
+      <stop offset="1" stop-color="#D9DCE3"/>
     </linearGradient>
-    <filter id="shadow" x="14" y="0" width="272" height="220" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
-      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#09070F" flood-opacity="0.42"/>
+    <linearGradient id="axBodySide" x1="54" y1="126" x2="246" y2="126" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#CBD0D8"/>
+      <stop offset="0.5" stop-color="#EEF0F4"/>
+      <stop offset="1" stop-color="#C9CED7"/>
+    </linearGradient>
+    <linearGradient id="axAntenna" x1="0" y1="14" x2="0" y2="98" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F9FAFC"/>
+      <stop offset="1" stop-color="#D7DAE2"/>
+    </linearGradient>
+    <filter id="axShadow" x="14" y="0" width="272" height="220" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="20" stdDeviation="18" flood-color="#09070F" flood-opacity="0.38"/>
     </filter>
-    <pattern id="vents" width="8" height="8" patternUnits="userSpaceOnUse">
-      <circle cx="2" cy="2" r="1" fill="#B9BDC7" fill-opacity="0.72"/>
+    <filter id="axBlur" x="56" y="144" width="188" height="34" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="5"/>
+    </filter>
+    <pattern id="axVents" width="12" height="8" patternUnits="userSpaceOnUse">
+      <rect x="0" y="0" width="8" height="2" rx="1" fill="#BDC3CC" fill-opacity="0.92"/>
     </pattern>
   </defs>
-  <ellipse cx="150" cy="186" rx="88" ry="20" fill="url(#axGlow)"/>
-  <g filter="url(#shadow)">
-    <rect x="56" y="18" width="16" height="84" rx="6" fill="#F0F0F4"/>
-    <rect x="102" y="10" width="16" height="92" rx="6" fill="#F4F4F7"/>
-    <rect x="182" y="10" width="16" height="92" rx="6" fill="#F4F4F7"/>
-    <rect x="228" y="18" width="16" height="84" rx="6" fill="#F0F0F4"/>
-    <rect x="42" y="92" width="216" height="74" rx="18" fill="url(#axBody)"/>
-    <rect x="54" y="104" width="192" height="42" rx="14" fill="url(#vents)"/>
-    <rect x="141" y="150" width="18" height="4" rx="2" fill="#AEE5FF"/>
-    <text x="150" y="124" text-anchor="middle" fill="#B0B4BE" font-family="Arial, sans-serif" font-size="8" font-weight="700" letter-spacing="2.5">XIAOMI</text>
-    <text x="150" y="136" text-anchor="middle" fill="#8C9099" font-family="Arial, sans-serif" font-size="7" font-weight="700" letter-spacing="1.8">AX3000T</text>
+
+  <ellipse cx="150" cy="190" rx="90" ry="20" fill="url(#axGlow)"/>
+  <g filter="url(#axBlur)">
+    <ellipse cx="150" cy="162" rx="72" ry="8" fill="#12111A" fill-opacity="0.5"/>
+  </g>
+
+  <g filter="url(#axShadow)">
+    <path d="M74 30C76.7 22.8 82.8 19.2 90 19.2C98.8 19.2 104 25.6 104 34.2V101H88.5C79.4 101 72 93.6 72 84.5V42.5C72 37.8 72.6 34.2 74 30Z" fill="url(#axAntenna)"/>
+    <path d="M116 24.4C118.8 16.5 125 12 132.6 12C141.9 12 147.8 18.8 147.8 28.1V101H130.4C120.8 101 113 93.2 113 83.6V38.8C113 33.2 113.8 28.1 116 24.4Z" fill="url(#axAntenna)"/>
+    <path d="M184 24.4C181.2 16.5 175 12 167.4 12C158.1 12 152.2 18.8 152.2 28.1V101H169.6C179.2 101 187 93.2 187 83.6V38.8C187 33.2 186.2 28.1 184 24.4Z" fill="url(#axAntenna)"/>
+    <path d="M226 30C223.3 22.8 217.2 19.2 210 19.2C201.2 19.2 196 25.6 196 34.2V101H211.5C220.6 101 228 93.6 228 84.5V42.5C228 37.8 227.4 34.2 226 30Z" fill="url(#axAntenna)"/>
+
+    <path d="M54 108C54 97.5 62.5 89 73 89H227C237.5 89 246 97.5 246 108V137C246 151.9 233.9 164 219 164H81C66.1 164 54 151.9 54 137V108Z" fill="url(#axBodySide)"/>
+    <path d="M64 105.5C64 99.1 69.1 94 75.5 94H224.5C230.9 94 236 99.1 236 105.5V130.5C236 136.9 230.9 142 224.5 142H75.5C69.1 142 64 136.9 64 130.5V105.5Z" fill="url(#axBodyTop)"/>
+    <path d="M79 108H221C223.8 108 226 110.2 226 113V127C226 129.8 223.8 132 221 132H79C76.2 132 74 129.8 74 127V113C74 110.2 76.2 108 79 108Z" fill="url(#axVents)"/>
+    <path d="M68 142H232C229.2 151.7 220.3 158.8 210 158.8H90C79.7 158.8 70.8 151.7 68 142Z" fill="#CDD2DA"/>
+    <rect x="136" y="145" width="28" height="4.8" rx="2.4" fill="#BEE8FF"/>
+    <rect x="145" y="146.4" width="10" height="2" rx="1" fill="#E9FAFF"/>
+    <text x="150" y="119" text-anchor="middle" fill="#A7AFBA" font-family="Arial, sans-serif" font-size="8.2" font-weight="700" letter-spacing="2.2">XIAOMI</text>
+    <text x="150" y="131" text-anchor="middle" fill="#848B95" font-family="Arial, sans-serif" font-size="7.2" font-weight="700" letter-spacing="1.7">AX3000T</text>
   </g>
 </svg>
