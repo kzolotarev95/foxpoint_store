@@ -1706,63 +1706,65 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
           </div>
         </article>
 
-        <article className="panel profileReferralPanel">
-          <div className="profileReferralCopy">
-            <div className="profileSectionHeader">
-              <span className="profileSectionIcon">
-                <GiftIcon />
-              </span>
-              <h2>Реферальная программа</h2>
+        <div className="profileActionGrid">
+          <article className="panel profileReferralPanel">
+            <div className="profileReferralCopy">
+              <div className="profileSectionHeader">
+                <span className="profileSectionIcon">
+                  <GiftIcon />
+                </span>
+                <h2>Реферальная программа</h2>
+              </div>
+              <div className="profileReferralSummary">
+                <span className="profileReferralChip">
+                  <span className="profileCardLabel">Код</span>
+                  <strong>{overview.profile.referralCode}</strong>
+                </span>
+                <span className="profileReferralChip">
+                  <span className="profileCardLabel">Клиентов</span>
+                  <strong>{overview.referrals.invitedCount}</strong>
+                </span>
+                <span className="profileReferralChip">
+                  <span className="profileCardLabel">Начислено</span>
+                  <strong className="isWarm">{overview.referrals.availableRewardsLabel}</strong>
+                </span>
+              </div>
+              <div className="profileReferralLinkRow">
+                <span className="profileCardLabel">Реферальная ссылка</span>
+                <a className="profileReferralLink" href={overview.profile.referralLink} rel="noreferrer" target="_blank">
+                  {overview.profile.referralLink}
+                </a>
+              </div>
             </div>
-            <div className="profileReferralSummary">
-              <span className="profileReferralChip">
-                <span className="profileCardLabel">Код</span>
-                <strong>{overview.profile.referralCode}</strong>
-              </span>
-              <span className="profileReferralChip">
-                <span className="profileCardLabel">Клиентов</span>
-                <strong>{overview.referrals.invitedCount}</strong>
-              </span>
-              <span className="profileReferralChip">
-                <span className="profileCardLabel">Начислено</span>
-                <strong className="isWarm">{overview.referrals.availableRewardsLabel}</strong>
-              </span>
-            </div>
-            <div className="profileReferralLinkRow">
-              <span className="profileCardLabel">Реферальная ссылка</span>
-              <a className="profileReferralLink" href={overview.profile.referralLink} rel="noreferrer" target="_blank">
-                {overview.profile.referralLink}
-              </a>
-            </div>
-          </div>
 
-          <a className="secondaryButton portalGhostButton profileMiniButton profileReferralAction" href={overview.profile.referralLink} rel="noreferrer" target="_blank">
-            Открыть ссылку
-          </a>
-        </article>
+            <a className="secondaryButton portalGhostButton profileMiniButton profileReferralAction" href={overview.profile.referralLink} rel="noreferrer" target="_blank">
+              Открыть ссылку
+            </a>
+          </article>
 
-        <article className="panel profileDeletePanel">
-          <div className="profileDeleteCopy">
-            <div className="profileSectionHeader">
-              <span className="profileSectionIcon isDanger">
-                <AlertTriangleIcon />
-              </span>
-              <h2>Удаление аккаунта</h2>
+          <article className="panel profileDeletePanel">
+            <div className="profileDeleteCopy">
+              <div className="profileSectionHeader">
+                <span className="profileSectionIcon isDanger">
+                  <AlertTriangleIcon />
+                </span>
+                <h2>Удаление аккаунта</h2>
+              </div>
+              <p>После удаления аккаунта все данные будут безвозвратно удалены.</p>
             </div>
-            <p>После удаления аккаунта все данные будут безвозвратно удалены.</p>
-          </div>
 
-          <form action={requestAccountDeletionAction}>
-            <input name="returnTo" type="hidden" value="/cabinet/profile" />
-            <button
-              className="secondaryButton dangerButton profileDeleteButton"
-              disabled={overview.profile.hasOpenDeletionRequest}
-              type="submit"
-            >
-              {overview.profile.hasOpenDeletionRequest ? "Запрос уже отправлен" : "Удалить аккаунт"}
-            </button>
-          </form>
-        </article>
+            <form action={requestAccountDeletionAction}>
+              <input name="returnTo" type="hidden" value="/cabinet/profile" />
+              <button
+                className="secondaryButton dangerButton profileDeleteButton"
+                disabled={overview.profile.hasOpenDeletionRequest}
+                type="submit"
+              >
+                {overview.profile.hasOpenDeletionRequest ? "Запрос уже отправлен" : "Удалить аккаунт"}
+              </button>
+            </form>
+          </article>
+        </div>
       </section>
       ) : null}
 

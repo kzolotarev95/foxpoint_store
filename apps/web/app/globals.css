@@ -910,10 +910,15 @@ textarea {
     0 22px 46px rgba(0, 0, 0, 0.22);
 }
 
+.profileActionGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(18rem, 1fr);
+  gap: 0.95rem;
+  align-items: stretch;
+}
+
 .profileReferralPanel {
   width: 100%;
-  max-width: 54rem;
-  justify-self: start;
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 1rem;
@@ -4341,6 +4346,7 @@ select.textInput option {
     grid-template-columns: 1fr;
   }
 
+  .profileActionGrid,
   .profileDeletePanel,
   .profileReferralPanel,
   .profileSecurityRow,
@@ -4752,6 +4758,7 @@ select.textInput option {
   .profileSummaryGrid .metricCard,
   .profileSecurityRow,
   .profileSessionRow,
+  .profileActionGrid,
   .profileReferralPanel {
     justify-items: center;
     text-align: center;
