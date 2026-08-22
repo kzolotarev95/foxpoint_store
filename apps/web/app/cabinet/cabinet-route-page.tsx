@@ -8,6 +8,7 @@ import {
   createRouterOrderAction,
   createSupportTicketAction,
   logoutClientAction,
+  revokeAllClientSessionsAction,
   revokeClientSessionAction,
   requestAccountDeletionAction,
   requestTwoFactorSetupAction,
@@ -26,6 +27,17 @@ export type CabinetTab = "overview" | "routers" | "support" | "payments" | "prof
 type RouterOverviewItem = ClientOverview["routers"][number];
 type ClientSessionItem = ClientOverview["sessions"][number];
 type SupportTicketItem = ClientOverview["tickets"][number];
+type ProfileSessionViewItem = ClientSessionItem & Awaited<ReturnType<typeof getProfileSessionMeta>>;
+type NotificationFeedItem = {
+  createdAt: string;
+  detail: string;
+  href: string;
+  icon: ReactNode;
+  id: string;
+  isUnread: boolean;
+  meta: string;
+  title: string;
+};
 
 function getCabinetTabHref(tab: CabinetTab): string {
   const hrefs: Record<CabinetTab, string> = {
@@ -264,21 +276,300 @@ function formatTelegramHandle(value: string | null | undefined): string {
   return value.startsWith("@") ? value : `@${value}`;
 }
 
-function getProfileSessionMeta(session: ClientSessionItem) {
+function isPrivateIpAddress(ipAddress: string): boolean {
+  if (ipAddress === "127.0.0.1") {
+    return true;
+  }
+
+  if (ipAddress.startsWith("10.") || ipAddress.startsWith("192.168.") || ipAddress.startsWith("169.254.")) {
+    return true;
+  }
+
+  const secondOctet = Number(ipAddress.split(".")[1] ?? "");
+  return ipAddress.startsWith("172.") && secondOctet >= 16 && secondOctet <= 31;
+}
+
+async function resolveSessionGeoLabel(ipAddress: string | null | undefined): Promise<string> {
+  const normalizedIp = extractIpAddress(ipAddress);
+
+  if (!normalizedIp) {
+    return "Локация не определена";
+  }
+
+  if (isPrivateIpAddress(normalizedIp)) {
+    return "Частная сеть";
+  }
+
+  try {
+    const response = await fetch(`https://ipwho.is/${encodeURIComponent(normalizedIp)}`, {
+      next: {
+        revalidate: 21600
+      },
+      signal: AbortSignal.timeout(1500)
+    });
+
+    if (!response.ok) {
+      throw new Error("Geo lookup failed");
+    }
+
+    const payload = (await response.json()) as {
+      city?: string;
+      country?: string;
+      region?: string;
+      success?: boolean;
+    };
+
+    if (payload.success === false) {
+      throw new Error("Geo lookup failed");
+    }
+
+    const geoLabel = [payload.city, payload.region, payload.country].filter(Boolean).join(", ");
+    return geoLabel || payload.country || "Геоданные недоступны";
+  } catch {
+    return "Геоданные недоступны";
+  }
+}
+
+function getSessionPlatformLabel(userAgent: string): string {
+  if (/iphone/.test(userAgent)) {
+    return "iPhone";
+  }
+
+  if (/ipad/.test(userAgent)) {
+    return "iPad";
+  }
+
+  if (/android/.test(userAgent)) {
+    return "Android";
+  }
+
+  if (/windows/.test(userAgent)) {
+    return "Windows";
+  }
+
+  if (/mac os x|macintosh/.test(userAgent)) {
+    return "macOS";
+  }
+
+  if (/linux/.test(userAgent)) {
+    return "Linux";
+  }
+
+  if (/telegram/.test(userAgent)) {
+    return "Telegram";
+  }
+
+  return "Устройство";
+}
+
+function getSessionBrowserLabel(userAgent: string): string {
+  if (/telegram/.test(userAgent)) {
+    return "Telegram";
+  }
+
+  if (/edg\//.test(userAgent)) {
+    return "Edge";
+  }
+
+  if (/opr\//.test(userAgent) || /opera/.test(userAgent)) {
+    return "Opera";
+  }
+
+  if (/firefox\//.test(userAgent)) {
+    return "Firefox";
+  }
+
+  if (/crios\//.test(userAgent)) {
+    return "Chrome iOS";
+  }
+
+  if (/chrome\//.test(userAgent)) {
+    return "Chrome";
+  }
+
+  if (/safari\//.test(userAgent)) {
+    return "Safari";
+  }
+
+  return "Браузер";
+}
+
+async function getProfileSessionMeta(session: ClientSessionItem) {
   const userAgent = (session.userAgent ?? "").toLowerCase();
   const isPhoneSession = /android|iphone|ipad|mobile/.test(userAgent);
   const isTelegramSession = /telegram/.test(userAgent);
+  const platformLabel = getSessionPlatformLabel(userAgent);
+  const browserLabel = getSessionBrowserLabel(userAgent);
+  const ipLabel = extractIpAddress(session.ipAddress) ?? "IP не определен";
+  const geoLabel = await resolveSessionGeoLabel(session.ipAddress);
+  const activityLabel = formatRelativeDateTime(session.lastSeenAt);
+  const loginLabel = formatRelativeDateTime(session.createdAt);
+  const deviceLabel =
+    browserLabel === platformLabel || browserLabel === "Telegram"
+      ? platformLabel
+      : `${platformLabel} / ${browserLabel}`;
 
   return {
-    deviceLabel: isTelegramSession
-      ? "Telegram / Встроенный браузер"
-      : isPhoneSession
-        ? "Мобильное устройство"
-        : "Web / Личный кабинет",
-    location: session.ipAddress ?? "IP не определен",
-    timeLabel: formatRelativeDateTime(session.lastSeenAt),
-    icon: isPhoneSession || isTelegramSession ? <DevicePhoneIcon /> : <MonitorIcon />
+    activityLabel,
+    browserLabel,
+    deviceLabel: isTelegramSession ? "Telegram / Встроенный браузер" : deviceLabel,
+    geoLabel,
+    icon: isPhoneSession || isTelegramSession ? <DevicePhoneIcon /> : <MonitorIcon />,
+    ipLabel,
+    loginLabel,
+    platformLabel
   };
+}
+
+function getOrderStatusLabel(status: string): string {
+  const normalized = String(status ?? "").toUpperCase();
+
+  if (normalized === "PAID" || normalized === "COMPLETED" || normalized === "DELIVERED") {
+    return "Оплачен";
+  }
+
+  if (normalized === "WAITING_PAYMENT" || normalized === "CREATED") {
+    return "Ожидает оплаты";
+  }
+
+  if (normalized === "SHIPPED") {
+    return "Отправлен";
+  }
+
+  if (normalized === "CANCELED") {
+    return "Отменен";
+  }
+
+  return "Обновлен";
+}
+
+function getNotificationTypeMeta(type: string): Pick<NotificationFeedItem, "detail" | "href" | "icon" | "title"> {
+  const normalized = String(type ?? "").trim().toUpperCase();
+
+  if (normalized.includes("PAYMENT")) {
+    return {
+      detail: normalized.includes("PAID") ? "Оплата подтверждена и учтена в кабинете." : "Есть обновление по оплате.",
+      href: "/cabinet/payments",
+      icon: <PaymentIcon />,
+      title: "Платежи"
+    };
+  }
+
+  if (normalized.includes("TICKET") || normalized.includes("SUPPORT")) {
+    return {
+      detail: "Обновился статус обращения в поддержку.",
+      href: "/cabinet/support",
+      icon: <SupportIcon />,
+      title: "Поддержка"
+    };
+  }
+
+  if (normalized.includes("SESSION") || normalized.includes("LOGIN") || normalized.includes("AUTH")) {
+    return {
+      detail: "Зафиксирован вход или изменение по сессии аккаунта.",
+      href: "/cabinet/profile",
+      icon: <BellIcon />,
+      title: "Безопасность"
+    };
+  }
+
+  if (normalized.includes("ORDER") || normalized.includes("ROUTER")) {
+    return {
+      detail: "Есть обновление по заказу роутера.",
+      href: "/cabinet#order",
+      icon: <CartIcon />,
+      title: "Заказ роутера"
+    };
+  }
+
+  if (normalized.includes("REFERRAL") || normalized.includes("REWARD")) {
+    return {
+      detail: "Обновилась реферальная статистика или награда.",
+      href: "/cabinet/profile",
+      icon: <GiftIcon />,
+      title: "Реферальная программа"
+    };
+  }
+
+  return {
+    detail: "Новое событие по вашему аккаунту.",
+    href: "/cabinet/profile",
+    icon: <BellIcon />,
+    title: "Уведомление"
+  };
+}
+
+function buildNotificationFeed(overview: ClientOverview, sessions: ProfileSessionViewItem[]): NotificationFeedItem[] {
+  const systemNotifications = overview.notifications.map((notification) => {
+    const meta = getNotificationTypeMeta(notification.type);
+
+    return {
+      createdAt: notification.createdAt,
+      detail: meta.detail,
+      href: meta.href,
+      icon: meta.icon,
+      id: `notification-${notification.id}`,
+      isUnread: !notification.readAt,
+      meta: formatRelativeDateTime(notification.createdAt),
+      title: meta.title
+    };
+  });
+
+  const sessionNotifications = sessions.slice(0, 6).map((session) => ({
+    createdAt: session.lastSeenAt,
+    detail: `${session.deviceLabel} · ${session.geoLabel} · ${session.ipLabel}`,
+    href: "/cabinet/profile",
+    icon: session.icon,
+    id: `session-${session.id}`,
+    isUnread: false,
+    meta: `Активность ${session.activityLabel}`,
+    title: session.isCurrent ? "Текущее устройство в сети" : "Вход в кабинет"
+  }));
+
+  const paymentNotifications = overview.payments.slice(0, 4).map((payment) => {
+    const paymentMeta = getPaymentStatusMeta(payment.status);
+
+    return {
+      createdAt: payment.paidAt ?? payment.createdAt,
+      detail: `${payment.amountLabel} · ${payment.providerLabel}${payment.routerName ? ` · ${payment.routerName}` : ""}`,
+      href: "/cabinet/payments",
+      icon: <PaymentIcon />,
+      id: `payment-${payment.id}`,
+      isUnread: paymentMeta.tone === "pending",
+      meta: formatRelativeDateTime(payment.paidAt ?? payment.createdAt),
+      title: `Платеж: ${paymentMeta.label}`
+    };
+  });
+
+  const supportNotifications = overview.tickets.slice(0, 4).map((ticket) => {
+    const ticketMeta = getSupportTicketStatusMeta(ticket.status);
+
+    return {
+      createdAt: ticket.updatedAt,
+      detail: `${getSupportTicketTitle(ticket)} · ${ticketMeta.label}`,
+      href: "/cabinet/support",
+      icon: <SupportIcon />,
+      id: `ticket-${ticket.id}`,
+      isUnread: ticketMeta.tone !== "resolved",
+      meta: formatRelativeDateTime(ticket.updatedAt),
+      title: `Поддержка #${getSupportTicketDisplayCode(ticket.id)}`
+    };
+  });
+
+  const orderNotifications = overview.orders.slice(0, 3).map((order) => ({
+    createdAt: order.receivedAt ?? order.createdAt,
+    detail: `${order.totalPriceLabel} · ${getOrderStatusLabel(order.status)}`,
+    href: "/cabinet#order",
+    icon: <CartIcon />,
+    id: `order-${order.id}`,
+    isUnread: !order.receivedAt && String(order.status ?? "").toUpperCase() !== "COMPLETED",
+    meta: formatRelativeDateTime(order.receivedAt ?? order.createdAt),
+    title: "Заказ роутера"
+  }));
+
+  return [...systemNotifications, ...sessionNotifications, ...paymentNotifications, ...supportNotifications, ...orderNotifications]
+    .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
+    .slice(0, 10);
 }
 
 type RouterDeviceVariant = "netis" | "keenetic" | "cudy" | "xiaomi-ax3000t" | "cudy-wbr3000uax";
@@ -757,10 +1048,17 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
     ? buildTelegramBotUrl(overview.links.telegramBot, "link")
     : overview.links.support;
   const telegramLinkAuthUrl = telegramBotUsername ? await buildTelegramCallbackUrlForRequest("link") : "";
-  const profileSessions = overview.sessions.map((session) => ({
-    ...session,
-    ...getProfileSessionMeta(session)
-  }));
+  const profileSessions = await Promise.all(
+    overview.sessions.map(async (session) => ({
+      ...session,
+      ...(await getProfileSessionMeta(session))
+    }))
+  );
+  const notificationFeed = buildNotificationFeed(overview, profileSessions);
+  const unreadNotificationCount = Math.max(
+    overview.stats.unreadNotificationCount,
+    notificationFeed.filter((item) => item.isUnread).length
+  );
   const primaryPaymentRouter = getPrimaryPaymentRouter(overview.routers);
   const paymentDeadline = primaryPaymentRouter?.currentSubscription?.endAt ?? primaryPaymentRouter?.trial?.endAt ?? null;
   const paymentDaysRemaining =
@@ -787,12 +1085,50 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
               Заказать роутер
               <CartIcon />
             </Link>
-            <span
-              className={overview.stats.unreadNotificationCount ? "portalBellButton hasAlert" : "portalBellButton"}
-              aria-hidden="true"
-            >
-              <BellIcon />
-            </span>
+            <details className="portalNotifications">
+              <summary className={unreadNotificationCount ? "portalBellButton hasAlert" : "portalBellButton"} aria-label="Открыть уведомления">
+                <BellIcon />
+              </summary>
+              <div className="portalNotificationPopover">
+                <div className="portalNotificationHeader">
+                  <div className="portalNotificationHeading">
+                    <strong>Уведомления и входы</strong>
+                    <span>Последние события по аккаунту, платежам, поддержке и сессиям.</span>
+                  </div>
+                  <span className="portalNotificationCount">{notificationFeed.length}</span>
+                </div>
+                <div className="portalNotificationList">
+                  {notificationFeed.length ? (
+                    notificationFeed.map((item) => (
+                      <Link
+                        key={item.id}
+                        className={item.isUnread ? "portalNotificationItem isUnread" : "portalNotificationItem"}
+                        href={item.href}
+                      >
+                        <span className="portalNotificationIcon">{item.icon}</span>
+                        <span className="portalNotificationBody">
+                          <strong>{item.title}</strong>
+                          <span>{item.detail}</span>
+                          <span className="portalNotificationMeta">{item.meta}</span>
+                        </span>
+                      </Link>
+                    ))
+                  ) : (
+                    <div className="portalNotificationEmpty">
+                      Последние события по аккаунту будут появляться здесь.
+                    </div>
+                  )}
+                </div>
+                <div className="portalNotificationFooter">
+                  <Link className="portalNotificationLink" href="/cabinet/profile">
+                    Профиль и безопасность
+                  </Link>
+                  <Link className="portalNotificationLink" href="/cabinet/support">
+                    Поддержка
+                  </Link>
+                </div>
+              </div>
+            </details>
             <span className="portalUserChip portalUserChipRich">
               <span className="portalUserAvatar">{userInitials}</span>
               {overview.profile.name}
@@ -1328,11 +1664,21 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
         </article>
 
         <article className="panel profileSessionsPanel">
-          <div className="profileSectionHeader">
+          <div className="profileSectionHeader profileSectionHeaderWide">
             <span className="profileSectionIcon">
               <MonitorIcon />
             </span>
             <h2>Активные сессии</h2>
+            <form action={revokeAllClientSessionsAction} className="profileSectionHeaderAction">
+              <input name="returnTo" type="hidden" value="/cabinet/profile" />
+              <input name="currentSessionId" type="hidden" value={profileSessions.find((session) => session.isCurrent)?.id ?? ""} />
+              {profileSessions.map((session) => (
+                <input key={session.id} name="sessionId" type="hidden" value={session.id} />
+              ))}
+              <button className="secondaryButton portalGhostButton profileMiniButton" type="submit">
+                Завершить все сессии
+              </button>
+            </form>
           </div>
 
           <div className="profileSessionList">
@@ -1344,15 +1690,22 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                     <strong>{session.deviceLabel}</strong>
                     {session.isCurrent ? <span className="profileSessionPill">это устройство</span> : null}
                   </div>
+                  <span className="profileSessionSubline">
+                    Вход: {session.loginLabel} · Последняя активность: {session.activityLabel}
+                  </span>
                 </div>
                 <div className="profileSessionMeta">
                   <span>
                     <LocationIcon />
-                    {session.location}
+                    {session.geoLabel}
+                  </span>
+                  <span>
+                    <RemoteCheckIcon />
+                    {session.ipLabel}
                   </span>
                   <span>
                     <ClockIcon />
-                    {session.timeLabel}
+                    {session.browserLabel}
                   </span>
                 </div>
                 {session.isCurrent ? (

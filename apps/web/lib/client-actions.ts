@@ -122,6 +122,50 @@ export async function revokeClientSessionAction(formData: FormData) {
   redirect(`${returnTo}?success=Сессия%20завершена.`);
 }
 
+export async function revokeAllClientSessionsAction(formData: FormData) {
+  const returnTo = getReturnToPath(formData, "/cabinet/profile");
+  const currentSessionId = String(formData.get("currentSessionId") ?? "").trim();
+  const sessionIds = formData
+    .getAll("sessionId")
+    .map((value) => String(value).trim())
+    .filter(Boolean);
+
+  if (!sessionIds.length) {
+    redirect(`${returnTo}?error=${encodeMessage("Активные сессии не найдены.")}`);
+  }
+
+  try {
+    for (const sessionId of sessionIds) {
+      if (sessionId === currentSessionId) {
+        continue;
+      }
+
+      await fetchClientApi(`/api/me/sessions/${sessionId}/revoke`, {
+        method: "POST"
+      });
+    }
+  } catch (error) {
+    redirect(
+      `${returnTo}?error=${encodeMessage(error instanceof Error ? error.message : "Не удалось завершить все сессии.")}`
+    );
+  }
+
+  if (currentSessionId) {
+    try {
+      await fetchClientApi("/api/me/logout", {
+        method: "POST"
+      });
+    } catch {
+      // The current session may already be gone remotely; clear it locally in all cases.
+    }
+
+    await clearClientSessionCookie();
+    redirect("/login?signedOut=1");
+  }
+
+  redirect(`${returnTo}?success=Все%20сессии%20завершены.`);
+}
+
 export async function createRouterOrderAction(formData: FormData) {
   const returnTo = getReturnToPath(formData, "/cabinet");
   const provider = String(formData.get("provider") ?? "").trim();
