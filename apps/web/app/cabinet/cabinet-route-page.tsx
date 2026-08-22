@@ -841,23 +841,6 @@ function GiftIcon() {
   );
 }
 
-function CopyIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <rect x="9" y="8" width="10" height="12" rx="2" fill="none" stroke="currentColor" strokeWidth="1.8" />
-      <path d="M15 8V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
-    </svg>
-  );
-}
-
-function ExternalLinkIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M14 5h5v5M10 14 19 5M19 13v4a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
-    </svg>
-  );
-}
-
 function AlertTriangleIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -1724,43 +1707,38 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
         </article>
 
         <article className="panel profileReferralPanel">
-          <div className="profileSectionHeader">
-            <span className="profileSectionIcon">
-              <GiftIcon />
-            </span>
-            <h2>Реферальная программа</h2>
-          </div>
-
-          <div className="profileReferralGrid">
-            <div className="profileReferralCodeBlock">
-              <span className="profileCardLabel">Ваш реферальный код</span>
-              <div className="profileReferralCodeRow">
+          <div className="profileReferralCopy">
+            <div className="profileSectionHeader">
+              <span className="profileSectionIcon">
+                <GiftIcon />
+              </span>
+              <h2>Реферальная программа</h2>
+            </div>
+            <div className="profileReferralSummary">
+              <span className="profileReferralChip">
+                <span className="profileCardLabel">Код</span>
                 <strong>{overview.profile.referralCode}</strong>
-                <button className="profileIconButton" title="Копирование добавим следующим шагом" type="button">
-                  <CopyIcon />
-                </button>
-              </div>
+              </span>
+              <span className="profileReferralChip">
+                <span className="profileCardLabel">Клиентов</span>
+                <strong>{overview.referrals.invitedCount}</strong>
+              </span>
+              <span className="profileReferralChip">
+                <span className="profileCardLabel">Начислено</span>
+                <strong className="isWarm">{overview.referrals.availableRewardsLabel}</strong>
+              </span>
             </div>
-
-            <div className="profileReferralMetric">
-              <span className="profileCardLabel">Приглашено клиентов</span>
-              <strong>{overview.referrals.invitedCount}</strong>
-            </div>
-
-            <div className="profileReferralMetric">
-              <span className="profileCardLabel">Начислено</span>
-              <strong className="isWarm">{overview.referrals.availableRewardsLabel}</strong>
-            </div>
-
-            <div className="profileReferralLinkBlock">
+            <div className="profileReferralLinkRow">
               <span className="profileCardLabel">Реферальная ссылка</span>
               <a className="profileReferralLink" href={overview.profile.referralLink} rel="noreferrer" target="_blank">
                 {overview.profile.referralLink}
-                <ExternalLinkIcon />
               </a>
-              <span className="profileReferralHint">Ссылка показана прямо в профиле и откроется в новой вкладке.</span>
             </div>
           </div>
+
+          <a className="secondaryButton portalGhostButton profileMiniButton profileReferralAction" href={overview.profile.referralLink} rel="noreferrer" target="_blank">
+            Открыть ссылку
+          </a>
         </article>
 
         <article className="panel profileDeletePanel">
