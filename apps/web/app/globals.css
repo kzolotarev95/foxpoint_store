@@ -3246,12 +3246,20 @@ select.textInput option {
   z-index: 1;
 }
 
+.clientRouterActions > * {
+  min-width: 0;
+  width: 100%;
+  align-self: stretch;
+}
+
 .clientRouterActions form {
   display: grid;
   margin: 0;
+  width: 100%;
 }
 
 .clientRouterActionButton {
+  appearance: none;
   display: grid;
   grid-template-columns: 1.1rem minmax(0, 1fr) 1.1rem;
   align-items: center;
@@ -3265,7 +3273,11 @@ select.textInput option {
   border-radius: 1.08rem;
   background: linear-gradient(180deg, rgba(17, 14, 29, 0.94), rgba(11, 9, 20, 0.92));
   color: #f6f1ff;
+  font: inherit;
+  line-height: 1.2;
   text-decoration: none;
+  text-align: center;
+  cursor: pointer;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
   transition:
     transform 160ms ease,
