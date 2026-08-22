@@ -81,6 +81,119 @@ function formatDateTimeInputValue(value: string | null | undefined): string {
   return normalized.toISOString().slice(0, 16);
 }
 
+function getAdminUserStatusLabel(status: string): string {
+  switch (status) {
+    case "ACTIVE":
+      return "Активен";
+    case "BLOCKED":
+      return "Заблокирован";
+    case "PENDING":
+      return "Ожидает";
+    default:
+      return status;
+  }
+}
+
+function getAdminRouterStatusLabel(status: string): string {
+  switch (status) {
+    case "DRAFT":
+      return "Черновик";
+    case "ACTIVE":
+      return "Активен";
+    case "SUSPENDED":
+      return "Приостановлен";
+    case "DISABLED":
+      return "Отключён";
+    default:
+      return status;
+  }
+}
+
+function getAdminConfigurationTypeLabel(configurationType: string): string {
+  switch (configurationType) {
+    case "BASIC":
+      return "Базовая";
+    case "EXTENDED":
+      return "Расширенная";
+    default:
+      return configurationType;
+  }
+}
+
+function getAdminSubscriptionStatusLabel(status: string): string {
+  switch (status) {
+    case "DRAFT":
+      return "Черновик";
+    case "ACTIVE":
+      return "Активна";
+    case "EXPIRED":
+      return "Истекла";
+    case "PENDING_ACTIVATION":
+      return "Ожидает активации";
+    case "PAUSED":
+      return "На паузе";
+    case "CANCELLED":
+      return "Отменена";
+    default:
+      return status;
+  }
+}
+
+function getAdminOrderStatusLabel(status: string): string {
+  switch (status) {
+    case "CREATED":
+      return "Создан";
+    case "WAITING_PAYMENT":
+      return "Ожидает оплаты";
+    case "PAID":
+      return "Оплачен";
+    case "CONFIGURING":
+      return "Настраивается";
+    case "READY_TO_SHIP":
+      return "Готов к отправке";
+    case "SHIPPED":
+      return "Отправлен";
+    case "RECEIVED":
+      return "Получен";
+    case "CANCELED":
+      return "Отменён";
+    case "REFUND":
+      return "Возврат";
+    default:
+      return status;
+  }
+}
+
+function getAdminTicketStatusLabel(status: string): string {
+  switch (status) {
+    case "OPEN":
+      return "Новая";
+    case "IN_PROGRESS":
+      return "В работе";
+    case "WAITING_CLIENT":
+      return "Ждём клиента";
+    case "RESOLVED":
+      return "Решена";
+    case "CLOSED":
+      return "Закрыта";
+    default:
+      return status;
+  }
+}
+
+function getAdminRewardStatusLabel(status: string): string {
+  switch (status) {
+    case "PENDING":
+      return "В ожидании";
+    case "AVAILABLE":
+      return "Доступно";
+    case "CANCELED":
+      return "Отменено";
+    default:
+      return status;
+  }
+}
+
 async function getAdminRequestHeadersOrRedirect(): Promise<Headers> {
   const cookieStore = await cookies();
   const token = cookieStore.get(getAdminCookieName())?.value;
@@ -569,7 +682,7 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                   </div>
                   <div className="fieldStack">
                     <span className="fieldLabel">Статус</span>
-                    <strong>{user.status}</strong>
+                    <strong>{getAdminUserStatusLabel(user.status)}</strong>
                   </div>
                   <div className="fieldStack">
                     <span className="fieldLabel">Баланс</span>
@@ -625,17 +738,17 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                   <label className="fieldStack">
                     <span className="fieldLabel">Статус</span>
                     <select className="textInput" defaultValue={router.status} name="status">
-                      <option value="DRAFT">DRAFT</option>
-                      <option value="ACTIVE">ACTIVE</option>
-                      <option value="SUSPENDED">SUSPENDED</option>
-                      <option value="DISABLED">DISABLED</option>
+                      <option value="DRAFT">Черновик</option>
+                      <option value="ACTIVE">Активен</option>
+                      <option value="SUSPENDED">Приостановлен</option>
+                      <option value="DISABLED">Отключён</option>
                     </select>
                   </label>
                   <label className="fieldStack">
                     <span className="fieldLabel">Конфигурация</span>
                     <select className="textInput" defaultValue={router.configurationType} name="configurationType">
-                      <option value="BASIC">BASIC</option>
-                      <option value="EXTENDED">EXTENDED</option>
+                      <option value="BASIC">Базовая</option>
+                      <option value="EXTENDED">Расширенная</option>
                     </select>
                   </label>
                   <div className="fieldStack">
@@ -676,12 +789,12 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                   <label className="fieldStack">
                     <span className="fieldLabel">Статус</span>
                     <select className="textInput" defaultValue={subscription.status} name="status">
-                      <option value="DRAFT">DRAFT</option>
-                      <option value="ACTIVE">ACTIVE</option>
-                      <option value="EXPIRED">EXPIRED</option>
-                      <option value="PENDING_ACTIVATION">PENDING_ACTIVATION</option>
-                      <option value="PAUSED">PAUSED</option>
-                      <option value="CANCELLED">CANCELLED</option>
+                      <option value="DRAFT">Черновик</option>
+                      <option value="ACTIVE">Активна</option>
+                      <option value="EXPIRED">Истекла</option>
+                      <option value="PENDING_ACTIVATION">Ожидает активации</option>
+                      <option value="PAUSED">На паузе</option>
+                      <option value="CANCELLED">Отменена</option>
                     </select>
                   </label>
                   <label className="fieldStack">
@@ -705,7 +818,14 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                   <div className="fieldStack">
                     <span className="fieldLabel">Пакет</span>
                     <strong>
-                      {subscription.accessEnabled ? "Доступ включен" : "Доступ выключен"} · {subscription.supportType}
+                      {subscription.accessEnabled ? "Доступ включен" : "Доступ выключен"} ·{" "}
+                      {subscription.supportType === "NONE"
+                        ? "Без сопровождения"
+                        : subscription.supportType === "BASIC"
+                          ? "Базовое"
+                          : subscription.supportType === "EXTENDED"
+                            ? "Расширенное"
+                            : subscription.supportType}
                     </strong>
                   </div>
                 </div>
@@ -742,15 +862,15 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                   <label className="fieldStack">
                     <span className="fieldLabel">Статус</span>
                     <select className="textInput" defaultValue={order.status} name="status">
-                      <option value="CREATED">CREATED</option>
-                      <option value="WAITING_PAYMENT">WAITING_PAYMENT</option>
-                      <option value="PAID">PAID</option>
-                      <option value="CONFIGURING">CONFIGURING</option>
-                      <option value="READY_TO_SHIP">READY_TO_SHIP</option>
-                      <option value="SHIPPED">SHIPPED</option>
-                      <option value="RECEIVED">RECEIVED</option>
-                      <option value="CANCELED">CANCELED</option>
-                      <option value="REFUND">REFUND</option>
+                      <option value="CREATED">Создан</option>
+                      <option value="WAITING_PAYMENT">Ожидает оплаты</option>
+                      <option value="PAID">Оплачен</option>
+                      <option value="CONFIGURING">Настраивается</option>
+                      <option value="READY_TO_SHIP">Готов к отправке</option>
+                      <option value="SHIPPED">Отправлен</option>
+                      <option value="RECEIVED">Получен</option>
+                      <option value="CANCELED">Отменён</option>
+                      <option value="REFUND">Возврат</option>
                     </select>
                   </label>
                   <label className="fieldStack">
@@ -802,11 +922,11 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                   <label className="fieldStack">
                     <span className="fieldLabel">Статус</span>
                     <select className="textInput" defaultValue={ticket.status} name="status">
-                      <option value="OPEN">OPEN</option>
-                      <option value="IN_PROGRESS">IN_PROGRESS</option>
-                      <option value="WAITING_CLIENT">WAITING_CLIENT</option>
-                      <option value="RESOLVED">RESOLVED</option>
-                      <option value="CLOSED">CLOSED</option>
+                      <option value="OPEN">Новая</option>
+                      <option value="IN_PROGRESS">В работе</option>
+                      <option value="WAITING_CLIENT">Ждём клиента</option>
+                      <option value="RESOLVED">Решена</option>
+                      <option value="CLOSED">Закрыта</option>
                     </select>
                   </label>
                   <label className="fieldStack">
@@ -857,9 +977,9 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                   <label className="fieldStack">
                     <span className="fieldLabel">Статус</span>
                     <select className="textInput" defaultValue={reward.status} name="status">
-                      <option value="PENDING">PENDING</option>
-                      <option value="AVAILABLE">AVAILABLE</option>
-                      <option value="CANCELED">CANCELED</option>
+                      <option value="PENDING">В ожидании</option>
+                      <option value="AVAILABLE">Доступно</option>
+                      <option value="CANCELED">Отменено</option>
                     </select>
                   </label>
                 </div>
