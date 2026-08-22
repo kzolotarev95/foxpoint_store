@@ -1268,20 +1268,20 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                 <span className={hasTelegram ? "profileState profileStateLinked" : "profileState"}>
                   {hasTelegram ? "Привязан" : "Не подключен"}
                 </span>
-                <TelegramLoginWidget
-                  authUrl={telegramLinkAuthUrl}
-                  botUrl={telegramBotUrl}
-                  botUsername={telegramBotUsername}
-                  className="telegramAuthStack telegramAuthStackCompact"
-                  fallbackLabel={telegramBotUsername ? (hasTelegram ? "Переподключить Telegram" : "Привязать Telegram") : "Открыть поддержку"}
-                  hint={
-                    telegramBotUsername
-                      ? hasTelegram
-                        ? "Можно перепривязать другой Telegram-аккаунт через ту же кнопку."
-                        : "После подтверждения Telegram сразу привяжется к текущему кабинету."
-                      : "Пока бот не настроен, запрос на привязку можно отправить через поддержку."
-                  }
-                />
+                {!hasTelegram ? (
+                  <TelegramLoginWidget
+                    authUrl={telegramLinkAuthUrl}
+                    botUrl={telegramBotUrl}
+                    botUsername={telegramBotUsername}
+                    className="telegramAuthStack telegramAuthStackCompact profileTelegramWidget"
+                    fallbackLabel={telegramBotUsername ? "Привязать Telegram" : "Открыть поддержку"}
+                    hint={
+                      telegramBotUsername
+                        ? "После подтверждения Telegram сразу привяжется к текущему кабинету."
+                        : "Пока бот не настроен, запрос на привязку можно отправить через поддержку."
+                    }
+                  />
+                ) : null}
                 {!overview.profile.email ? (
                   <form action={attachProfileEmailAction} className="profileInlineForm">
                     <input name="returnTo" type="hidden" value="/cabinet/profile" />
