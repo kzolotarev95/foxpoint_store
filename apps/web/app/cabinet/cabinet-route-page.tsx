@@ -5,7 +5,6 @@ import { PortalHeader } from "../../components/portal-header";
 import { TelegramLoginWidget } from "../../components/telegram-login-widget";
 import {
   attachProfileEmailAction,
-  clearClientNotificationsAction,
   createRouterOrderAction,
   createSupportTicketAction,
   logoutClientAction,
@@ -1117,7 +1116,7 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                     </div>
                   )}
                 </div>
-                <form action={clearClientNotificationsAction} className="portalNotificationFooter">
+                <form action="/cabinet/notifications/clear" className="portalNotificationFooter" method="post">
                   <input name="returnTo" type="hidden" value="/cabinet/profile" />
                   <button className="secondaryButton portalGhostButton portalNotificationClear" type="submit">
                     Очистить уведомления
