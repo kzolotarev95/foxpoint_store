@@ -627,7 +627,7 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
           <div className="adminHeroHeader">
             <div className="adminHeroCopy">
               <span className="pill">Админ-панель</span>
-              <h1>Управление сервисом без визуального шума</h1>
+              <h1>Управление сервисом</h1>
               <p>Клиенты, роутеры, тикеты, оплаты и настройки собраны в одной ровной панели с понятной иерархией.</p>
             </div>
             <div className="ctaRow adminHeroActions">
