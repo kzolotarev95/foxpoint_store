@@ -125,21 +125,25 @@ export async function revokeClientSessionAction(formData: FormData) {
 export async function createRouterOrderAction(formData: FormData) {
   const returnTo = getReturnToPath(formData, "/cabinet");
   const provider = String(formData.get("provider") ?? "").trim();
-  const payload = await fetchClientApi<{ paymentUrl: string; totalPriceLabel: string }>("/api/orders", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json"
-    },
-    body: JSON.stringify({
-      provider: provider || undefined
-    })
-  });
+  try {
+    const payload = await fetchClientApi<{ paymentUrl: string; totalPriceLabel: string }>("/api/orders", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        provider: provider || undefined
+      })
+    });
 
-  redirect(
-    `${returnTo}?success=${encodeMessage(
-      `Заказ создан. Сумма ${payload.totalPriceLabel}.`
-    )}&payment=${encodeURIComponent(payload.paymentUrl)}`
-  );
+    redirect(
+      `${returnTo}?success=${encodeMessage(
+        `Заказ создан. Сумма ${payload.totalPriceLabel}.`
+      )}&payment=${encodeURIComponent(payload.paymentUrl)}`
+    );
+  } catch (error) {
+    redirect(`${returnTo}?error=${encodeMessage(error instanceof Error ? error.message : "Не удалось оформить заказ.")}`);
+  }
 }
 
 export async function createSupportTicketAction(formData: FormData) {

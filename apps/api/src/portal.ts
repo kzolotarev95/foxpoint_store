@@ -146,6 +146,26 @@ function getEnabledPaymentMethods(settings: SettingMap) {
   ];
 }
 
+function isPlategaConfigured(settings: SettingMap): boolean {
+  return Boolean(
+    getSettingValue(settings, "platega_api_base_url") &&
+      getSettingValue(settings, "platega_merchant_id") &&
+      getSettingValue(settings, "platega_secret") &&
+      getSettingValue(settings, "platega_api_base_url") !== "https://app.platega.io" &&
+      getSettingValue(settings, "platega_merchant_id") !== "merchant-id-change-me" &&
+      getSettingValue(settings, "platega_secret") !== "platega-secret-change-me"
+  );
+}
+
+function isYooMoneyConfigured(settings: SettingMap): boolean {
+  return Boolean(
+    getSettingValue(settings, "yoomoney_receiver") &&
+      getSettingValue(settings, "yoomoney_receiver") !== "41001xxxxxxxxxxxx" &&
+      getSettingValue(settings, "yoomoney_notification_secret") &&
+      getSettingValue(settings, "yoomoney_notification_secret") !== "yoomoney-secret-change-me"
+  );
+}
+
 function getPaymentProviderLabel(provider: string): string {
   if (provider === "platega") {
     return "Platega";
@@ -163,19 +183,23 @@ function resolveRequestedPaymentProvider(
   requestedProvider: string | null | undefined
 ): PaymentProviderId {
   const normalized = requestedProvider?.trim().toLowerCase();
-  if (normalized === "platega" && getBooleanSetting(settings, "platega_enabled", true)) {
+  if (normalized === "platega" && getBooleanSetting(settings, "platega_enabled", true) && isPlategaConfigured(settings)) {
     return "platega";
   }
 
-  if (normalized === "yoomoney" && getBooleanSetting(settings, "yoomoney_enabled", true)) {
+  if (
+    normalized === "yoomoney" &&
+    getBooleanSetting(settings, "yoomoney_enabled", true) &&
+    isYooMoneyConfigured(settings)
+  ) {
     return "yoomoney";
   }
 
-  if (getBooleanSetting(settings, "platega_enabled", true)) {
+  if (getBooleanSetting(settings, "platega_enabled", true) && isPlategaConfigured(settings)) {
     return "platega";
   }
 
-  if (getBooleanSetting(settings, "yoomoney_enabled", true)) {
+  if (getBooleanSetting(settings, "yoomoney_enabled", true) && isYooMoneyConfigured(settings)) {
     return "yoomoney";
   }
 

@@ -368,10 +368,17 @@ app.post("/api/orders", async (request, reply) => {
     })
     .parse(request.body ?? {});
 
-  return createRouterOrderForUser({
-    userId,
-    provider: body.provider
-  });
+  try {
+    return await createRouterOrderForUser({
+      userId,
+      provider: body.provider
+    });
+  } catch (error) {
+    reply.code(400);
+    return {
+      error: error instanceof Error ? error.message : "Не удалось создать заказ."
+    };
+  }
 });
 
 app.post("/api/me/logout", async (request, reply) => {
