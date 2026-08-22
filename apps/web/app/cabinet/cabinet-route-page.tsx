@@ -1307,7 +1307,7 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                   className="clientRoutersMascotImage"
                   height={1254}
                   priority
-                  src="/images/foxpoint-cabinet-fox-poster.png"
+                  src="/images/foxpoint-cabinet-fox-cutout.png"
                   width={1254}
                 />
               </div>
