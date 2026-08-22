@@ -919,8 +919,8 @@ textarea {
 
 .profileReferralPanel {
   width: 100%;
-  grid-template-columns: minmax(0, 1fr) auto;
-  align-items: center;
+  justify-items: center;
+  text-align: center;
   gap: 1rem;
 }
 
@@ -1276,12 +1276,15 @@ textarea {
 .profileReferralCopy {
   display: grid;
   gap: 0.8rem;
+  justify-items: center;
+  width: 100%;
 }
 
 .profileReferralSummary {
   display: flex;
   flex-wrap: wrap;
   gap: 0.7rem;
+  justify-content: center;
 }
 
 .profileReferralChip {
@@ -1311,6 +1314,7 @@ textarea {
 .profileReferralLinkRow {
   display: grid;
   gap: 0.35rem;
+  justify-items: center;
 }
 
 .profileReferralLink {
@@ -1326,10 +1330,6 @@ textarea {
 
 .profileReferralLink:hover {
   color: #f1dcff;
-}
-
-.profileReferralAction {
-  white-space: nowrap;
 }
 
 .profileDeletePanel {
@@ -4365,8 +4365,7 @@ select.textInput option {
   }
 
   .profileTelegramWidget,
-  .profileDeleteButton,
-  .profileReferralAction {
+  .profileDeleteButton {
     width: 100%;
   }
 
@@ -4375,8 +4374,7 @@ select.textInput option {
     margin-left: 0;
   }
 
-  .profileInlineActions,
-  .profileReferralAction {
+  .profileInlineActions {
     justify-self: start;
   }
 

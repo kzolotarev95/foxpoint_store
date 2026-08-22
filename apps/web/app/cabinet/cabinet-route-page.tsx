@@ -1736,10 +1736,6 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                 </a>
               </div>
             </div>
-
-            <a className="secondaryButton portalGhostButton profileMiniButton profileReferralAction" href={overview.profile.referralLink} rel="noreferrer" target="_blank">
-              Открыть ссылку
-            </a>
           </article>
 
           <article className="panel profileDeletePanel">
