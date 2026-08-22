@@ -438,7 +438,8 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
 
   return (
     <main className="shell dashboardShell adminDashboardShell">
-      <aside className="panel sideNav">
+      <aside className="panel sideNav" aria-label="Навигация по админке">
+        <span className="pill">Навигация</span>
         <ul>
           <li>
             <a href="#overview">Сводка</a>
@@ -473,7 +474,7 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
             </li>
           ))}
         </ul>
-        <div className="contentStack" style={{ marginTop: "18px" }}>
+        <div className="contentStack adminSidebarActions">
           <Link className="secondaryButton" href="/">
             На главную
           </Link>
@@ -487,6 +488,21 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
 
       <section className="contentStack adminContentStack">
         <article id="overview" className="panel hero adminHero">
+          <div className="adminHeroHeader">
+            <div className="adminHeroCopy">
+              <span className="pill">Админ-панель</span>
+              <h1>Управление сервисом без визуального шума</h1>
+              <p>Клиенты, роутеры, тикеты, оплаты и настройки собраны в одной ровной панели с понятной иерархией.</p>
+            </div>
+            <div className="ctaRow adminHeroActions">
+              <Link className="secondaryButton" href="#assign">
+                Привязать роутер
+              </Link>
+              <Link className="secondaryButton" href="#tickets">
+                Открыть тикеты
+              </Link>
+            </div>
+          </div>
           <div className="miniGrid adminOverviewGrid">
             <article className="metricCard">
               <div className="muted">Клиентов</div>
@@ -520,6 +536,7 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
 
         <section id="assign" className="panel sectionPanel adminSectionPanel">
           <span className="pill">Ручная привязка</span>
+          <h2 className="adminSectionTitle">Создать роутер вручную</h2>
           <form action={createRouterAction} className="contentStack">
             <div className="settingsGrid">
               <label className="fieldStack">
@@ -601,7 +618,7 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                       <p className="sectionLead" style={{ marginTop: "10px" }}>
                         Эти значения уже можно показывать на публичной части сайта.
                       </p>
-                      <div className="panel" style={{ marginTop: "14px", padding: "16px" }}>
+                      <div className="panel adminInfoCard">
                         <div className="settingsGrid">
                           <div className="fieldStack">
                             <span className="fieldLabel">Текущий домен сайта</span>
@@ -672,7 +689,7 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
           <h2 className="adminSectionTitle">Последние профили</h2>
           <div className="contentStack">
             {overview.users.map((user) => (
-              <article key={user.id} className="panel" style={{ padding: "18px" }}>
+              <article key={user.id} className="panel adminRecordCard">
                 <div className="settingsGrid">
                   <div className="fieldStack">
                     <span className="fieldLabel">Клиент</span>
@@ -714,7 +731,7 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
           <h2 className="adminSectionTitle">Управление назначениями</h2>
           <div className="contentStack">
             {overview.routers.map((router) => (
-              <form key={router.id} action={updateRouterAction} className="panel" style={{ padding: "18px" }}>
+              <form key={router.id} action={updateRouterAction} className="panel adminRecordCard">
                 <input name="routerId" type="hidden" value={router.id} />
                 <div className="sectionHeader">
                   <div>
@@ -775,7 +792,7 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
           <h2 className="adminSectionTitle">Продления и активации</h2>
           <div className="contentStack">
             {overview.subscriptions.map((subscription) => (
-              <form key={subscription.id} action={updateSubscriptionAction} className="panel" style={{ padding: "18px" }}>
+              <form key={subscription.id} action={updateSubscriptionAction} className="panel adminRecordCard">
                 <input name="subscriptionId" type="hidden" value={subscription.id} />
                 <div className="sectionHeader">
                   <div>
@@ -848,7 +865,7 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
           <h2 className="adminSectionTitle">Магазин и доставка</h2>
           <div className="contentStack">
             {overview.orders.map((order) => (
-              <form key={order.id} action={updateOrderAction} className="panel" style={{ padding: "18px" }}>
+              <form key={order.id} action={updateOrderAction} className="panel adminRecordCard">
                 <input name="orderId" type="hidden" value={order.id} />
                 <div className="sectionHeader">
                   <div>
@@ -903,7 +920,7 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
           <h2 className="adminSectionTitle">Обращения клиентов</h2>
           <div className="contentStack">
             {overview.tickets.map((ticket) => (
-              <form key={ticket.id} action={updateTicketAction} className="panel" style={{ padding: "18px" }}>
+              <form key={ticket.id} action={updateTicketAction} className="panel adminRecordCard">
                 <input name="ticketId" type="hidden" value={ticket.id} />
                 <div className="sectionHeader">
                   <div>
@@ -959,7 +976,7 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
           <h2 className="adminSectionTitle">Начисления по приглашениям</h2>
           <div className="contentStack">
             {overview.rewards.map((reward) => (
-              <form key={reward.id} action={updateRewardAction} className="panel" style={{ padding: "18px" }}>
+              <form key={reward.id} action={updateRewardAction} className="panel adminRecordCard">
                 <input name="rewardId" type="hidden" value={reward.id} />
                 <div className="settingsGrid">
                   <div className="fieldStack">
