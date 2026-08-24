@@ -1,9 +1,5 @@
 <svg width="300" height="220" viewBox="0 0 300 220" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="netisGlow" x1="150" y1="156" x2="150" y2="212" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#7B30FF" stop-opacity="0.4"/>
-      <stop offset="1" stop-color="#7B30FF" stop-opacity="0"/>
-    </linearGradient>
     <linearGradient id="netisTop" x1="150" y1="86" x2="150" y2="160" gradientUnits="userSpaceOnUse">
       <stop stop-color="#262933"/>
       <stop offset="1" stop-color="#12141A"/>
@@ -20,8 +16,6 @@
       <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#09070E" flood-opacity="0.48"/>
     </filter>
   </defs>
-
-  <ellipse cx="150" cy="190" rx="92" ry="21" fill="url(#netisGlow)"/>
 
   <g filter="url(#netisShadow)">
     <rect x="58" y="16" width="14" height="96" rx="6" fill="url(#netisAntenna)" transform="rotate(-10 58 16)"/>
