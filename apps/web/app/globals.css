@@ -3040,12 +3040,12 @@ select.textInput option {
 }
 
 .routerDeviceImage {
-  width: min(100%, 11.8rem);
+  width: min(100%, 10.5rem);
   height: auto;
   filter:
-    drop-shadow(0 16px 24px rgba(0, 0, 0, 0.28))
-    drop-shadow(0 0 14px rgba(121, 158, 255, 0.16))
-    drop-shadow(0 0 28px rgba(132, 92, 255, 0.08));
+    drop-shadow(0 15px 22px rgba(0, 0, 0, 0.28))
+    drop-shadow(0 0 14px rgba(255, 196, 86, 0.2))
+    drop-shadow(0 0 28px rgba(255, 176, 46, 0.12));
 }
 
 .routerDeviceBadgeFrame {
@@ -3066,23 +3066,23 @@ select.textInput option {
 }
 
 .routerDeviceImage.isXiaomi {
-  width: min(100%, 11.3rem);
+  width: min(100%, 10rem);
 }
 
 .routerDeviceImage.isKeenetic {
-  width: min(100%, 11.4rem);
+  width: min(100%, 10.1rem);
 }
 
 .routerDeviceImage.isCudy {
-  width: min(100%, 11.9rem);
+  width: min(100%, 10.6rem);
 }
 
 .routerDeviceImage.isCudyWbr {
-  width: min(100%, 12rem);
+  width: min(100%, 10.7rem);
 }
 
 .routerDeviceImage.isNetis {
-  width: min(100%, 11.6rem);
+  width: min(100%, 10.3rem);
 }
 
 .routerDeviceModelBadge {
