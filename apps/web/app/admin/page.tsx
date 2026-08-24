@@ -526,12 +526,25 @@ function getTicketAnchorId(ticketId: string): string {
   return `ticket-${ticketId}`;
 }
 
+function getTicketLatestMessageAuthorRole(ticket: AdminOverview["tickets"][number]): string | null {
+  return ticket.messages[ticket.messages.length - 1]?.authorRole ?? null;
+}
+
+function isTicketAwaitingAdminReply(ticket: AdminOverview["tickets"][number]): boolean {
+  if (ticket.status === "CLOSED") {
+    return false;
+  }
+
+  const latestMessageAuthorRole = getTicketLatestMessageAuthorRole(ticket);
+  return latestMessageAuthorRole === "CLIENT" || (!latestMessageAuthorRole && ticket.status === "OPEN");
+}
+
 function getAdminTicketBadgeCount(overview: AdminOverview): number {
-  return overview.tickets.filter((ticket) => ticket.status === "OPEN").length;
+  return overview.tickets.filter((ticket) => isTicketAwaitingAdminReply(ticket)).length;
 }
 
 function getLatestNewTicketHref(overview: AdminOverview): string {
-  const latestNewTicket = overview.tickets.find((ticket) => ticket.status === "OPEN");
+  const latestNewTicket = overview.tickets.find((ticket) => isTicketAwaitingAdminReply(ticket));
   return latestNewTicket ? `#${getTicketAnchorId(latestNewTicket.id)}` : "#tickets";
 }
 
@@ -577,7 +590,7 @@ function getAdminTicketMessageAuthorLabel(
 }
 
 function getAdminTicketMessageClass(message: AdminOverview["tickets"][number]["messages"][number]): string {
-  return message.authorRole === "ADMIN" ? "clientSupportMessage isClient" : "clientSupportMessage isAdmin";
+  return message.authorRole === "ADMIN" ? "clientSupportMessage isAdmin" : "clientSupportMessage isClient";
 }
 
 function getAdminTicketStatusHint(status: string): string {
@@ -1265,7 +1278,7 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                   <div>
                     <h3 className="adminSectionTitle adminTicketTitleRow">
                       #{ticket.number} · {ticket.customerName} · {ticket.category}
-                      {ticket.status === "OPEN" ? <span className="adminTicketNewBadge">Новое</span> : null}
+                      {isTicketAwaitingAdminReply(ticket) ? <span className="adminTicketNewBadge">+1</span> : null}
                     </h3>
                     <p className="helperText">
                       Создано {formatDateTime(ticket.createdAt)} · обновлено {formatDateTime(ticket.updatedAt)} · роутер {ticket.routerName}

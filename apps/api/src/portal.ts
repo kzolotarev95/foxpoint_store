@@ -2237,8 +2237,12 @@ export async function updateAdminTicket(input: {
     throw new Error("Обращение не найдено.");
   }
 
-  if (input.status === "CLOSED" && input.adminComment?.trim()) {
-    throw new Error("Сначала закройте обращение без нового сообщения.");
+  if (input.adminComment?.trim()) {
+    await appendSupportTicketMessage({
+      authorRole: "ADMIN",
+      body: input.adminComment,
+      ticketId: input.ticketId
+    });
   }
 
   const updated = await prisma.supportTicket.update({
@@ -2250,14 +2254,6 @@ export async function updateAdminTicket(input: {
       assigneeId: input.assigneeId?.trim() || null
     }
   });
-
-  if (input.adminComment?.trim()) {
-    await appendSupportTicketMessage({
-      authorRole: "ADMIN",
-      body: input.adminComment,
-      ticketId: input.ticketId
-    });
-  }
 
   await recordAdminAction({
     action: "ticket_updated",
