@@ -36,6 +36,7 @@ import {
   updateAdminRouter,
   updateAdminSubscription,
   updateAdminTicket,
+  updateAdminUser,
   updateRouterTemplateForUser
 } from "./portal.js";
 import { prisma } from "./prisma.js";
@@ -618,7 +619,15 @@ app.get("/api/admin/overview", async (request, reply) => {
     };
   }
 
-  return buildAdminOverview();
+  const query = z
+    .object({
+      q: z.string().trim().max(120).optional()
+    })
+    .parse(request.query);
+
+  return buildAdminOverview({
+    clientQuery: query.q
+  });
 });
 
 app.put("/api/admin/settings", async (request, reply) => {
@@ -769,6 +778,42 @@ app.post("/api/admin/routers/:routerId", async (request, reply) => {
     reply.code(400);
     return {
       error: error instanceof Error ? error.message : "Не удалось обновить роутер."
+    };
+  }
+});
+
+app.post("/api/admin/users/:userId", async (request, reply) => {
+  if (!isAuthorizedAdminRequest(request)) {
+    reply.code(401);
+    return {
+      error: "unauthorized"
+    };
+  }
+
+  const params = z.object({ userId: z.string().trim().min(1) }).parse(request.params);
+  const body = z
+    .object({
+      name: z.string().trim().max(120).optional(),
+      email: z.union([z.string().trim().email().max(320), z.literal("")]).optional(),
+      telegramUsername: z
+        .union([z.string().trim().regex(/^@?[A-Za-z0-9_]{2,64}$/).max(64), z.literal("")])
+        .optional(),
+      status: z.enum(["ACTIVE", "BLOCKED", "PENDING"])
+    })
+    .parse(request.body);
+
+  try {
+    return await updateAdminUser({
+      userId: params.userId,
+      name: body.name,
+      email: body.email,
+      telegramUsername: body.telegramUsername,
+      status: body.status
+    });
+  } catch (error) {
+    reply.code(400);
+    return {
+      error: error instanceof Error ? error.message : "Не удалось обновить клиента."
     };
   }
 });

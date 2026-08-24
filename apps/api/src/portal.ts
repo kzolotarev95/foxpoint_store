@@ -8,6 +8,7 @@ import {
   SubscriptionStatus,
   SupportType,
   TicketStatus,
+  UserStatus,
   type Prisma
 } from "@prisma/client";
 import {
@@ -651,6 +652,90 @@ function getLocalIdentity(
   identities: Array<{ provider: string; providerUserId: string }>
 ): string | null {
   return identities.find((identity) => identity.provider === "LOCAL")?.providerUserId ?? null;
+}
+
+type AdminUserWithRelations = {
+  id: string;
+  name: string | null;
+  status: UserStatus;
+  createdAt: Date;
+  lastActivityAt: Date | null;
+  balance: Prisma.Decimal | number | string;
+  routers: Array<{ id: string }>;
+  identities: Array<{
+    provider: string;
+    providerUserId: string;
+    email: string | null;
+  }>;
+};
+
+function mapAdminUserRecord(user: AdminUserWithRelations) {
+  const telegramIdentity = user.identities.find((identity) => identity.provider === "TELEGRAM");
+
+  return {
+    id: user.id,
+    name: user.name,
+    email: getPrimaryEmail(user.identities),
+    telegram: getTelegramIdentity(user.identities),
+    telegramUsername: telegramIdentity?.email?.replace(/^@+/, "") ?? null,
+    hasTelegramIdentity: Boolean(telegramIdentity),
+    status: user.status,
+    balance: toNumber(user.balance),
+    balanceLabel: formatMoney(toNumber(user.balance)),
+    routerCount: user.routers.length,
+    referralCode: buildReferralCode(user.id),
+    createdAt: user.createdAt.toISOString(),
+    lastActivityAt: user.lastActivityAt?.toISOString() ?? null
+  };
+}
+
+function normalizeAdminClientQuery(value: string | null | undefined): string {
+  return value?.trim().replace(/\s+/g, " ") ?? "";
+}
+
+function buildAdminClientSearchWhere(query: string): Prisma.UserWhereInput | undefined {
+  const normalized = normalizeAdminClientQuery(query);
+
+  if (!normalized) {
+    return undefined;
+  }
+
+  return {
+    OR: [
+      {
+        id: {
+          contains: normalized,
+          mode: "insensitive"
+        }
+      },
+      {
+        name: {
+          contains: normalized,
+          mode: "insensitive"
+        }
+      },
+      {
+        identities: {
+          some: {
+            OR: [
+              {
+                email: {
+                  contains: normalized,
+                  mode: "insensitive"
+                }
+              },
+              {
+                providerUserId: {
+                  contains: normalized,
+                  mode: "insensitive"
+                }
+              }
+            ]
+          }
+        }
+      }
+    ]
+  };
 }
 
 export async function buildSiteSnapshot() {
@@ -1654,22 +1739,36 @@ export async function handleYooMoneyCallback(payload: Record<string, string>) {
   });
 }
 
-export async function buildAdminOverview() {
-  const [settings, users, routers, subscriptions, orders, tickets, rewards, logs] = await Promise.all([
+export async function buildAdminOverview(input: { clientQuery?: string | null } = {}) {
+  const clientQuery = normalizeAdminClientQuery(input.clientQuery);
+  const clientSearchWhere = buildAdminClientSearchWhere(clientQuery);
+  const userRelationInclude = {
+    identities: true,
+    routers: {
+      select: {
+        id: true
+      }
+    }
+  } satisfies Prisma.UserInclude;
+  const [settings, users, clients, clientCount, routers, subscriptions, orders, tickets, rewards, logs] = await Promise.all([
     getAdminSettings(),
     prisma.user.findMany({
-      include: {
-        identities: true,
-        routers: {
-          select: {
-            id: true
-          }
-        }
-      },
+      include: userRelationInclude,
       orderBy: {
         createdAt: "desc"
       },
-      take: 12
+      take: 200
+    }),
+    prisma.user.findMany({
+      where: clientSearchWhere,
+      include: userRelationInclude,
+      orderBy: {
+        createdAt: "desc"
+      },
+      take: clientQuery ? 50 : 12
+    }),
+    prisma.user.count({
+      where: clientSearchWhere
     }),
     prisma.router.findMany({
       include: {
@@ -1746,6 +1845,8 @@ export async function buildAdminOverview() {
   ]);
 
   return {
+    clientCount,
+    clientQuery,
     stats: {
       users: await prisma.user.count(),
       routers: await prisma.router.count(),
@@ -1763,19 +1864,8 @@ export async function buildAdminOverview() {
       })
     },
     settings,
-    users: users.map((user) => ({
-      id: user.id,
-      name: user.name ?? "Без имени",
-      email: getPrimaryEmail(user.identities) ?? "Нет email",
-      telegram: getTelegramIdentity(user.identities),
-      status: user.status,
-      balance: toNumber(user.balance),
-      balanceLabel: formatMoney(toNumber(user.balance)),
-      routerCount: user.routers.length,
-      referralCode: buildReferralCode(user.id),
-      createdAt: user.createdAt.toISOString(),
-      lastActivityAt: user.lastActivityAt?.toISOString() ?? null
-    })),
+    users: users.map(mapAdminUserRecord),
+    clients: clients.map(mapAdminUserRecord),
     routers: routers.map((router) => ({
       id: router.id,
       displayName: router.displayName,
@@ -2104,6 +2194,139 @@ export async function updateAdminReward(input: {
 
   return {
     rewardId: updated.id
+  };
+}
+
+export async function updateAdminUser(input: {
+  email?: string | null;
+  name?: string | null;
+  status: UserStatus;
+  telegramUsername?: string | null;
+  userId: string;
+}) {
+  const user = await prisma.user.findUnique({
+    where: {
+      id: input.userId
+    },
+    include: {
+      identities: true
+    }
+  });
+
+  if (!user) {
+    throw new Error("Клиент не найден.");
+  }
+
+  const existingEmail = getPrimaryEmail(user.identities);
+  const existingTelegramIdentity = user.identities.find((identity) => identity.provider === "TELEGRAM") ?? null;
+  const existingTelegramUsername = existingTelegramIdentity?.email?.replace(/^@+/, "") ?? null;
+  const nextName = input.name?.trim() || null;
+  const nextEmail = input.email?.trim() ? input.email.trim().toLowerCase() : null;
+  const nextTelegramUsername = input.telegramUsername?.trim()
+    ? input.telegramUsername.trim().replace(/^@+/, "")
+    : null;
+
+  if (nextTelegramUsername && !existingTelegramIdentity) {
+    throw new Error("Нельзя указать Telegram без уже привязанного Telegram-аккаунта клиента.");
+  }
+
+  if (nextEmail) {
+    const conflictingIdentity = await prisma.authIdentity.findFirst({
+      where: {
+        provider: "EMAIL",
+        email: nextEmail,
+        NOT: {
+          userId: input.userId
+        }
+      }
+    });
+
+    if (conflictingIdentity) {
+      throw new Error("Этот email уже используется в другом аккаунте.");
+    }
+  }
+
+  const updated = await prisma.$transaction(async (tx) => {
+    const emailIdentity = user.identities.find((identity) => identity.provider === "EMAIL") ?? null;
+    let resolvedEmail = existingEmail;
+    let resolvedTelegramUsername = existingTelegramUsername;
+
+    if (nextEmail) {
+      if (emailIdentity) {
+        const identity = await tx.authIdentity.update({
+          where: {
+            id: emailIdentity.id
+          },
+          data: {
+            providerUserId: nextEmail,
+            email: nextEmail,
+            verifiedAt: emailIdentity.verifiedAt ?? new Date()
+          }
+        });
+        resolvedEmail = identity.email;
+      } else {
+        const identity = await tx.authIdentity.create({
+          data: {
+            userId: input.userId,
+            provider: "EMAIL",
+            providerUserId: nextEmail,
+            email: nextEmail,
+            verifiedAt: new Date()
+          }
+        });
+        resolvedEmail = identity.email;
+      }
+    }
+
+    if (existingTelegramIdentity) {
+      const identity = await tx.authIdentity.update({
+        where: {
+          id: existingTelegramIdentity.id
+        },
+        data: {
+          email: nextTelegramUsername
+        }
+      });
+      resolvedTelegramUsername = identity.email?.replace(/^@+/, "") ?? null;
+    }
+
+    const updatedUser = await tx.user.update({
+      where: {
+        id: input.userId
+      },
+      data: {
+        name: nextName,
+        status: input.status
+      }
+    });
+
+    return {
+      email: resolvedEmail,
+      telegramUsername: resolvedTelegramUsername,
+      user: updatedUser
+    };
+  });
+
+  await recordAdminAction({
+    action: "user_updated",
+    entityType: "User",
+    entityId: updated.user.id,
+    beforeData: {
+      name: user.name,
+      email: existingEmail,
+      telegramUsername: existingTelegramUsername,
+      status: user.status
+    },
+    afterData: {
+      name: updated.user.name,
+      email: updated.email,
+      telegramUsername: updated.telegramUsername,
+      status: updated.user.status
+    }
+  });
+
+  return {
+    userId: updated.user.id
   };
 }
 

@@ -2156,6 +2156,28 @@ textarea {
   margin-top: 0.15rem;
 }
 
+.adminClientSearchForm {
+  display: grid;
+  gap: 0.8rem;
+  width: min(100%, 28rem);
+}
+
+.adminClientSearchForm .ctaRow {
+  justify-content: flex-end;
+}
+
+.adminClientSearchMeta {
+  margin: -0.2rem 0 0;
+}
+
+.adminClientRecord {
+  gap: 1rem;
+}
+
+.adminClientStatsGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 .adminDashboardShell .contentStack > .panel + .panel {
   margin-top: 0;
 }

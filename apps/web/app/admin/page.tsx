@@ -20,6 +20,7 @@ type AdminSettingRecord = {
 };
 
 type PageSearchParams = Promise<Record<string, string | string[] | undefined>>;
+type AdminUserRecord = AdminOverview["users"][number];
 
 function encodeMessage(message: string): string {
   return encodeURIComponent(message);
@@ -31,6 +32,28 @@ function getSingleParam(value: string | string[] | undefined): string | null {
   }
 
   return Array.isArray(value) ? value[0] ?? null : null;
+}
+
+function appendMessageToPath(path: string, key: "error" | "success", message: string): string {
+  const target = new URL(path.startsWith("/") ? path : "/admin", "http://localhost");
+  target.searchParams.set(key, message);
+  return `${target.pathname}${target.search}${target.hash}`;
+}
+
+function getAdminUserName(user: Pick<AdminUserRecord, "name">): string {
+  return user.name?.trim() || "Без имени";
+}
+
+function getAdminUserEmail(user: Pick<AdminUserRecord, "email">): string {
+  return user.email?.trim() || "Нет email";
+}
+
+function getAdminUserTelegramLabel(user: Pick<AdminUserRecord, "telegram" | "hasTelegramIdentity">): string {
+  if (user.telegram) {
+    return user.telegram;
+  }
+
+  return user.hasTelegramIdentity ? "Привязан без username" : "Не привязан";
 }
 
 function getFieldInputMode(input: AdminSettingRecord["input"]) {
@@ -385,6 +408,7 @@ async function submitAdminMutation(input: {
   body: Record<string, boolean | string | undefined>;
   fallbackError: string;
   path: string;
+  redirectTo?: string;
   successMessage: string;
 }) {
   const response = await fetch(`${getApiBaseUrl()}${input.path}`, {
@@ -403,14 +427,14 @@ async function submitAdminMutation(input: {
 
   if (!response.ok) {
     const errorMessage = await parseAdminError(response, input.fallbackError);
-    redirect(`/admin?error=${encodeMessage(errorMessage)}`);
+    redirect(appendMessageToPath(input.redirectTo ?? "/admin", "error", errorMessage));
   }
 
   revalidatePath("/admin");
   revalidatePath("/cabinet");
   revalidatePath("/cabinet/profile");
   revalidatePath("/cabinet/support");
-  redirect(`/admin?success=${encodeMessage(input.successMessage)}`);
+  redirect(appendMessageToPath(input.redirectTo ?? "/admin", "success", input.successMessage));
 }
 
 async function saveSettingsAction(formData: FormData) {
@@ -546,6 +570,25 @@ async function updateRewardAction(formData: FormData) {
   });
 }
 
+async function updateUserAction(formData: FormData) {
+  "use server";
+
+  const userId = String(formData.get("userId") ?? "").trim();
+  const returnTo = String(formData.get("returnTo") ?? "/admin#clients").trim() || "/admin#clients";
+  await submitAdminMutation({
+    path: `/api/admin/users/${userId}`,
+    fallbackError: "Не удалось обновить клиента.",
+    successMessage: "Данные клиента обновлены.",
+    redirectTo: returnTo,
+    body: {
+      name: String(formData.get("name") ?? "").trim() || undefined,
+      email: String(formData.get("email") ?? "").trim(),
+      telegramUsername: String(formData.get("telegramUsername") ?? "").trim(),
+      status: String(formData.get("status") ?? "ACTIVE")
+    }
+  });
+}
+
 async function logoutAction() {
   "use server";
 
@@ -559,9 +602,10 @@ async function logoutAction() {
 
 export default async function AdminPage(props: { searchParams: PageSearchParams }) {
   const searchParams = await props.searchParams;
+  const clientQuery = getSingleParam(searchParams.q)?.trim() ?? "";
   const [settingsPayload, overview] = await Promise.all([
     fetchAdminApi<{ settings: AdminSettingRecord[] }>("/api/admin/settings"),
-    fetchAdminApi<AdminOverview>("/api/admin/overview")
+    fetchAdminApi<AdminOverview>(`/api/admin/overview${clientQuery ? `?q=${encodeURIComponent(clientQuery)}` : ""}`)
   ]);
 
   const settingsByGroup = settingsPayload.settings.reduce<Record<string, AdminSettingRecord[]>>((groups, setting) => {
@@ -576,6 +620,7 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
   const appLoginUrl = appUrlSetting ? `${appUrlSetting.value.replace(/\/+$/, "")}/login` : null;
   const successMessage = getSingleParam(searchParams.success);
   const errorMessage = getSingleParam(searchParams.error);
+  const clientReturnTo = overview.clientQuery ? `/admin?q=${encodeURIComponent(overview.clientQuery)}#clients` : "/admin#clients";
   const adminNavItems = [
     { href: "#overview", label: "Сводка", icon: <DashboardIcon /> },
     { href: "#assign", label: "Привязать роутер", icon: <PlugIcon /> },
@@ -681,7 +726,7 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                   <option value="">Выберите клиента</option>
                   {overview.users.map((user) => (
                     <option key={user.id} value={user.id}>
-                      {user.name} · {user.email}
+                      {getAdminUserName(user)} · {getAdminUserEmail(user)}
                     </option>
                   ))}
                 </select>
@@ -822,43 +867,110 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
 
         <section id="clients" className="panel sectionPanel adminSectionPanel">
           <span className="pill">Клиенты</span>
-          <h2 className="adminSectionTitle">Последние профили</h2>
+          <div className="sectionHeader">
+            <div>
+              <h2 className="adminSectionTitle">База клиентов и поиск</h2>
+              <p className="helperText">
+                Ищите по имени, email, Telegram или ID клиента и редактируйте контакты прямо отсюда.
+              </p>
+            </div>
+            <form action="/admin" className="adminClientSearchForm">
+              <input className="textInput" defaultValue={overview.clientQuery} name="q" placeholder="Поиск по базе клиентов" type="search" />
+              <div className="ctaRow">
+                <button className="primaryButton" type="submit">
+                  Найти
+                </button>
+                {overview.clientQuery ? (
+                  <Link className="secondaryButton" href="/admin#clients">
+                    Сбросить
+                  </Link>
+                ) : null}
+              </div>
+            </form>
+          </div>
+          <p className="helperText adminClientSearchMeta">
+            {overview.clientQuery
+              ? `Найдено клиентов: ${overview.clientCount}. Показаны первые ${overview.clients.length}.`
+              : `Показаны последние ${overview.clients.length} клиентов из ${overview.clientCount}.`}
+          </p>
           <div className="contentStack">
-            {overview.users.map((user) => (
-              <article key={user.id} className="panel adminRecordCard">
+            {overview.clients.length ? (
+              overview.clients.map((user) => (
+              <form key={user.id} action={updateUserAction} className="panel adminRecordCard adminClientRecord">
+                <input name="userId" type="hidden" value={user.id} />
+                <input name="returnTo" type="hidden" value={clientReturnTo} />
+                <div className="sectionHeader">
+                  <div>
+                    <h3 className="adminSectionTitle">
+                      {getAdminUserName(user)} · {getAdminUserEmail(user)}
+                    </h3>
+                    <p className="helperText">
+                      ID: {user.id} · Код: {user.referralCode} · Регистрация: {formatDate(user.createdAt)}
+                    </p>
+                  </div>
+                </div>
                 <div className="settingsGrid">
-                  <div className="fieldStack">
-                    <span className="fieldLabel">Клиент</span>
-                    <strong>
-                      {user.name} · {user.email}
-                    </strong>
-                  </div>
-                  <div className="fieldStack">
+                  <label className="fieldStack">
+                    <span className="fieldLabel">Имя</span>
+                    <input className="textInput" defaultValue={user.name ?? ""} name="name" placeholder="Имя клиента" type="text" />
+                  </label>
+                  <label className="fieldStack">
+                    <span className="fieldLabel">Email</span>
+                    <input className="textInput" defaultValue={user.email ?? ""} name="email" placeholder="client@example.com" type="email" />
+                  </label>
+                  <label className="fieldStack">
+                    <span className="fieldLabel">Telegram username</span>
+                    <input
+                      className="textInput"
+                      defaultValue={user.telegramUsername ?? ""}
+                      name="telegramUsername"
+                      placeholder={user.hasTelegramIdentity ? "username" : "Только для уже привязанного Telegram"}
+                      type="text"
+                    />
+                  </label>
+                  <label className="fieldStack">
                     <span className="fieldLabel">Статус</span>
-                    <strong>{getAdminUserStatusLabel(user.status)}</strong>
-                  </div>
-                  <div className="fieldStack">
-                    <span className="fieldLabel">Баланс</span>
-                    <strong>{user.balanceLabel}</strong>
-                  </div>
+                    <select className="textInput" defaultValue={user.status} name="status">
+                      <option value="ACTIVE">Активен</option>
+                      <option value="BLOCKED">Заблокирован</option>
+                      <option value="PENDING">Ожидает</option>
+                    </select>
+                  </label>
+                </div>
+                <div className="settingsGrid adminClientStatsGrid">
                   <div className="fieldStack">
                     <span className="fieldLabel">Telegram</span>
-                    <strong>{user.telegram ?? "Не привязан"}</strong>
+                    <strong>{getAdminUserTelegramLabel(user)}</strong>
                   </div>
                   <div className="fieldStack">
                     <span className="fieldLabel">Роутеров</span>
                     <strong>{user.routerCount}</strong>
                   </div>
                   <div className="fieldStack">
+                    <span className="fieldLabel">Баланс</span>
+                    <strong>{user.balanceLabel}</strong>
+                  </div>
+                  <div className="fieldStack">
                     <span className="fieldLabel">Последняя активность</span>
                     <strong>{formatDateTime(user.lastActivityAt)}</strong>
                   </div>
                 </div>
-                <p className="helperText" style={{ marginTop: "12px" }}>
-                  ID: {user.id} · Код: {user.referralCode} · Регистрация: {formatDate(user.createdAt)}
+                <p className="helperText">
+                  Telegram можно менять только у уже привязанного аккаунта. Пустой email не удаляет текущую email-привязку.
                 </p>
-              </article>
-            ))}
+                <div className="ctaRow">
+                  <button className="primaryButton" type="submit">
+                    Сохранить клиента
+                  </button>
+                </div>
+              </form>
+            ))
+            ) : (
+              <div className="panel adminInfoCard">
+                <strong>Совпадений не найдено.</strong>
+                <p className="helperText">Попробуй поиск по имени, email, Telegram username или ID клиента.</p>
+              </div>
+            )}
           </div>
         </section>
 
@@ -882,10 +994,10 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                     <span className="fieldLabel">Владелец</span>
                     <select className="textInput" defaultValue={router.ownerId} name="ownerUserId">
                       {overview.users.map((user) => (
-                        <option key={user.id} value={user.id}>
-                          {user.name} · {user.email}
-                        </option>
-                      ))}
+                      <option key={user.id} value={user.id}>
+                          {getAdminUserName(user)} · {getAdminUserEmail(user)}
+                      </option>
+                    ))}
                     </select>
                   </label>
                   <label className="fieldStack">

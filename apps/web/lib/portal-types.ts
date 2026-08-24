@@ -170,6 +170,8 @@ export type ClientOverview = {
 };
 
 export type AdminOverview = {
+  clientCount: number;
+  clientQuery: string;
   stats: {
     users: number;
     routers: number;
@@ -188,9 +190,26 @@ export type AdminOverview = {
   }>;
   users: Array<{
     id: string;
-    name: string;
-    email: string;
+    name: string | null;
+    email: string | null;
     telegram: string | null;
+    telegramUsername: string | null;
+    hasTelegramIdentity: boolean;
+    status: string;
+    balance: number;
+    balanceLabel: string;
+    routerCount: number;
+    referralCode: string;
+    createdAt: string;
+    lastActivityAt: string | null;
+  }>;
+  clients: Array<{
+    id: string;
+    name: string | null;
+    email: string | null;
+    telegram: string | null;
+    telegramUsername: string | null;
+    hasTelegramIdentity: boolean;
     status: string;
     balance: number;
     balanceLabel: string;
