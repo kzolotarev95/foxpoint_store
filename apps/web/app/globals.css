@@ -3256,16 +3256,14 @@ select.textInput option {
 }
 
 .clientRouterHeading p.is-active,
-.clientRouterControlState.is-active,
-.clientRouterStatusValue.is-active {
+.clientRouterControlState.is-active {
   border-color: rgba(104, 224, 132, 0.32);
   background: rgba(84, 211, 113, 0.14);
   color: #8ff3a2;
 }
 
 .clientRouterHeading p.is-pending,
-.clientRouterControlState.is-pending,
-.clientRouterStatusValue.is-pending {
+.clientRouterControlState.is-pending {
   border-color: rgba(255, 191, 89, 0.34);
   background: rgba(255, 181, 72, 0.14);
   color: #ffd27a;
