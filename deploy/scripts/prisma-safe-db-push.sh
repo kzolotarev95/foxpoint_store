@@ -22,9 +22,11 @@ if [ -z "$DATABASE_URL" ]; then
   exit 1
 fi
 
+PSQL_DATABASE_URL="${DATABASE_URL%%\?*}"
+
 cd "$APP_DIR"
 
-psql "$DATABASE_URL" -v ON_ERROR_STOP=1 <<'SQL'
+psql "$PSQL_DATABASE_URL" -v ON_ERROR_STOP=1 <<'SQL'
 DO $$
 BEGIN
   IF EXISTS (
