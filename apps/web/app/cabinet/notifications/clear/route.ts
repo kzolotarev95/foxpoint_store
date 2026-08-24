@@ -86,9 +86,9 @@ export async function POST(request: NextRequest) {
       request,
       returnTo,
       "error",
-      await parseApiError(response, "Не удалось очистить уведомления.")
+      await parseApiError(response, "Не удалось отметить уведомления прочитанными.")
     );
   }
 
-  return redirectToTarget(request, returnTo, "success", "Уведомления очищены.");
+  return redirectToTarget(request, returnTo, "success", "Уведомления отмечены как прочитанные.");
 }

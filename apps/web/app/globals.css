@@ -616,6 +616,14 @@ textarea {
   justify-content: flex-end;
 }
 
+.portalNotificationFooterNote {
+  max-width: 18rem;
+  color: rgba(219, 208, 236, 0.68);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  text-align: right;
+}
+
 .portalNotificationClear {
   min-height: 2.35rem;
   padding: 0.55rem 0.95rem;

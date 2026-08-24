@@ -1122,9 +1122,9 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                 <div className="portalNotificationHeader">
                   <div className="portalNotificationHeading">
                     <strong>Уведомления и входы</strong>
-                    <span>Последние события по аккаунту, платежам, поддержке и сессиям.</span>
+                    <span>Непрочитанные уведомления и последние события по аккаунту.</span>
                   </div>
-                  <span className="portalNotificationCount">{notificationFeed.length}</span>
+                  <span className="portalNotificationCount">{unreadNotificationCount}</span>
                 </div>
                 <div className="portalNotificationList">
                   {notificationFeed.length ? (
@@ -1149,10 +1149,14 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                   )}
                 </div>
                 <form action="/cabinet/notifications/clear" className="portalNotificationFooter" method="post">
-                  <input name="returnTo" type="hidden" value="/cabinet/profile" />
-                  <button className="secondaryButton portalGhostButton portalNotificationClear" type="submit">
-                    Очистить уведомления
-                  </button>
+                  <input name="returnTo" type="hidden" value={getCabinetTabHref(props.activeTab)} />
+                  {unreadNotificationCount ? (
+                    <button className="secondaryButton portalGhostButton portalNotificationClear" type="submit">
+                      Отметить прочитанными
+                    </button>
+                  ) : (
+                    <span className="portalNotificationFooterNote">Новых уведомлений нет. История событий остаётся доступной здесь.</span>
+                  )}
                 </form>
               </div>
             </details>
