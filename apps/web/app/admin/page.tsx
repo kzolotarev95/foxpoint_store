@@ -750,6 +750,32 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
   const clientReturnTo = overview.clientQuery ? `/admin?q=${encodeURIComponent(overview.clientQuery)}#clients` : "/admin#clients";
   const newTicketCount = getAdminTicketBadgeCount(overview);
   const latestNewTicketHref = getLatestNewTicketHref(overview);
+  const dashboardCards = [
+    {
+      description: "Открыть базу клиентов",
+      href: "#clients",
+      label: "Клиентов",
+      value: overview.stats.users
+    },
+    {
+      description: "Перейти к роутерам",
+      href: "#routers",
+      label: "Роутеров",
+      value: overview.stats.routers
+    },
+    {
+      description: "Открыть подписки",
+      href: "#subscriptions",
+      label: "Активных подписок",
+      value: overview.stats.activeSubscriptions
+    },
+    {
+      description: "Перейти к тикетам",
+      href: "#tickets",
+      label: "Открытых тикетов",
+      value: overview.stats.openTickets
+    }
+  ] as const;
   const adminNavItems = [
     { href: "#overview", label: "Сводка", icon: <DashboardIcon /> },
     { href: "#assign", label: "Привязать роутер", icon: <PlugIcon /> },
@@ -814,30 +840,15 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
             </div>
           </div>
           <div className="miniGrid adminOverviewGrid">
-            <article className="metricCard">
-              <div className="muted">Клиентов</div>
-              <div className="metricValue" style={{ fontFamily: "var(--font-heading, sans-serif)" }}>
-                {overview.stats.users}
-              </div>
-            </article>
-            <article className="metricCard">
-              <div className="muted">Роутеров</div>
-              <div className="metricValue" style={{ fontFamily: "var(--font-heading, sans-serif)" }}>
-                {overview.stats.routers}
-              </div>
-            </article>
-            <article className="metricCard">
-              <div className="muted">Активных подписок</div>
-              <div className="metricValue" style={{ fontFamily: "var(--font-heading, sans-serif)" }}>
-                {overview.stats.activeSubscriptions}
-              </div>
-            </article>
-            <article className="metricCard">
-              <div className="muted">Открытых тикетов</div>
-              <div className="metricValue" style={{ fontFamily: "var(--font-heading, sans-serif)" }}>
-                {overview.stats.openTickets}
-              </div>
-            </article>
+            {dashboardCards.map((card) => (
+              <Link key={card.label} className="metricCard adminDashboardMetricCard" href={card.href}>
+                <div className="muted">{card.label}</div>
+                <div className="metricValue" style={{ fontFamily: "var(--font-heading, sans-serif)" }}>
+                  {card.value}
+                </div>
+                <span className="helperText adminDashboardMetricHint">{card.description}</span>
+              </Link>
+            ))}
           </div>
         </article>
 

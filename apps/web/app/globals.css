@@ -2280,6 +2280,21 @@ textarea {
   gap: 0.3rem;
 }
 
+.adminDashboardMetricCard {
+  display: flex;
+  flex-direction: column;
+  min-height: 8.25rem;
+  text-decoration: none;
+  color: inherit;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.adminDashboardMetricCard:focus-visible {
+  outline: none;
+  border-color: rgba(255, 183, 77, 0.8);
+  box-shadow: 0 0 0 3px rgba(255, 183, 77, 0.18);
+}
+
 .adminDashboardShell .metricValue {
   font-size: clamp(1.18rem, 2vw, 1.6rem);
   line-height: 1;
@@ -2288,6 +2303,10 @@ textarea {
 .adminDashboardShell .metricCard .muted {
   font-size: 0.76rem;
   line-height: 1.35;
+}
+
+.adminDashboardMetricHint {
+  margin-top: auto;
 }
 
 .adminSectionTitle {
