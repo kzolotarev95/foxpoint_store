@@ -102,6 +102,7 @@ model User {
   status         UserStatus           @default(PENDING)
   createdAt      DateTime             @default(now())
   lastActivityAt DateTime?
+  notificationFeedSeenAt DateTime?
   notificationFeedClearedAt DateTime?
   balance        Decimal              @default(0) @db.Decimal(12, 2)
   routers        Router[]

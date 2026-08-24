@@ -578,11 +578,17 @@ function getNotificationTypeMeta(type: string): Pick<NotificationFeedItem, "deta
 function buildNotificationFeed(
   overview: ClientOverview,
   sessions: ProfileSessionViewItem[],
-  clearedAt: string | null
+  clearedAt: string | null,
+  seenAt: string | null
 ): NotificationFeedItem[] {
   const clearedAtDate = parseDateValue(clearedAt);
+  const seenAtDate = parseDateValue(seenAt);
+  const seenThreshold = seenAtDate && clearedAtDate
+    ? new Date(Math.max(seenAtDate.getTime(), clearedAtDate.getTime()))
+    : seenAtDate ?? clearedAtDate;
   const systemNotifications = overview.notifications.map((notification) => {
     const meta = getNotificationTypeMeta(notification.type);
+    const createdAt = parseDateValue(notification.createdAt);
 
     return {
       createdAt: notification.createdAt,
@@ -590,40 +596,47 @@ function buildNotificationFeed(
       href: meta.href,
       icon: meta.icon,
       id: `notification-${notification.id}`,
-      isUnread: !notification.readAt,
+      isUnread: createdAt ? (seenThreshold ? createdAt.getTime() > seenThreshold.getTime() : true) : false,
       meta: formatRelativeDateTime(notification.createdAt),
       title: meta.title
     };
   });
 
-  const sessionNotifications = sessions.slice(0, 6).map((session) => ({
-    createdAt: session.lastSeenAt,
-    detail: `${session.deviceLabel} · ${session.geoLabel} · ${session.ipLabel}`,
-    href: "/cabinet/profile",
-    icon: session.icon,
-    id: `session-${session.id}`,
-    isUnread: false,
-    meta: `Активность ${session.activityLabel}`,
-    title: session.isCurrent ? "Текущее устройство в сети" : "Вход в кабинет"
-  }));
+  const sessionNotifications = sessions.slice(0, 6).map((session) => {
+    const createdAt = parseDateValue(session.lastSeenAt);
+
+    return {
+      createdAt: session.lastSeenAt,
+      detail: `${session.deviceLabel} · ${session.geoLabel} · ${session.ipLabel}`,
+      href: "/cabinet/profile",
+      icon: session.icon,
+      id: `session-${session.id}`,
+      isUnread: createdAt ? (seenThreshold ? createdAt.getTime() > seenThreshold.getTime() : true) : false,
+      meta: `Активность ${session.activityLabel}`,
+      title: session.isCurrent ? "Текущее устройство в сети" : "Вход в кабинет"
+    };
+  });
 
   const paymentNotifications = overview.payments.slice(0, 4).map((payment) => {
     const paymentMeta = getPaymentStatusMeta(payment.status);
+    const paymentDate = payment.paidAt ?? payment.createdAt;
+    const createdAt = parseDateValue(paymentDate);
 
     return {
-      createdAt: payment.paidAt ?? payment.createdAt,
+      createdAt: paymentDate,
       detail: `${payment.amountLabel} · ${payment.providerLabel}${payment.routerName ? ` · ${payment.routerName}` : ""}`,
       href: "/cabinet/payments",
       icon: <PaymentIcon />,
       id: `payment-${payment.id}`,
-      isUnread: false,
-      meta: formatRelativeDateTime(payment.paidAt ?? payment.createdAt),
+      isUnread: createdAt ? (seenThreshold ? createdAt.getTime() > seenThreshold.getTime() : true) : false,
+      meta: formatRelativeDateTime(paymentDate),
       title: `Платеж: ${paymentMeta.label}`
     };
   });
 
   const supportNotifications = overview.tickets.slice(0, 4).map((ticket) => {
     const ticketMeta = getSupportTicketStatusMeta(ticket.status);
+    const createdAt = parseDateValue(ticket.updatedAt);
 
     return {
       createdAt: ticket.updatedAt,
@@ -631,22 +644,27 @@ function buildNotificationFeed(
       href: "/cabinet/support",
       icon: <SupportIcon />,
       id: `ticket-${ticket.id}`,
-      isUnread: false,
+      isUnread: createdAt ? (seenThreshold ? createdAt.getTime() > seenThreshold.getTime() : true) : false,
       meta: formatRelativeDateTime(ticket.updatedAt),
       title: `Поддержка #${getSupportTicketDisplayCode(ticket.id)}`
     };
   });
 
-  const orderNotifications = overview.orders.slice(0, 3).map((order) => ({
-    createdAt: order.receivedAt ?? order.createdAt,
-    detail: `${order.totalPriceLabel} · ${getOrderStatusLabel(order.status)}`,
-    href: "/cabinet/routers",
-    icon: <CartIcon />,
-    id: `order-${order.id}`,
-    isUnread: false,
-    meta: formatRelativeDateTime(order.receivedAt ?? order.createdAt),
-    title: "Заказ роутера"
-  }));
+  const orderNotifications = overview.orders.slice(0, 3).map((order) => {
+    const orderDate = order.receivedAt ?? order.createdAt;
+    const createdAt = parseDateValue(orderDate);
+
+    return {
+      createdAt: orderDate,
+      detail: `${order.totalPriceLabel} · ${getOrderStatusLabel(order.status)}`,
+      href: "/cabinet/routers",
+      icon: <CartIcon />,
+      id: `order-${order.id}`,
+      isUnread: createdAt ? (seenThreshold ? createdAt.getTime() > seenThreshold.getTime() : true) : false,
+      meta: formatRelativeDateTime(orderDate),
+      title: "Заказ роутера"
+    };
+  });
 
   return [...systemNotifications, ...sessionNotifications, ...paymentNotifications, ...supportNotifications, ...orderNotifications]
     .filter((item) => {
@@ -1171,11 +1189,16 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
       ...(await getProfileSessionMeta(session))
     }))
   );
-  const notificationFeed = buildNotificationFeed(overview, profileSessions, overview.profile.notificationFeedClearedAt);
+  const notificationFeed = buildNotificationFeed(
+    overview,
+    profileSessions,
+    overview.profile.notificationFeedClearedAt,
+    overview.profile.notificationFeedSeenAt
+  );
   const notificationFeedCount = notificationFeed.length;
-  const unreadNotificationCount = overview.stats.unreadNotificationCount;
-  const notificationBellBadge = unreadNotificationCount > 99 ? "+99" : `+${unreadNotificationCount}`;
-  const notificationHeaderCount = unreadNotificationCount > 0 ? unreadNotificationCount : notificationFeedCount;
+  const newNotificationFeedCount = notificationFeed.filter((item) => item.isUnread).length;
+  const notificationBellBadge = newNotificationFeedCount > 99 ? "+99" : `+${newNotificationFeedCount}`;
+  const notificationHeaderCount = newNotificationFeedCount > 0 ? newNotificationFeedCount : notificationFeedCount;
   const primaryPaymentRouter = getPrimaryPaymentRouter(overview.routers);
   const paymentDeadline = primaryPaymentRouter?.currentSubscription?.endAt ?? primaryPaymentRouter?.trial?.endAt ?? null;
   const paymentDaysRemaining =
@@ -1205,11 +1228,11 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
             </Link>
             <details className="portalNotifications">
               <summary
-                className={unreadNotificationCount ? "portalBellButton hasAlert" : "portalBellButton"}
+                className={newNotificationFeedCount ? "portalBellButton hasAlert" : "portalBellButton"}
                 aria-label="Открыть уведомления"
               >
                 <BellIcon />
-                {unreadNotificationCount ? <span className="portalBellBadge">{notificationBellBadge}</span> : null}
+                {newNotificationFeedCount ? <span className="portalBellBadge">{notificationBellBadge}</span> : null}
               </summary>
               <div className="portalNotificationPopover">
                 <div className="portalNotificationHeader">
@@ -1242,9 +1265,9 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                   )}
                 </div>
                 <div className="portalNotificationFooter">
-                  {unreadNotificationCount || notificationFeedCount ? (
+                  {newNotificationFeedCount || notificationFeedCount ? (
                     <div className="portalNotificationFooterActions">
-                      {unreadNotificationCount ? (
+                      {newNotificationFeedCount ? (
                         <form action="/cabinet/notifications/read" method="post">
                           <input name="returnTo" type="hidden" value={getCabinetTabHref(props.activeTab)} />
                           <button className="secondaryButton portalGhostButton portalNotificationRead" type="submit">

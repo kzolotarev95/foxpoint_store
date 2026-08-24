@@ -8,6 +8,7 @@ export type ClientOverview = {
     localLogin: string | null;
     createdAt: string;
     lastActivityAt: string | null;
+    notificationFeedSeenAt: string | null;
     notificationFeedClearedAt: string | null;
     status: string;
     balance: number;

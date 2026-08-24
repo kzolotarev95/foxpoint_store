@@ -995,6 +995,7 @@ export async function buildClientOverview(input: { currentSessionId?: string; us
       localLogin,
       createdAt: user.createdAt.toISOString(),
       lastActivityAt: user.lastActivityAt?.toISOString() ?? null,
+      notificationFeedSeenAt: user.notificationFeedSeenAt?.toISOString() ?? null,
       notificationFeedClearedAt: user.notificationFeedClearedAt?.toISOString() ?? null,
       status: user.status,
       balance: toNumber(user.balance),
@@ -1201,14 +1202,27 @@ export async function createRouterOrderForUser(input: {
 
 export async function markClientNotificationsRead(input: { userId: string }) {
   const readAt = new Date();
-  const result = await prisma.notification.updateMany({
-    where: {
-      userId: input.userId,
-      readAt: null
-    },
-    data: {
-      readAt
-    }
+  const result = await prisma.$transaction(async (tx) => {
+    const notifications = await tx.notification.updateMany({
+      where: {
+        userId: input.userId,
+        readAt: null
+      },
+      data: {
+        readAt
+      }
+    });
+
+    await tx.user.update({
+      where: {
+        id: input.userId
+      },
+      data: {
+        notificationFeedSeenAt: readAt
+      }
+    });
+
+    return notifications;
   });
 
   return {
@@ -1235,6 +1249,7 @@ export async function clearClientNotificationFeed(input: { userId: string }) {
         id: input.userId
       },
       data: {
+        notificationFeedSeenAt: clearedAt,
         notificationFeedClearedAt: clearedAt
       }
     });
