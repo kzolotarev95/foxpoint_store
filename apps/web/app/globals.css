@@ -4662,7 +4662,7 @@ select.textInput option {
   align-items: center;
   justify-content: center;
   flex-wrap: wrap;
-  gap: 0.45rem;
+  gap: 0.3rem;
   width: 100%;
   text-align: center;
 }
@@ -4680,6 +4680,7 @@ select.textInput option {
 }
 
 .clientRouterControlOptionCardInline .clientRouterControlOptionHint {
+  font-size: 0.84rem;
   line-height: 1.35;
 }
 

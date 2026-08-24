@@ -1422,7 +1422,9 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                   <label className="clientRouterControlOptionCard clientRouterControlOptionCardInline">
                     <span className="clientRouterControlOptionCopy">
                       <span className="clientRouterControlOptionTitle">Расширенный доступ</span>
-                      <span className="clientRouterControlOptionHint">Добавит удалённый доступ к роутеру за {overview.catalog.extendedAccessPrice} ₽.</span>
+                      <span className="clientRouterControlOptionHint">
+                        Добавит удалённый доступ к роутеру за {overview.catalog.extendedAccessPrice}{"\u00A0₽."}
+                      </span>
                     </span>
                     <span className="clientRouterControlCheck">
                       <input defaultChecked={router.savedTemplate.accessEnabled} name="accessEnabled" type="checkbox" />
