@@ -296,7 +296,7 @@ function getSupportTicketMessageAuthorLabel(authorRole: string): string {
   return authorRole === "ADMIN" ? "Поддержка" : "Вы";
 }
 
-function renderSupportTicketThread(ticket: SupportTicketItem) {
+function renderSupportTicketThread(ticket: SupportTicketItem, openTicketId: string | null) {
   const statusMeta = getSupportTicketStatusMeta(ticket.status);
 
   return (
@@ -304,7 +304,7 @@ function renderSupportTicketThread(ticket: SupportTicketItem) {
       key={ticket.id}
       className="clientSupportThreadCard"
       id={`ticket-${ticket.id}`}
-      open={ticket.status === "OPEN"}
+      open={ticket.status === "OPEN" || ticket.id === openTicketId}
     >
       <summary className="clientSupportThreadSummary">
         <div className="clientSupportThreadSummaryBody">
@@ -1219,6 +1219,7 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
   const nearestDeadline = getNearestSubscriptionEnd(overview.routers);
   const userInitials = buildUserInitials(overview.profile.name);
   const supportTickets = overview.tickets;
+  const defaultOpenSupportTicketId = successMessage === "Обращение создано." ? supportTickets[0]?.id ?? null : null;
   const isOverviewTab = props.activeTab === "overview";
   const isRoutersTab = props.activeTab === "routers";
   const isSupportTab = props.activeTab === "support";
@@ -1670,7 +1671,7 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
 
             {supportTickets.length ? (
               <div className="clientSupportThreadList">
-                {supportTickets.map((ticket) => renderSupportTicketThread(ticket))}
+                {supportTickets.map((ticket) => renderSupportTicketThread(ticket, defaultOpenSupportTicketId))}
               </div>
             ) : (
               <div className="clientSupportEmptyState">

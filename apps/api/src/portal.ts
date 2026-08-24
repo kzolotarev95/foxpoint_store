@@ -1438,19 +1438,32 @@ export async function createSupportTicketForUser(input: {
   }
 
   const description = input.description.trim();
-  const ticket = await prisma.supportTicket.create({
-    data: {
-      userId: input.userId,
-      routerId: input.routerId ?? null,
-      category: input.category.trim(),
-      description,
-      messages: {
-        create: {
-          authorRole: "CLIENT",
-          body: description
+  const ticket = await prisma.$transaction(async (tx) => {
+    const createdTicket = await tx.supportTicket.create({
+      data: {
+        userId: input.userId,
+        routerId: input.routerId ?? null,
+        category: input.category.trim(),
+        description,
+        status: "IN_PROGRESS",
+        messages: {
+          create: {
+            authorRole: "CLIENT",
+            body: description
+          }
         }
       }
-    }
+    });
+
+    await tx.supportTicketMessage.create({
+      data: {
+        authorRole: "ADMIN",
+        body: "Ожидайте оператора.",
+        ticketId: createdTicket.id
+      }
+    });
+
+    return createdTicket;
   });
 
   return {
