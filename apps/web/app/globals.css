@@ -4067,6 +4067,7 @@ select.textInput option {
   grid-template-columns: 5.2rem minmax(0, 1fr);
   gap: 1.15rem;
   align-items: center;
+  justify-items: center;
   padding: 1.6rem;
   background:
     radial-gradient(circle at top left, rgba(160, 84, 255, 0.22), transparent 42%),
@@ -4097,6 +4098,8 @@ select.textInput option {
 .clientPaymentsServiceBody {
   display: grid;
   gap: 0.6rem;
+  justify-items: center;
+  text-align: center;
 }
 
 .clientPaymentsServiceBody h2 {
@@ -4124,6 +4127,7 @@ select.textInput option {
   flex-wrap: wrap;
   gap: 0.75rem;
   margin-top: 0.3rem;
+  justify-content: center;
 }
 
 .clientPaymentsMethodGrid form {
@@ -4175,6 +4179,8 @@ select.textInput option {
   display: grid;
   gap: 0.7rem;
   align-content: start;
+  justify-items: center;
+  text-align: center;
   padding: 1.4rem;
   background:
     radial-gradient(circle at 20% 12%, rgba(170, 88, 255, 0.2), transparent 28%),
@@ -4208,6 +4214,8 @@ select.textInput option {
   grid-template-columns: 1.3rem minmax(0, 1fr);
   gap: 0.85rem;
   align-items: start;
+  text-align: left;
+  width: 100%;
 }
 
 .clientPaymentsTariffFeature svg {
@@ -4272,6 +4280,7 @@ select.textInput option {
   padding: 0 1rem;
   color: rgba(222, 214, 240, 0.56);
   font-size: 0.9rem;
+  text-align: center;
 }
 
 .clientPaymentsHistoryRow {
@@ -4279,6 +4288,7 @@ select.textInput option {
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 1rem;
   background: rgba(255, 255, 255, 0.02);
+  text-align: center;
 }
 
 .clientPaymentsHistoryRow strong {
@@ -4317,6 +4327,7 @@ select.textInput option {
   border: 1px dashed rgba(255, 255, 255, 0.12);
   border-radius: 1rem;
   color: rgba(223, 215, 239, 0.68);
+  text-align: center;
 }
 
 .clientPaymentsSupportCard {
@@ -4347,6 +4358,7 @@ select.textInput option {
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 1rem;
   background: rgba(255, 255, 255, 0.02);
+  text-align: center;
 }
 
 .clientPaymentsSupportItem strong {
