@@ -4075,6 +4075,7 @@ select.textInput option {
   display: grid;
   gap: 1.15rem;
   align-content: start;
+  justify-items: center;
   padding: 1.6rem 1.6rem 1.7rem;
   border: 1px solid rgba(255, 186, 86, 0.18);
   border-radius: 1.5rem;
@@ -4089,9 +4090,11 @@ select.textInput option {
 
 .clientPaymentsServiceHeader {
   display: grid;
-  grid-template-columns: 5.2rem minmax(0, 1fr);
+  grid-template-columns: 1fr;
   gap: 1.15rem;
   align-items: center;
+  justify-items: center;
+  text-align: center;
 }
 
 .clientPaymentsServiceBadge,
@@ -4120,6 +4123,8 @@ select.textInput option {
   display: grid;
   gap: 0.5rem;
   align-content: center;
+  justify-items: center;
+  text-align: center;
 }
 
 .clientPaymentsServiceBody h2 {
@@ -4146,6 +4151,7 @@ select.textInput option {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.8rem;
+  width: 100%;
 }
 
 .clientPaymentsServiceHighlight {
@@ -4155,6 +4161,7 @@ select.textInput option {
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 1.12rem;
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
+  text-align: center;
 }
 
 .clientPaymentsServiceHighlight span {
