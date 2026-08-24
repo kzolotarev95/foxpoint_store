@@ -3844,11 +3844,6 @@ select.textInput option {
     linear-gradient(180deg, rgba(14, 11, 26, 0.98), rgba(10, 9, 21, 0.96));
 }
 
-.clientSupportTicketsCard,
-.clientSupportInfoCard {
-  min-height: 100%;
-}
-
 .clientSupportFormCard {
   background:
     radial-gradient(circle at 15% 0%, rgba(255, 141, 51, 0.14), transparent 24%),
