@@ -131,6 +131,12 @@ export type ClientOverview = {
     adminCommentUpdatedAt: string | null;
     createdAt: string;
     updatedAt: string;
+    messages: Array<{
+      id: string;
+      authorRole: "CLIENT" | "ADMIN";
+      body: string;
+      createdAt: string;
+    }>;
   }>;
   payments: Array<{
     id: string;
@@ -277,6 +283,12 @@ export type AdminOverview = {
     adminCommentUpdatedAt: string | null;
     createdAt: string;
     updatedAt: string;
+    messages: Array<{
+      id: string;
+      authorRole: "CLIENT" | "ADMIN";
+      body: string;
+      createdAt: string;
+    }>;
   }>;
   rewards: Array<{
     id: string;

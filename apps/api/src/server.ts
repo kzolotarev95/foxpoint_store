@@ -21,6 +21,8 @@ import {
   buildClientOverview,
   buildSiteSnapshot,
   buildYooMoneyCheckoutHtml,
+  addAdminSupportTicketMessage,
+  addClientSupportTicketMessageForUser,
   clearClientNotificationFeed,
   deleteAdminTicket,
   createProfileRequestForUser,
@@ -505,6 +507,43 @@ app.post("/api/support", async (request, reply) => {
   }
 });
 
+app.post("/api/support/:ticketId/messages", async (request, reply) => {
+  const userId = await getAuthorizedUserId(request);
+  if (!userId) {
+    reply.code(401);
+    return {
+      error: "unauthorized"
+    };
+  }
+
+  const params = z.object({ ticketId: z.string().trim().min(1) }).parse(request.params);
+  const body = z
+    .object({
+      message: z.string().trim().min(1, "Сообщение не может быть пустым.").max(3000)
+    })
+    .safeParse(request.body);
+
+  if (!body.success) {
+    reply.code(400);
+    return {
+      error: body.error.issues[0]?.message ?? "Проверьте корректность сообщения."
+    };
+  }
+
+  try {
+    return await addClientSupportTicketMessageForUser({
+      body: body.data.message,
+      ticketId: params.ticketId,
+      userId
+    });
+  } catch (error) {
+    reply.code(400);
+    return {
+      error: error instanceof Error ? error.message : "Не удалось отправить сообщение."
+    };
+  }
+});
+
 app.post("/api/routers/:routerId/template", async (request, reply) => {
   const userId = await getAuthorizedUserId(request);
   if (!userId) {
@@ -746,6 +785,41 @@ app.post("/api/admin/tickets/:ticketId", async (request, reply) => {
     reply.code(400);
     return {
       error: error instanceof Error ? error.message : "Не удалось обновить обращение."
+    };
+  }
+});
+
+app.post("/api/admin/tickets/:ticketId/messages", async (request, reply) => {
+  if (!isAuthorizedAdminRequest(request)) {
+    reply.code(401);
+    return {
+      error: "unauthorized"
+    };
+  }
+
+  const params = z.object({ ticketId: z.string().trim().min(1) }).parse(request.params);
+  const body = z
+    .object({
+      message: z.string().trim().min(1, "Сообщение не может быть пустым.").max(3000)
+    })
+    .safeParse(request.body);
+
+  if (!body.success) {
+    reply.code(400);
+    return {
+      error: body.error.issues[0]?.message ?? "Проверьте корректность сообщения."
+    };
+  }
+
+  try {
+    return await addAdminSupportTicketMessage({
+      body: body.data.message,
+      ticketId: params.ticketId
+    });
+  } catch (error) {
+    reply.code(400);
+    return {
+      error: error instanceof Error ? error.message : "Не удалось отправить сообщение."
     };
   }
 });

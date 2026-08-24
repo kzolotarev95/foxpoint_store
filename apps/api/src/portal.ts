@@ -8,6 +8,7 @@ import {
   SubscriptionStatus,
   SupportType,
   TicketStatus,
+  TicketMessageAuthorRole,
   UserStatus,
   type Prisma
 } from "@prisma/client";
@@ -30,6 +31,12 @@ type RouterTemplateLike = {
   accessEnabled: boolean;
   supportType: SupportType;
 };
+type TicketMessageView = {
+  authorRole: TicketMessageAuthorRole;
+  body: string;
+  createdAt: string;
+  id: string;
+};
 
 function toNumber(value: Prisma.Decimal | number | string | null | undefined): number {
   if (value == null) {
@@ -41,6 +48,113 @@ function toNumber(value: Prisma.Decimal | number | string | null | undefined): n
 
 function formatMoney(amount: number): string {
   return `${amount.toLocaleString("ru-RU")} ₽`;
+}
+
+function mapSupportTicketMessages(input: {
+  adminComment: string | null;
+  adminCommentUpdatedAt: Date | null;
+  createdAt: Date;
+  description: string;
+  id: string;
+  messages: Array<{
+    authorRole: TicketMessageAuthorRole;
+    body: string;
+    createdAt: Date;
+    id: string;
+  }>;
+}): TicketMessageView[] {
+  if (input.messages.length) {
+    return input.messages.map((message) => ({
+      authorRole: message.authorRole,
+      body: message.body,
+      createdAt: message.createdAt.toISOString(),
+      id: message.id
+    }));
+  }
+
+  const legacyMessages: TicketMessageView[] = [
+    {
+      authorRole: "CLIENT",
+      body: input.description,
+      createdAt: input.createdAt.toISOString(),
+      id: `legacy-client-${input.id}`
+    }
+  ];
+
+  if (input.adminComment) {
+    legacyMessages.push({
+      authorRole: "ADMIN",
+      body: input.adminComment,
+      createdAt: (input.adminCommentUpdatedAt ?? input.createdAt).toISOString(),
+      id: `legacy-admin-${input.id}`
+    });
+  }
+
+  return legacyMessages;
+}
+
+async function appendSupportTicketMessage(input: {
+  authorRole: TicketMessageAuthorRole;
+  body: string;
+  ticketId: string;
+}) {
+  const ticket = await prisma.supportTicket.findUnique({
+    where: {
+      id: input.ticketId
+    }
+  });
+
+  if (!ticket) {
+    throw new Error("Обращение не найдено.");
+  }
+
+  if (ticket.status === "CLOSED") {
+    throw new Error("Обращение закрыто. Отправка сообщений недоступна.");
+  }
+
+  const cleanedBody = input.body.trim();
+  if (!cleanedBody) {
+    throw new Error("Сообщение не может быть пустым.");
+  }
+
+  const createdAt = new Date();
+  const message = await prisma.$transaction(async (tx) => {
+    const createdMessage = await tx.supportTicketMessage.create({
+      data: {
+        authorRole: input.authorRole,
+        body: cleanedBody,
+        ticketId: input.ticketId
+      }
+    });
+
+    const nextStatus =
+      input.authorRole === "CLIENT"
+        ? ticket.status === "OPEN" || ticket.status === "WAITING_CLIENT" || ticket.status === "RESOLVED"
+          ? "IN_PROGRESS"
+          : ticket.status
+        : ticket.status === "OPEN"
+          ? "IN_PROGRESS"
+          : ticket.status;
+
+    await tx.supportTicket.update({
+      where: {
+        id: input.ticketId
+      },
+      data: {
+        adminComment: input.authorRole === "ADMIN" ? cleanedBody : ticket.adminComment,
+        adminCommentUpdatedAt: input.authorRole === "ADMIN" ? createdAt : ticket.adminCommentUpdatedAt,
+        status: nextStatus as TicketStatus
+      }
+    });
+
+    return createdMessage;
+  });
+
+  return {
+    body: message.body,
+    createdAt: message.createdAt.toISOString(),
+    id: message.id
+  };
 }
 
 function getDaysRemaining(endAt: Date | null | undefined): number | null {
@@ -848,7 +962,18 @@ export async function buildClientOverview(input: { currentSessionId?: string; us
             adminComment: true,
             adminCommentUpdatedAt: true,
             createdAt: true,
-            updatedAt: true
+            updatedAt: true,
+            messages: {
+              select: {
+                id: true,
+                authorRole: true,
+                body: true,
+                createdAt: true
+              },
+              orderBy: {
+                createdAt: "asc"
+              }
+            }
           },
           orderBy: {
             updatedAt: "desc"
@@ -1080,7 +1205,15 @@ export async function buildClientOverview(input: { currentSessionId?: string; us
       adminComment: ticket.adminComment,
       adminCommentUpdatedAt: ticket.adminCommentUpdatedAt?.toISOString() ?? null,
       createdAt: ticket.createdAt.toISOString(),
-      updatedAt: ticket.updatedAt.toISOString()
+      updatedAt: ticket.updatedAt.toISOString(),
+      messages: mapSupportTicketMessages({
+        adminComment: ticket.adminComment,
+        adminCommentUpdatedAt: ticket.adminCommentUpdatedAt ?? null,
+        createdAt: ticket.createdAt,
+        description: ticket.description,
+        id: ticket.id,
+        messages: ticket.messages
+      })
     })),
     payments: user.payments.map((payment) => ({
       id: payment.id,
@@ -1303,18 +1436,59 @@ export async function createSupportTicketForUser(input: {
     }
   }
 
+  const description = input.description.trim();
   const ticket = await prisma.supportTicket.create({
     data: {
       userId: input.userId,
       routerId: input.routerId ?? null,
       category: input.category.trim(),
-      description: input.description.trim()
+      description,
+      messages: {
+        create: {
+          authorRole: "CLIENT",
+          body: description
+        }
+      }
     }
   });
 
   return {
     ticketId: ticket.id
   };
+}
+
+export async function addClientSupportTicketMessageForUser(input: {
+  body: string;
+  ticketId: string;
+  userId: string;
+}) {
+  const ticket = await prisma.supportTicket.findFirst({
+    where: {
+      id: input.ticketId,
+      userId: input.userId
+    }
+  });
+
+  if (!ticket) {
+    throw new Error("Обращение не найдено.");
+  }
+
+  return appendSupportTicketMessage({
+    authorRole: "CLIENT",
+    body: input.body,
+    ticketId: input.ticketId
+  });
+}
+
+export async function addAdminSupportTicketMessage(input: {
+  body: string;
+  ticketId: string;
+}) {
+  return appendSupportTicketMessage({
+    authorRole: "ADMIN",
+    body: input.body,
+    ticketId: input.ticketId
+  });
 }
 
 export async function createProfileRequestForUser(input: {
@@ -1358,7 +1532,13 @@ export async function createProfileRequestForUser(input: {
     data: {
       userId: input.userId,
       category: requestMeta.category,
-      description: requestMeta.description
+      description: requestMeta.description,
+      messages: {
+        create: {
+          authorRole: "CLIENT",
+          body: requestMeta.description
+        }
+      }
     }
   });
 
@@ -1898,6 +2078,17 @@ export async function buildAdminOverview(input: { clientQuery?: string | null } 
         adminCommentUpdatedAt: true,
         createdAt: true,
         updatedAt: true,
+        messages: {
+          select: {
+            id: true,
+            authorRole: true,
+            body: true,
+            createdAt: true
+          },
+          orderBy: {
+            createdAt: "asc"
+          }
+        },
         user: {
           select: {
             name: true
@@ -2002,7 +2193,15 @@ export async function buildAdminOverview(input: { clientQuery?: string | null } 
       adminComment: ticket.adminComment,
       adminCommentUpdatedAt: ticket.adminCommentUpdatedAt?.toISOString() ?? null,
       createdAt: ticket.createdAt.toISOString(),
-      updatedAt: ticket.updatedAt.toISOString()
+      updatedAt: ticket.updatedAt.toISOString(),
+      messages: mapSupportTicketMessages({
+        adminComment: ticket.adminComment,
+        adminCommentUpdatedAt: ticket.adminCommentUpdatedAt ?? null,
+        createdAt: ticket.createdAt,
+        description: ticket.description,
+        id: ticket.id,
+        messages: ticket.messages
+      })
     })),
     rewards: rewards.map((reward) => ({
       id: reward.id,
@@ -2038,18 +2237,27 @@ export async function updateAdminTicket(input: {
     throw new Error("Обращение не найдено.");
   }
 
-  const nextAdminComment = input.adminComment?.trim() || null;
+  if (input.status === "CLOSED" && input.adminComment?.trim()) {
+    throw new Error("Сначала закройте обращение без нового сообщения.");
+  }
+
   const updated = await prisma.supportTicket.update({
     where: {
       id: input.ticketId
     },
     data: {
       status: input.status,
-      assigneeId: input.assigneeId?.trim() || null,
-      adminComment: nextAdminComment,
-      adminCommentUpdatedAt: nextAdminComment !== ticket.adminComment ? (nextAdminComment ? new Date() : null) : ticket.adminCommentUpdatedAt
+      assigneeId: input.assigneeId?.trim() || null
     }
   });
+
+  if (input.adminComment?.trim()) {
+    await appendSupportTicketMessage({
+      authorRole: "ADMIN",
+      body: input.adminComment,
+      ticketId: input.ticketId
+    });
+  }
 
   await recordAdminAction({
     action: "ticket_updated",
@@ -2063,7 +2271,7 @@ export async function updateAdminTicket(input: {
     afterData: {
       status: updated.status,
       assigneeId: updated.assigneeId,
-      adminComment: updated.adminComment
+      adminComment: input.adminComment?.trim() || ticket.adminComment
     }
   });
 

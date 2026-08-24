@@ -569,6 +569,17 @@ function getAdminTicketCommentPreview(ticket: AdminOverview["tickets"][number]) 
   };
 }
 
+function getAdminTicketMessageAuthorLabel(
+  message: AdminOverview["tickets"][number]["messages"][number],
+  ticket: AdminOverview["tickets"][number]
+): string {
+  return message.authorRole === "ADMIN" ? "Поддержка" : ticket.customerName;
+}
+
+function getAdminTicketMessageClass(message: AdminOverview["tickets"][number]["messages"][number]): string {
+  return message.authorRole === "ADMIN" ? "clientSupportMessage isClient" : "clientSupportMessage isAdmin";
+}
+
 function getAdminTicketStatusHint(status: string): string {
   switch (status) {
     case "WAITING_CLIENT":
@@ -1247,8 +1258,6 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
           <h2 className="adminSectionTitle">Обращения клиентов</h2>
           <div className="contentStack">
             {overview.tickets.map((ticket) => {
-              const commentPreview = getAdminTicketCommentPreview(ticket);
-
               return (
                 <form key={ticket.id} id={getTicketAnchorId(ticket.id)} action={updateTicketAction} className="panel adminRecordCard adminTicketCard">
                 <input name="ticketId" type="hidden" value={ticket.id} />
@@ -1266,12 +1275,22 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                 <p className="helperText" style={{ marginBottom: "16px" }}>
                   {ticket.description}
                 </p>
-                {commentPreview ? (
-                  <div className="adminTicketCommentPreview">
-                    <strong>{commentPreview.title}</strong>
-                    <p>{commentPreview.text}</p>
-                  </div>
-                ) : null}
+                <div className="clientSupportMessageList adminTicketThread">
+                  {ticket.messages.map((message) => (
+                    <article
+                      key={message.id}
+                      className={getAdminTicketMessageClass(message)}
+                    >
+                      <div className="clientSupportMessageBubble">
+                        <div className="clientSupportMessageMeta">
+                          <strong>{getAdminTicketMessageAuthorLabel(message, ticket)}</strong>
+                          <span>{formatDateTime(message.createdAt)}</span>
+                        </div>
+                        <p>{message.body}</p>
+                      </div>
+                    </article>
+                  ))}
+                </div>
                 <div className="settingsGrid">
                   <label className="fieldStack">
                     <span className="fieldLabel">Статус</span>
@@ -1299,14 +1318,16 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                   </div>
                 </div>
                 <label className="fieldStack">
-                  <span className="fieldLabel">Комментарий для клиента</span>
+                  <span className="fieldLabel">Новое сообщение</span>
                   <textarea
                     className="textInput adminTicketCommentInput"
-                    defaultValue={ticket.adminComment ?? ""}
+                    defaultValue=""
                     name="adminComment"
                     placeholder="Например: проверили линию, перезапустите роутер и сообщите результат."
                     rows={4}
+                    disabled={ticket.status === "CLOSED"}
                   />
+                  {ticket.status === "CLOSED" ? <span className="helperText">Чат закрыт. Новые сообщения отправить нельзя.</span> : null}
                   <span className="helperText">{getAdminTicketStatusHint(ticket.status)}</span>
                 </label>
                 <div className="ctaRow" style={{ marginTop: "16px" }}>

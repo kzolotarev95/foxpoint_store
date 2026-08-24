@@ -112,6 +112,21 @@ function formatRelativeDateTime(value: string | null | undefined): string {
   return `${formatDate(value)}, ${timeLabel}`;
 }
 
+function formatSupportMessageTime(value: string | null | undefined): string {
+  const parsed = parseDateValue(value);
+
+  if (!parsed) {
+    return "—";
+  }
+
+  return new Intl.DateTimeFormat("ru-RU", {
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    month: "2-digit"
+  }).format(parsed);
+}
+
 function getRouterLastActivity(router: RouterOverviewItem): string | null {
   const dates = [
     router.recentPayments[0]?.createdAt,
@@ -276,45 +291,82 @@ function getSupportTicketStatusMeta(status: string): { label: string; tone: "ope
   };
 }
 
-function renderSupportTicketRow(ticket: SupportTicketItem) {
+function getSupportTicketMessageAuthorLabel(authorRole: string): string {
+  return authorRole === "ADMIN" ? "Поддержка" : "Вы";
+}
+
+function renderSupportTicketThread(ticket: SupportTicketItem, index: number) {
   const statusMeta = getSupportTicketStatusMeta(ticket.status);
-  const adminCommentMeta = ticket.adminComment
-    ? ticket.adminCommentUpdatedAt
-      ? `Ответ поддержки · ${formatRelativeDateTime(ticket.adminCommentUpdatedAt)}`
-      : "Ответ поддержки"
-    : null;
 
   return (
-    <article key={ticket.id} className="clientSupportTicketRow">
-      <span className="clientSupportTicketIcon">
-        <SupportIcon />
-      </span>
-      <div className="clientSupportTicketBody">
-        <h3>
-          #{getSupportTicketDisplayCode(ticket.number)} — {getSupportTicketTitle(ticket)}
-        </h3>
-        <p>Создано {formatSupportTicketCreatedAt(ticket.createdAt)}</p>
-        {ticket.adminComment ? (
-          <div className="clientSupportTicketComment">
-            <strong>{adminCommentMeta}</strong>
-            <p>{ticket.adminComment}</p>
+    <details key={ticket.id} className="clientSupportThreadCard" id={`ticket-${ticket.id}`} open={index === 0}>
+      <summary className="clientSupportThreadSummary">
+        <div className="clientSupportThreadSummaryBody">
+          <span className="clientSupportThreadIcon">
+            <SupportIcon />
+          </span>
+          <div>
+            <h3>
+              #{getSupportTicketDisplayCode(ticket.number)} — {getSupportTicketTitle(ticket)}
+            </h3>
+            <p>Открыт {formatSupportTicketCreatedAt(ticket.createdAt)}</p>
           </div>
-        ) : null}
-      </div>
-      <span className={`clientSupportStatusBadge is-${statusMeta.tone}`}>
-        {statusMeta.tone === "resolved" ? (
-          <CheckCircleIcon />
-        ) : statusMeta.tone === "waiting" ? (
-          <ClockIcon />
+        </div>
+        <span className={`clientSupportStatusBadge is-${statusMeta.tone}`}>
+          {statusMeta.tone === "resolved" ? (
+            <CheckCircleIcon />
+          ) : statusMeta.tone === "waiting" ? (
+            <ClockIcon />
+          ) : (
+            <SupportIcon />
+          )}
+          {statusMeta.label}
+        </span>
+        <span className="clientSupportTicketChevron" aria-hidden="true">
+          <ChevronIcon />
+        </span>
+      </summary>
+
+      <div className="clientSupportThreadBody">
+        <div className="clientSupportMessageList">
+          {ticket.messages.map((message) => (
+            <article
+              key={message.id}
+              className={message.authorRole === "ADMIN" ? "clientSupportMessage isAdmin" : "clientSupportMessage isClient"}
+            >
+              <div className="clientSupportMessageBubble">
+                <div className="clientSupportMessageMeta">
+                  <strong>{getSupportTicketMessageAuthorLabel(message.authorRole)}</strong>
+                  <span>{formatSupportMessageTime(message.createdAt)}</span>
+                </div>
+                <p>{message.body}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+
+        {ticket.status === "CLOSED" ? (
+          <div className="clientSupportClosedNote">Чат закрыт. Новые сообщения отправить нельзя.</div>
         ) : (
-          <SupportIcon />
+          <form action="/cabinet/support/reply" className="clientSupportReplyForm" method="post">
+            <input name="ticketId" type="hidden" value={ticket.id} />
+            <input name="returnTo" type="hidden" value={`/cabinet/support#ticket-${ticket.id}`} />
+            <textarea
+              className="textInput clientSupportReplyInput"
+              maxLength={3000}
+              minLength={1}
+              name="message"
+              placeholder="Напишите сообщение..."
+              required
+              rows={1}
+            />
+            <button className="primaryButton portalActionButton clientSupportReplyButton" type="submit">
+              Отправить
+            </button>
+          </form>
         )}
-        {statusMeta.label}
-      </span>
-      <span className="clientSupportTicketChevron" aria-hidden="true">
-        <ChevronIcon />
-      </span>
-    </article>
+      </div>
+    </details>
   );
 }
 
@@ -1637,20 +1689,9 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
             </div>
 
             {supportTickets.length ? (
-              <>
-                <div className="clientSupportTicketList">
-                  {supportTickets.slice(0, 3).map((ticket) => renderSupportTicketRow(ticket))}
-                </div>
-
-                {supportTickets.length > 3 ? (
-                  <details className="clientSupportExpand">
-                    <summary className="clientSupportAllLink">Показать все обращения</summary>
-                    <div className="clientSupportTicketList clientSupportTicketListExtra">
-                      {supportTickets.slice(3).map((ticket) => renderSupportTicketRow(ticket))}
-                    </div>
-                  </details>
-                ) : null}
-              </>
+              <div className="clientSupportThreadList">
+                {supportTickets.map((ticket, index) => renderSupportTicketThread(ticket, index))}
+              </div>
             ) : (
               <div className="clientSupportEmptyState">
                 <p>Обращений пока нет. Первый запрос можно создать через форму или сразу написать в Telegram.</p>

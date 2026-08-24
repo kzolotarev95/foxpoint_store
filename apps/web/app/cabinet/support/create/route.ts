@@ -112,5 +112,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  return redirectToTarget(request, stripHash(returnTo), "success", "Обращение создано.");
+  const ticketId = (await response.json().catch(() => null)) as { ticketId?: string } | null;
+  const ticketAnchor = ticketId?.ticketId ? `${stripHash(returnTo)}#ticket-${ticketId.ticketId}` : stripHash(returnTo);
+  return redirectToTarget(request, ticketAnchor, "success", "Обращение создано.");
 }

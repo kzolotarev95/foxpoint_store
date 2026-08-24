@@ -76,6 +76,11 @@ enum TicketStatus {
   CLOSED
 }
 
+enum TicketMessageAuthorRole {
+  CLIENT
+  ADMIN
+}
+
 enum RewardStatus {
   PENDING
   AVAILABLE
@@ -258,9 +263,21 @@ model SupportTicket {
   updatedAt            DateTime     @updatedAt
   user                 User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   router               Router?      @relation(fields: [routerId], references: [id], onDelete: SetNull)
+  messages             SupportTicketMessage[]
 
   @@index([userId])
   @@index([routerId])
+}
+
+model SupportTicketMessage {
+  id         String                    @id @default(cuid())
+  ticketId    String
+  authorRole TicketMessageAuthorRole
+  body       String
+  createdAt  DateTime                  @default(now())
+  ticket     SupportTicket             @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@index([ticketId, createdAt])
 }
 
 model Referral {
