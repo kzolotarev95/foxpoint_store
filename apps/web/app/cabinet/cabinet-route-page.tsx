@@ -1386,20 +1386,47 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                 <div className="clientRouterControlTitle">
                   <span className="pill">Управление роутером</span>
                   <h3>{router.displayName}</h3>
+                  <p className="clientRouterControlLead">Настройте пакет, который будет применяться при следующем продлении роутера.</p>
                 </div>
-                <div className="clientRouterControlPrice">{router.savedTemplate.nextPriceLabel}</div>
+                <p className="clientRouterControlState">{getRouterStatusLabel(router)}</p>
               </div>
 
-              <div className="clientRouterControlLayout">
-                <form action={saveRouterTemplateAction} className="clientRouterSettingsForm">
-                  <input name="routerId" type="hidden" value={router.id} />
-                  <input name="returnTo" type="hidden" value="/cabinet/routers" />
-                  <label className="checkboxRow">
-                    <input defaultChecked={router.savedTemplate.accessEnabled} name="accessEnabled" type="checkbox" />
-                    <span>Расширенный доступ за {overview.catalog.extendedAccessPrice} ₽</span>
+              <div className="clientRouterFacts clientRouterControlFacts">
+                <div className="clientRouterFact">
+                  <span className="clientRouterFactLabel">Текущий пакет</span>
+                  <strong>{router.currentPackage}</strong>
+                </div>
+                <div className="clientRouterFact">
+                  <span className="clientRouterFactLabel">Следующее продление</span>
+                  <strong>{router.savedTemplate.label}</strong>
+                </div>
+                <div className="clientRouterFact">
+                  <span className="clientRouterFactLabel">Стоимость</span>
+                  <strong>{router.savedTemplate.nextPriceLabel}</strong>
+                </div>
+                <div className="clientRouterFact">
+                  <span className="clientRouterFactLabel">Статус</span>
+                  <strong>{getRouterStatusLabel(router)}</strong>
+                </div>
+              </div>
+
+              <form action={saveRouterTemplateAction} className="clientRouterSettingsForm">
+                <input name="routerId" type="hidden" value={router.id} />
+                <input name="returnTo" type="hidden" value="/cabinet/routers" />
+
+                <div className="clientRouterControlOptions">
+                  <label className="clientRouterControlOptionCard">
+                    <span className="clientRouterControlOptionCopy">
+                      <span className="clientRouterControlOptionTitle">Расширенный доступ</span>
+                      <span className="clientRouterControlOptionHint">Добавит удалённый доступ к роутеру за {overview.catalog.extendedAccessPrice} ₽.</span>
+                    </span>
+                    <span className="clientRouterControlCheck">
+                      <input defaultChecked={router.savedTemplate.accessEnabled} name="accessEnabled" type="checkbox" />
+                      <span>Включить</span>
+                    </span>
                   </label>
 
-                  <label className="fieldStack">
+                  <label className="clientRouterControlOptionCard fieldStack">
                     <span className="fieldLabel">Сопровождение</span>
                     <select className="textInput" defaultValue={router.savedTemplate.supportType} name="supportType">
                       <option value="NONE">Без сопровождения</option>
@@ -1407,27 +1434,12 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                       <option value="EXTENDED">Расширенное сопровождение</option>
                     </select>
                   </label>
-
-                  <button className="secondaryButton portalGhostButton" type="submit">
-                    Сохранить пакет
-                  </button>
-                </form>
-
-                <div className="clientRouterControlMeta">
-                  <div className="clientRouterMiniStat">
-                    <span>Текущий пакет</span>
-                    <strong>{router.currentPackage}</strong>
-                  </div>
-                  <div className="clientRouterMiniStat">
-                    <span>Следующее продление</span>
-                    <strong>{router.savedTemplate.label}</strong>
-                  </div>
-                  <div className="clientRouterMiniStat">
-                    <span>Статус</span>
-                    <strong>{getRouterStatusLabel(router)}</strong>
-                  </div>
                 </div>
-              </div>
+
+                <button className="secondaryButton portalGhostButton clientRouterControlSubmit" type="submit">
+                  Сохранить пакет
+                </button>
+              </form>
             </article>
           ))}
         </section>
