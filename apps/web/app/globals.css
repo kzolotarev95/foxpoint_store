@@ -3466,13 +3466,92 @@ select.textInput option {
 }
 
 .clientEmptyRouters {
+  position: relative;
   display: grid;
-  gap: 1rem;
-  border: 1px solid var(--cabinet-line);
-  background: var(--cabinet-panel);
+  gap: 1.15rem;
+  justify-items: center;
+  padding: 2rem 1.45rem 1.6rem;
+  border: 1px solid rgba(157, 95, 255, 0.2);
+  border-radius: 1.8rem;
+  background:
+    radial-gradient(circle at 50% 0%, rgba(126, 45, 255, 0.22), transparent 34%),
+    radial-gradient(circle at 50% 100%, rgba(255, 122, 30, 0.12), transparent 26%),
+    linear-gradient(180deg, rgba(13, 11, 24, 0.98), rgba(8, 7, 15, 0.98));
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.03),
-    0 24px 52px rgba(0, 0, 0, 0.24);
+    0 28px 58px rgba(0, 0, 0, 0.28);
+  text-align: center;
+  overflow: hidden;
+}
+
+.clientEmptyRouters::before {
+  content: "";
+  position: absolute;
+  inset: auto -8% -16% -8%;
+  height: 9rem;
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(123, 61, 255, 0.48) 0 1px, transparent 1.7px),
+    radial-gradient(circle at 1px 1px, rgba(255, 125, 32, 0.18) 0 1px, transparent 1.8px);
+  background-position: 0 0, 20px 12px;
+  background-size: 14px 14px, 22px 22px;
+  mask-image: radial-gradient(ellipse at center top, rgba(0, 0, 0, 0.98) 30%, transparent 82%);
+  opacity: 0.56;
+  pointer-events: none;
+}
+
+.clientEmptyRouters > * {
+  position: relative;
+  z-index: 1;
+}
+
+.clientEmptyRouters .pill {
+  padding: 0.45rem 0.8rem;
+  border: 1px solid rgba(172, 111, 255, 0.28);
+  background: rgba(119, 56, 255, 0.14);
+}
+
+.clientEmptyRouters h2 {
+  max-width: 34rem;
+  margin: 0;
+  font-family: var(--font-heading, sans-serif);
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 0.98;
+  letter-spacing: -0.05em;
+  color: #fff8ef;
+}
+
+.clientEmptyRouters p {
+  max-width: 38rem;
+  margin: 0;
+  color: rgba(230, 222, 245, 0.74);
+  font-size: 1rem;
+  line-height: 1.56;
+}
+
+.clientEmptyRouters .ctaRow {
+  justify-content: center;
+  width: 100%;
+  max-width: 38rem;
+  margin-top: 0.2rem;
+}
+
+.clientEmptyRouters .ctaRow > * {
+  flex: 1 1 16rem;
+  min-width: min(100%, 16rem);
+}
+
+.clientEmptyRouters .ctaRow form {
+  display: flex;
+}
+
+.clientEmptyRouters .portalActionButton,
+.clientEmptyRouters .portalGhostButton {
+  width: 100%;
+  min-height: 3.25rem;
+  padding: 0.85rem 1.25rem;
+  border-radius: 1rem;
+  justify-content: center;
+  font-size: 0.98rem;
 }
 
 .clientSupportSection {
