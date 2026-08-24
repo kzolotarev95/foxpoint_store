@@ -59,8 +59,19 @@ function getSingleParam(value: string | string[] | undefined): string | null {
   return Array.isArray(value) ? value[0] ?? null : null;
 }
 
-function formatDate(value: string | null | undefined): string {
+function parseDateValue(value: string | null | undefined): Date | null {
   if (!value) {
+    return null;
+  }
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function formatDate(value: string | null | undefined): string {
+  const parsed = parseDateValue(value);
+
+  if (!parsed) {
     return "—";
   }
 
@@ -68,15 +79,15 @@ function formatDate(value: string | null | undefined): string {
     day: "2-digit",
     month: "2-digit",
     year: "numeric"
-  }).format(new Date(value));
+  }).format(parsed);
 }
 
 function formatRelativeDateTime(value: string | null | undefined): string {
-  if (!value) {
+  const target = parseDateValue(value);
+
+  if (!target) {
     return "нет данных";
   }
-
-  const target = new Date(value);
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const yesterday = new Date(today);
@@ -199,12 +210,18 @@ function getPaymentMethodMonogram(label: string): string {
 }
 
 function formatSupportTicketCreatedAt(value: string): string {
+  const parsed = parseDateValue(value);
+
+  if (!parsed) {
+    return "дата уточняется";
+  }
+
   return new Intl.DateTimeFormat("ru-RU", {
     day: "numeric",
     month: "long",
     hour: "2-digit",
     minute: "2-digit"
-  }).format(new Date(value));
+  }).format(parsed);
 }
 
 function getSupportTicketDisplayCode(id: string): string {
