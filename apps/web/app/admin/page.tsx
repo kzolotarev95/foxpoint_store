@@ -530,13 +530,27 @@ function getTicketLatestMessageAuthorRole(ticket: AdminOverview["tickets"][numbe
   return ticket.messages[ticket.messages.length - 1]?.authorRole ?? null;
 }
 
+function hasAutoOperatorWaitingMessage(ticket: AdminOverview["tickets"][number]): boolean {
+  return (
+    ticket.status === "IN_PROGRESS" &&
+    ticket.messages.length === 2 &&
+    ticket.messages[0]?.authorRole === "CLIENT" &&
+    ticket.messages[1]?.authorRole === "ADMIN" &&
+    ticket.messages[1]?.body === "Ожидайте оператора."
+  );
+}
+
 function isTicketAwaitingAdminReply(ticket: AdminOverview["tickets"][number]): boolean {
   if (ticket.status === "CLOSED") {
     return false;
   }
 
   const latestMessageAuthorRole = getTicketLatestMessageAuthorRole(ticket);
-  return latestMessageAuthorRole === "CLIENT" || (!latestMessageAuthorRole && ticket.status === "OPEN");
+  return (
+    latestMessageAuthorRole === "CLIENT" ||
+    hasAutoOperatorWaitingMessage(ticket) ||
+    (!latestMessageAuthorRole && ticket.status === "OPEN")
+  );
 }
 
 function getAdminTicketBadgeCount(overview: AdminOverview): number {
