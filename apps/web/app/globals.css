@@ -4017,6 +4017,23 @@ select.textInput option {
   font-weight: 500;
 }
 
+.clientSupportExpand {
+  margin-top: 0.2rem;
+}
+
+.clientSupportExpand summary {
+  list-style: none;
+  cursor: pointer;
+}
+
+.clientSupportExpand summary::-webkit-details-marker {
+  display: none;
+}
+
+.clientSupportTicketListExtra {
+  margin-top: 0.85rem;
+}
+
 .clientSupportEmptyState {
   padding: 1.15rem 1.2rem;
   border: 1px solid rgba(159, 96, 255, 0.18);

@@ -276,6 +276,37 @@ function getSupportTicketStatusMeta(status: string): { label: string; tone: "ope
   };
 }
 
+function renderSupportTicketRow(ticket: SupportTicketItem) {
+  const statusMeta = getSupportTicketStatusMeta(ticket.status);
+
+  return (
+    <article key={ticket.id} className="clientSupportTicketRow">
+      <span className="clientSupportTicketIcon">
+        <SupportIcon />
+      </span>
+      <div className="clientSupportTicketBody">
+        <h3>
+          #{getSupportTicketDisplayCode(ticket.id)} — {getSupportTicketTitle(ticket)}
+        </h3>
+        <p>Создано {formatSupportTicketCreatedAt(ticket.createdAt)}</p>
+      </div>
+      <span className={`clientSupportStatusBadge is-${statusMeta.tone}`}>
+        {statusMeta.tone === "resolved" ? (
+          <CheckCircleIcon />
+        ) : statusMeta.tone === "waiting" ? (
+          <ClockIcon />
+        ) : (
+          <SupportIcon />
+        )}
+        {statusMeta.label}
+      </span>
+      <span className="clientSupportTicketChevron" aria-hidden="true">
+        <ChevronIcon />
+      </span>
+    </article>
+  );
+}
+
 function buildUserInitials(name: string): string {
   const parts = name
     .trim()
@@ -1520,41 +1551,17 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
             {supportTickets.length ? (
               <>
                 <div className="clientSupportTicketList">
-                  {supportTickets.map((ticket) => {
-                    const statusMeta = getSupportTicketStatusMeta(ticket.status);
-
-                    return (
-                      <article key={ticket.id} className="clientSupportTicketRow">
-                        <span className="clientSupportTicketIcon">
-                          <SupportIcon />
-                        </span>
-                        <div className="clientSupportTicketBody">
-                          <h3>
-                            #{getSupportTicketDisplayCode(ticket.id)} — {getSupportTicketTitle(ticket)}
-                          </h3>
-                          <p>Создано {formatSupportTicketCreatedAt(ticket.createdAt)}</p>
-                        </div>
-                        <span className={`clientSupportStatusBadge is-${statusMeta.tone}`}>
-                          {statusMeta.tone === "resolved" ? (
-                            <CheckCircleIcon />
-                          ) : statusMeta.tone === "waiting" ? (
-                            <ClockIcon />
-                          ) : (
-                            <SupportIcon />
-                          )}
-                          {statusMeta.label}
-                        </span>
-                        <span className="clientSupportTicketChevron" aria-hidden="true">
-                          <ChevronIcon />
-                        </span>
-                      </article>
-                    );
-                  })}
+                  {supportTickets.slice(0, 3).map((ticket) => renderSupportTicketRow(ticket))}
                 </div>
 
-                <Link className="clientSupportAllLink" href="#support-form">
-                  Создать новое обращение
-                </Link>
+                {supportTickets.length > 3 ? (
+                  <details className="clientSupportExpand">
+                    <summary className="clientSupportAllLink">Показать все обращения</summary>
+                    <div className="clientSupportTicketList clientSupportTicketListExtra">
+                      {supportTickets.slice(3).map((ticket) => renderSupportTicketRow(ticket))}
+                    </div>
+                  </details>
+                ) : null}
               </>
             ) : (
               <div className="clientSupportEmptyState">
