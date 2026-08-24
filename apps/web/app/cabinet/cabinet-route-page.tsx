@@ -721,6 +721,18 @@ function getRouterIdentity(router: RouterOverviewItem): { label: string; value: 
   };
 }
 
+function getRouterFactTone(input: { daysRemaining: number | null | undefined; enabled: boolean; endAt?: string | null }): "ok" | "warning" {
+  if (!input.enabled || !input.endAt) {
+    return "warning";
+  }
+
+  if (input.daysRemaining == null) {
+    return "warning";
+  }
+
+  return input.daysRemaining > 5 ? "ok" : "warning";
+}
+
 function IconShell({ children }: { children: ReactNode }) {
   return <span className="routerIconShell">{children}</span>;
 }
@@ -875,6 +887,23 @@ function ClockIcon() {
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" strokeWidth="1.8" />
       <path d="M12 8v4l2.7 1.8" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
+    </svg>
+  );
+}
+
+function FactStatusCheckIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="m6.5 12.4 3.5 3.5L17.5 8.4" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.2" />
+    </svg>
+  );
+}
+
+function FactStatusAlertIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 6v7.2" fill="none" stroke="currentColor" strokeLinecap="round" strokeWidth="2.2" />
+      <circle cx="12" cy="17.8" r="1.2" fill="currentColor" />
     </svg>
   );
 }
@@ -1208,6 +1237,16 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
               <div className="clientRouterDeck">
                 {overview.routers.map((router, index) => {
                   const routerIdentity = getRouterIdentity(router);
+                  const supportTone = getRouterFactTone({
+                    daysRemaining: router.currentSubscription?.daysRemaining ?? router.trial?.daysRemaining,
+                    enabled: (router.currentSubscription?.supportType ?? "NONE") !== "NONE" || Boolean(router.trial?.endAt),
+                    endAt: router.currentSubscription?.endAt ?? router.trial?.endAt
+                  });
+                  const serverTone = getRouterFactTone({
+                    daysRemaining: router.currentSubscription?.daysRemaining ?? router.trial?.daysRemaining,
+                    enabled: router.currentSubscription?.accessEnabled ?? Boolean(router.trial?.endAt),
+                    endAt: router.currentSubscription?.endAt ?? router.trial?.endAt
+                  });
 
                   return (
                     <article key={router.id} className="clientRouterRow" id={`router-${router.id}`}>
@@ -1227,25 +1266,35 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
 
                         <div className="clientRouterFacts">
                           <div className="clientRouterFact">
+                            <div className="clientRouterFactTop">
+                              <span className="clientRouterFactLabel">
+                                <ServerIcon />
+                                Работа сервера до
+                              </span>
+                              <span className={`clientRouterFactStatus is-${serverTone}`} aria-hidden="true">
+                                {serverTone === "ok" ? <FactStatusCheckIcon /> : <FactStatusAlertIcon />}
+                              </span>
+                            </div>
+                            <strong>{formatDate(router.currentSubscription?.endAt ?? router.trial?.endAt)}</strong>
+                          </div>
+                          <div className="clientRouterFact">
+                            <div className="clientRouterFactTop">
+                              <span className="clientRouterFactLabel">
+                                <ShieldIcon />
+                                Поддержка до
+                              </span>
+                              <span className={`clientRouterFactStatus is-${supportTone}`} aria-hidden="true">
+                                {supportTone === "ok" ? <FactStatusCheckIcon /> : <FactStatusAlertIcon />}
+                              </span>
+                            </div>
+                            <strong>{formatDate(router.currentSubscription?.endAt ?? router.trial?.endAt)}</strong>
+                          </div>
+                          <div className="clientRouterFact">
                             <span className="clientRouterFactLabel">
                               <MonitorIcon />
                               {routerIdentity.label}
                             </span>
                             <strong>{routerIdentity.value}</strong>
-                          </div>
-                          <div className="clientRouterFact">
-                            <span className="clientRouterFactLabel">
-                              <ShieldIcon />
-                              Поддержка до
-                            </span>
-                            <strong>{formatDate(router.currentSubscription?.endAt ?? router.trial?.endAt)}</strong>
-                          </div>
-                          <div className="clientRouterFact">
-                            <span className="clientRouterFactLabel">
-                              <ServerIcon />
-                              Работа сервера до
-                            </span>
-                            <strong>{formatDate(router.currentSubscription?.endAt ?? router.trial?.endAt)}</strong>
                           </div>
                           <div className="clientRouterFact">
                             <span className="clientRouterFactLabel">
