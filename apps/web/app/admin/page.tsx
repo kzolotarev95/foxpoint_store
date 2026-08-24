@@ -1255,7 +1255,7 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                 <div className="sectionHeader">
                   <div>
                     <h3 className="adminSectionTitle adminTicketTitleRow">
-                      {ticket.customerName} · {ticket.category}
+                      #{ticket.number} · {ticket.customerName} · {ticket.category}
                       {ticket.status === "OPEN" ? <span className="adminTicketNewBadge">Новое</span> : null}
                     </h3>
                     <p className="helperText">

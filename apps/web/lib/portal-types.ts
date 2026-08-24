@@ -99,6 +99,7 @@ export type ClientOverview = {
     }>;
     recentTickets: Array<{
       id: string;
+      number: number;
       category: string;
       status: string;
       updatedAt: string;
@@ -121,6 +122,7 @@ export type ClientOverview = {
   }>;
   tickets: Array<{
     id: string;
+    number: number;
     category: string;
     description: string;
     status: string;
@@ -262,6 +264,7 @@ export type AdminOverview = {
   }>;
   tickets: Array<{
     id: string;
+    number: number;
     userId: string;
     routerId: string | null;
     customerName: string;

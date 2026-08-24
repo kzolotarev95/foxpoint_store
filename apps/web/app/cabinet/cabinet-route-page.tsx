@@ -223,12 +223,8 @@ function formatSupportTicketCreatedAt(value: string): string {
   }).format(parsed);
 }
 
-function getSupportTicketDisplayCode(id: string): string {
-  const hash = Array.from(id).reduce((accumulator, symbol, index) => {
-    return accumulator + symbol.charCodeAt(0) * (index + 3);
-  }, 0);
-
-  return String((hash % 900) + 100);
+function getSupportTicketDisplayCode(ticketNumber: number): string {
+  return String(ticketNumber);
 }
 
 function getSupportTicketTitle(ticket: SupportTicketItem): string {
@@ -291,7 +287,7 @@ function renderSupportTicketRow(ticket: SupportTicketItem) {
       </span>
       <div className="clientSupportTicketBody">
         <h3>
-          #{getSupportTicketDisplayCode(ticket.id)} — {getSupportTicketTitle(ticket)}
+          #{getSupportTicketDisplayCode(ticket.number)} — {getSupportTicketTitle(ticket)}
         </h3>
         <p>Создано {formatSupportTicketCreatedAt(ticket.createdAt)}</p>
         {ticket.adminComment ? (
@@ -646,7 +642,7 @@ function buildNotificationFeed(
       id: `ticket-${ticket.id}`,
       isUnread: createdAt ? (seenThreshold ? createdAt.getTime() > seenThreshold.getTime() : true) : false,
       meta: formatRelativeDateTime(ticket.updatedAt),
-      title: `Поддержка #${getSupportTicketDisplayCode(ticket.id)}`
+      title: `Поддержка #${getSupportTicketDisplayCode(ticket.number)}`
     };
   });
 

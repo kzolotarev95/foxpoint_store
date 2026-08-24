@@ -245,6 +245,7 @@ model RouterOrder {
 
 model SupportTicket {
   id                   String       @id @default(cuid())
+  number               Int          @unique @default(autoincrement())
   userId               String
   routerId             String?
   category             String

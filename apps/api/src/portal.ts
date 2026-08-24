@@ -814,6 +814,13 @@ export async function buildClientOverview(input: { currentSessionId?: string; us
             template: true,
             trial: true,
             tickets: {
+              select: {
+                id: true,
+                number: true,
+                category: true,
+                status: true,
+                updatedAt: true
+              },
               orderBy: {
                 updatedAt: "desc"
               },
@@ -831,6 +838,18 @@ export async function buildClientOverview(input: { currentSessionId?: string; us
           take: 5
         },
         tickets: {
+          select: {
+            id: true,
+            number: true,
+            category: true,
+            description: true,
+            status: true,
+            routerId: true,
+            adminComment: true,
+            adminCommentUpdatedAt: true,
+            createdAt: true,
+            updatedAt: true
+          },
           orderBy: {
             updatedAt: "desc"
           },
@@ -963,6 +982,7 @@ export async function buildClientOverview(input: { currentSessionId?: string; us
       })),
       recentTickets: router.tickets.map((ticket) => ({
         id: ticket.id,
+        number: ticket.number,
         category: ticket.category,
         status: ticket.status,
         updatedAt: ticket.updatedAt.toISOString()
@@ -1052,6 +1072,7 @@ export async function buildClientOverview(input: { currentSessionId?: string; us
     })),
     tickets: user.tickets.map((ticket) => ({
       id: ticket.id,
+      number: ticket.number,
       category: ticket.category,
       description: ticket.description,
       status: ticket.status,
@@ -1864,7 +1885,19 @@ export async function buildAdminOverview(input: { clientQuery?: string | null } 
       take: 12
     }),
     prisma.supportTicket.findMany({
-      include: {
+      select: {
+        id: true,
+        number: true,
+        userId: true,
+        routerId: true,
+        category: true,
+        description: true,
+        status: true,
+        assigneeId: true,
+        adminComment: true,
+        adminCommentUpdatedAt: true,
+        createdAt: true,
+        updatedAt: true,
         user: {
           select: {
             name: true
@@ -1957,6 +1990,7 @@ export async function buildAdminOverview(input: { clientQuery?: string | null } 
     })),
     tickets: tickets.map((ticket) => ({
       id: ticket.id,
+      number: ticket.number,
       userId: ticket.userId,
       routerId: ticket.routerId,
       customerName: ticket.user.name ?? "Клиент",
