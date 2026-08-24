@@ -29,10 +29,10 @@ async function redirectToTarget(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { ticketId: string } }
+  { params }: { params: Promise<{ ticketId: string }> }
 ) {
   const wantsJson = request.headers.get("accept")?.includes("application/json") ?? false;
-  const { ticketId } = params;
+  const { ticketId } = await params;
   const formData = await request.formData();
   const message = String(formData.get("message") ?? "").trim();
   const returnTo = String(formData.get("returnTo") ?? `/admin#ticket-${ticketId}`).trim();
