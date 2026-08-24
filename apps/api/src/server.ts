@@ -22,6 +22,7 @@ import {
   buildSiteSnapshot,
   buildYooMoneyCheckoutHtml,
   clearClientNotificationFeed,
+  deleteAdminTicket,
   createProfileRequestForUser,
   createAdminRouterAssignment,
   createRenewalPaymentForUser,
@@ -729,7 +730,8 @@ app.post("/api/admin/tickets/:ticketId", async (request, reply) => {
   const body = z
     .object({
       status: z.enum(["OPEN", "IN_PROGRESS", "WAITING_CLIENT", "RESOLVED", "CLOSED"]),
-      assigneeId: z.string().trim().max(120).optional()
+      assigneeId: z.string().trim().max(120).optional(),
+      adminComment: z.string().trim().max(3000).optional()
     })
     .parse(request.body);
 
@@ -737,12 +739,35 @@ app.post("/api/admin/tickets/:ticketId", async (request, reply) => {
     return await updateAdminTicket({
       ticketId: params.ticketId,
       status: body.status,
-      assigneeId: body.assigneeId
+      assigneeId: body.assigneeId,
+      adminComment: body.adminComment
     });
   } catch (error) {
     reply.code(400);
     return {
       error: error instanceof Error ? error.message : "Не удалось обновить обращение."
+    };
+  }
+});
+
+app.post("/api/admin/tickets/:ticketId/delete", async (request, reply) => {
+  if (!isAuthorizedAdminRequest(request)) {
+    reply.code(401);
+    return {
+      error: "unauthorized"
+    };
+  }
+
+  const params = z.object({ ticketId: z.string().trim().min(1) }).parse(request.params);
+
+  try {
+    return await deleteAdminTicket({
+      ticketId: params.ticketId
+    });
+  } catch (error) {
+    reply.code(400);
+    return {
+      error: error instanceof Error ? error.message : "Не удалось удалить обращение."
     };
   }
 });

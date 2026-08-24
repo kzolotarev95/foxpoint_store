@@ -2021,7 +2021,30 @@ textarea {
 }
 
 .adminSideNavLabel {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  width: 100%;
   min-width: 0;
+}
+
+.adminSideNavBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.9rem;
+  min-height: 1.4rem;
+  padding: 0 0.45rem;
+  border: 1px solid rgba(255, 188, 124, 0.34);
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(255, 138, 56, 0.2), rgba(255, 87, 34, 0.34));
+  color: #ffe7c8;
+  font-size: 0.74rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.03em;
+  box-shadow: 0 10px 18px rgba(255, 102, 46, 0.12);
 }
 
 .adminDashboardShell .navMeta {
@@ -2095,6 +2118,78 @@ textarea {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.03),
     0 18px 40px rgba(0, 0, 0, 0.16);
+}
+
+.adminTicketCard {
+  scroll-margin-top: 1.2rem;
+}
+
+.adminTicketCard:target {
+  border-color: rgba(255, 148, 69, 0.42);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    0 0 0 1px rgba(255, 148, 69, 0.18),
+    0 18px 40px rgba(0, 0, 0, 0.16);
+}
+
+.adminTicketTitleRow {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.adminTicketNewBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.5rem;
+  padding: 0.15rem 0.55rem;
+  border: 1px solid rgba(255, 176, 111, 0.34);
+  border-radius: 999px;
+  background: linear-gradient(135deg, rgba(255, 146, 78, 0.22), rgba(255, 94, 35, 0.22));
+  color: #ffd8b0;
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.adminTicketCommentPreview {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid rgba(184, 118, 255, 0.18);
+  border-radius: 1rem;
+  background: linear-gradient(180deg, rgba(27, 20, 44, 0.9), rgba(18, 14, 30, 0.94));
+}
+
+.adminTicketCommentPreview strong {
+  color: #f5e9ff;
+  font-size: 0.84rem;
+  line-height: 1.35;
+}
+
+.adminTicketCommentPreview p {
+  margin: 0;
+  color: rgba(227, 217, 244, 0.8);
+  font-size: 0.92rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.adminTicketCommentInput {
+  min-height: 7rem;
+  resize: vertical;
+}
+
+.adminDangerButton {
+  border-color: rgba(255, 108, 108, 0.28);
+  color: #ffb1b1;
+}
+
+.adminDangerButton:hover {
+  border-color: rgba(255, 126, 126, 0.42);
+  background: rgba(98, 23, 23, 0.34);
 }
 
 .adminHero .adminHeroCopy h1 {
@@ -4050,6 +4145,31 @@ select.textInput option {
   margin: 0.28rem 0 0;
   color: rgba(214, 203, 235, 0.66);
   font-size: 0.92rem;
+}
+
+.clientSupportTicketComment {
+  display: grid;
+  gap: 0.34rem;
+  margin-top: 0.7rem;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid rgba(255, 169, 95, 0.16);
+  border-radius: 0.9rem;
+  background: linear-gradient(180deg, rgba(35, 24, 18, 0.82), rgba(26, 18, 16, 0.9));
+}
+
+.clientSupportTicketComment strong {
+  color: #ffd2ae;
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.clientSupportTicketComment p {
+  margin: 0;
+  color: rgba(247, 235, 224, 0.88);
+  font-size: 0.9rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
 }
 
 .clientSupportStatusBadge {

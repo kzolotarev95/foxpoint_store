@@ -278,6 +278,11 @@ function getSupportTicketStatusMeta(status: string): { label: string; tone: "ope
 
 function renderSupportTicketRow(ticket: SupportTicketItem) {
   const statusMeta = getSupportTicketStatusMeta(ticket.status);
+  const adminCommentMeta = ticket.adminComment
+    ? ticket.adminCommentUpdatedAt
+      ? `Ответ поддержки · ${formatRelativeDateTime(ticket.adminCommentUpdatedAt)}`
+      : "Ответ поддержки"
+    : null;
 
   return (
     <article key={ticket.id} className="clientSupportTicketRow">
@@ -289,6 +294,12 @@ function renderSupportTicketRow(ticket: SupportTicketItem) {
           #{getSupportTicketDisplayCode(ticket.id)} — {getSupportTicketTitle(ticket)}
         </h3>
         <p>Создано {formatSupportTicketCreatedAt(ticket.createdAt)}</p>
+        {ticket.adminComment ? (
+          <div className="clientSupportTicketComment">
+            <strong>{adminCommentMeta}</strong>
+            <p>{ticket.adminComment}</p>
+          </div>
+        ) : null}
       </div>
       <span className={`clientSupportStatusBadge is-${statusMeta.tone}`}>
         {statusMeta.tone === "resolved" ? (

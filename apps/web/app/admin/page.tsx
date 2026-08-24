@@ -500,11 +500,88 @@ async function updateTicketAction(formData: FormData) {
     path: `/api/admin/tickets/${ticketId}`,
     fallbackError: "Не удалось обновить обращение.",
     successMessage: "Обращение обновлено.",
+    redirectTo: `/admin#ticket-${ticketId}`,
     body: {
       status: String(formData.get("status") ?? "OPEN"),
-      assigneeId: String(formData.get("assigneeId") ?? "").trim() || undefined
+      assigneeId: String(formData.get("assigneeId") ?? "").trim() || undefined,
+      adminComment: String(formData.get("adminComment") ?? "").trim() || undefined
     }
   });
+}
+
+async function deleteTicketAction(formData: FormData) {
+  "use server";
+
+  const ticketId = String(formData.get("ticketId") ?? "").trim();
+  await submitAdminMutation({
+    path: `/api/admin/tickets/${ticketId}/delete`,
+    fallbackError: "Не удалось удалить обращение.",
+    successMessage: "Обращение удалено.",
+    redirectTo: "/admin#tickets",
+    body: {}
+  });
+}
+
+function getTicketAnchorId(ticketId: string): string {
+  return `ticket-${ticketId}`;
+}
+
+function getAdminTicketBadgeCount(overview: AdminOverview): number {
+  return overview.tickets.filter((ticket) => ticket.status === "OPEN").length;
+}
+
+function getLatestNewTicketHref(overview: AdminOverview): string {
+  const latestNewTicket = overview.tickets.find((ticket) => ticket.status === "OPEN");
+  return latestNewTicket ? `#${getTicketAnchorId(latestNewTicket.id)}` : "#tickets";
+}
+
+function getAdminTicketCommentMeta(ticket: AdminOverview["tickets"][number]): string | null {
+  if (!ticket.adminComment) {
+    return null;
+  }
+
+  return ticket.adminCommentUpdatedAt
+    ? `Комментарий админа от ${formatDateTime(ticket.adminCommentUpdatedAt)}`
+    : "Комментарий админа";
+}
+
+function getAdminTicketDeleteLabel(ticket: AdminOverview["tickets"][number]): string {
+  return `Удалить обращение ${ticket.customerName} · ${ticket.category}`;
+}
+
+function renderAdminNavLabel(item: { badge?: string | null; label: string }) {
+  return (
+    <span className="adminSideNavLabel">
+      <span>{item.label}</span>
+      {item.badge ? <span className="adminSideNavBadge">{item.badge}</span> : null}
+    </span>
+  );
+}
+
+function getAdminTicketCommentPreview(ticket: AdminOverview["tickets"][number]) {
+  if (!ticket.adminComment) {
+    return null;
+  }
+
+  return {
+    text: ticket.adminComment,
+    title: getAdminTicketCommentMeta(ticket) ?? "Комментарий админа"
+  };
+}
+
+function getAdminTicketStatusHint(status: string): string {
+  switch (status) {
+    case "WAITING_CLIENT":
+      return "Клиенту отправлен ответ и ожидается обратная связь.";
+    case "IN_PROGRESS":
+      return "Обращение уже взято в работу.";
+    case "RESOLVED":
+      return "Проблема решена, клиент может это увидеть.";
+    case "CLOSED":
+      return "Обращение закрыто и больше не требует действий.";
+    default:
+      return "Новое обращение ожидает вашего первого ответа.";
+  }
 }
 
 async function updateOrderAction(formData: FormData) {
@@ -621,6 +698,8 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
   const successMessage = getSingleParam(searchParams.success);
   const errorMessage = getSingleParam(searchParams.error);
   const clientReturnTo = overview.clientQuery ? `/admin?q=${encodeURIComponent(overview.clientQuery)}#clients` : "/admin#clients";
+  const newTicketCount = getAdminTicketBadgeCount(overview);
+  const latestNewTicketHref = getLatestNewTicketHref(overview);
   const adminNavItems = [
     { href: "#overview", label: "Сводка", icon: <DashboardIcon /> },
     { href: "#assign", label: "Привязать роутер", icon: <PlugIcon /> },
@@ -628,7 +707,7 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
     { href: "#routers", label: "Роутеры", icon: <RouterRackIcon /> },
     { href: "#subscriptions", label: "Подписки", icon: <CalendarIcon /> },
     { href: "#orders", label: "Заказы", icon: <CartIcon /> },
-    { href: "#tickets", label: "Обращения", icon: <MessageIcon /> },
+    { href: latestNewTicketHref, label: "Обращения", icon: <MessageIcon />, badge: newTicketCount ? `+${newTicketCount}` : null },
     { href: "#rewards", label: "Рефералки", icon: <GiftIcon /> },
     { href: "#audit", label: "Аудит", icon: <AuditIcon /> }
   ];
@@ -642,7 +721,7 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
             <li key={item.href}>
               <a className="adminSideNavLink" href={item.href}>
                 <AdminNavIcon>{item.icon}</AdminNavIcon>
-                <span className="adminSideNavLabel">{item.label}</span>
+                {renderAdminNavLabel(item)}
               </a>
             </li>
           ))}
@@ -650,7 +729,7 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
             <li key={groupName}>
               <a className="adminSideNavLink" href={`#${groupName}`}>
                 <AdminNavIcon>{getGroupNavIcon(groupName)}</AdminNavIcon>
-                <span className="adminSideNavLabel">{groupName}</span>
+                {renderAdminNavLabel({ label: groupName })}
               </a>
             </li>
           ))}
@@ -679,7 +758,7 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
               <Link className="secondaryButton" href="#assign">
                 Привязать роутер
               </Link>
-              <Link className="secondaryButton" href="#tickets">
+              <Link className="secondaryButton" href={latestNewTicketHref}>
                 Открыть тикеты
               </Link>
             </div>
@@ -1167,13 +1246,17 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
           <span className="pill">Поддержка</span>
           <h2 className="adminSectionTitle">Обращения клиентов</h2>
           <div className="contentStack">
-            {overview.tickets.map((ticket) => (
-              <form key={ticket.id} action={updateTicketAction} className="panel adminRecordCard">
+            {overview.tickets.map((ticket) => {
+              const commentPreview = getAdminTicketCommentPreview(ticket);
+
+              return (
+                <form key={ticket.id} id={getTicketAnchorId(ticket.id)} action={updateTicketAction} className="panel adminRecordCard adminTicketCard">
                 <input name="ticketId" type="hidden" value={ticket.id} />
                 <div className="sectionHeader">
                   <div>
-                    <h3 className="adminSectionTitle">
+                    <h3 className="adminSectionTitle adminTicketTitleRow">
                       {ticket.customerName} · {ticket.category}
+                      {ticket.status === "OPEN" ? <span className="adminTicketNewBadge">Новое</span> : null}
                     </h3>
                     <p className="helperText">
                       Создано {formatDateTime(ticket.createdAt)} · обновлено {formatDateTime(ticket.updatedAt)} · роутер {ticket.routerName}
@@ -1183,6 +1266,12 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                 <p className="helperText" style={{ marginBottom: "16px" }}>
                   {ticket.description}
                 </p>
+                {commentPreview ? (
+                  <div className="adminTicketCommentPreview">
+                    <strong>{commentPreview.title}</strong>
+                    <p>{commentPreview.text}</p>
+                  </div>
+                ) : null}
                 <div className="settingsGrid">
                   <label className="fieldStack">
                     <span className="fieldLabel">Статус</span>
@@ -1209,13 +1298,33 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                     <strong>{ticket.userId}</strong>
                   </div>
                 </div>
+                <label className="fieldStack">
+                  <span className="fieldLabel">Комментарий для клиента</span>
+                  <textarea
+                    className="textInput adminTicketCommentInput"
+                    defaultValue={ticket.adminComment ?? ""}
+                    name="adminComment"
+                    placeholder="Например: проверили линию, перезапустите роутер и сообщите результат."
+                    rows={4}
+                  />
+                  <span className="helperText">{getAdminTicketStatusHint(ticket.status)}</span>
+                </label>
                 <div className="ctaRow" style={{ marginTop: "16px" }}>
                   <button className="primaryButton" type="submit">
                     Сохранить обращение
                   </button>
+                  <button
+                    aria-label={getAdminTicketDeleteLabel(ticket)}
+                    className="secondaryButton adminDangerButton"
+                    formAction={deleteTicketAction}
+                    type="submit"
+                  >
+                    Удалить
+                  </button>
                 </div>
-              </form>
-            ))}
+                </form>
+              );
+            })}
           </div>
         </section>
 

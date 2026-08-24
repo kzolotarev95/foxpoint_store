@@ -124,6 +124,8 @@ export type ClientOverview = {
     description: string;
     status: string;
     routerId: string | null;
+    adminComment: string | null;
+    adminCommentUpdatedAt: string | null;
     createdAt: string;
     updatedAt: string;
   }>;
@@ -267,6 +269,8 @@ export type AdminOverview = {
     description: string;
     status: string;
     assigneeId: string | null;
+    adminComment: string | null;
+    adminCommentUpdatedAt: string | null;
     createdAt: string;
     updatedAt: string;
   }>;

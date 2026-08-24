@@ -1055,6 +1055,8 @@ export async function buildClientOverview(input: { currentSessionId?: string; us
       description: ticket.description,
       status: ticket.status,
       routerId: ticket.routerId,
+      adminComment: ticket.adminComment,
+      adminCommentUpdatedAt: ticket.adminCommentUpdatedAt?.toISOString() ?? null,
       createdAt: ticket.createdAt.toISOString(),
       updatedAt: ticket.updatedAt.toISOString()
     })),
@@ -1948,6 +1950,8 @@ export async function buildAdminOverview(input: { clientQuery?: string | null } 
       description: ticket.description,
       status: ticket.status,
       assigneeId: ticket.assigneeId,
+      adminComment: ticket.adminComment,
+      adminCommentUpdatedAt: ticket.adminCommentUpdatedAt?.toISOString() ?? null,
       createdAt: ticket.createdAt.toISOString(),
       updatedAt: ticket.updatedAt.toISOString()
     })),
@@ -1970,6 +1974,7 @@ export async function buildAdminOverview(input: { clientQuery?: string | null } 
 }
 
 export async function updateAdminTicket(input: {
+  adminComment?: string | null;
   assigneeId?: string | null;
   status: TicketStatus;
   ticketId: string;
@@ -1984,13 +1989,16 @@ export async function updateAdminTicket(input: {
     throw new Error("Обращение не найдено.");
   }
 
+  const nextAdminComment = input.adminComment?.trim() || null;
   const updated = await prisma.supportTicket.update({
     where: {
       id: input.ticketId
     },
     data: {
       status: input.status,
-      assigneeId: input.assigneeId?.trim() || null
+      assigneeId: input.assigneeId?.trim() || null,
+      adminComment: nextAdminComment,
+      adminCommentUpdatedAt: nextAdminComment !== ticket.adminComment ? (nextAdminComment ? new Date() : null) : ticket.adminCommentUpdatedAt
     }
   });
 
@@ -2000,16 +2008,54 @@ export async function updateAdminTicket(input: {
     entityId: updated.id,
     beforeData: {
       status: ticket.status,
-      assigneeId: ticket.assigneeId
+      assigneeId: ticket.assigneeId,
+      adminComment: ticket.adminComment
     },
     afterData: {
       status: updated.status,
-      assigneeId: updated.assigneeId
+      assigneeId: updated.assigneeId,
+      adminComment: updated.adminComment
     }
   });
 
   return {
     ticketId: updated.id
+  };
+}
+
+export async function deleteAdminTicket(input: { ticketId: string }) {
+  const ticket = await prisma.supportTicket.findUnique({
+    where: {
+      id: input.ticketId
+    }
+  });
+
+  if (!ticket) {
+    throw new Error("Обращение не найдено.");
+  }
+
+  await prisma.supportTicket.delete({
+    where: {
+      id: input.ticketId
+    }
+  });
+
+  await recordAdminAction({
+    action: "ticket_deleted",
+    entityType: "SupportTicket",
+    entityId: ticket.id,
+    beforeData: {
+      userId: ticket.userId,
+      routerId: ticket.routerId,
+      category: ticket.category,
+      status: ticket.status,
+      assigneeId: ticket.assigneeId,
+      adminComment: ticket.adminComment
+    }
+  });
+
+  return {
+    ticketId: ticket.id
   };
 }
 
