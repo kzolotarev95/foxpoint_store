@@ -1702,6 +1702,7 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
           <a className="clientSupportModalBackdrop" href="#support" aria-label="Закрыть окно" />
           <div className="panel sectionPanel clientUtilityCard clientSupportFormCard clientSupportModalCard">
             <div className="clientSupportModalHeader">
+              <span className="clientSupportModalSpacer" aria-hidden="true" />
               <div>
                 <span className="pill">Поддержка</span>
                 <h2 id="support-modal-title" className="sectionTitle">Создать обращение</h2>

@@ -4088,19 +4088,24 @@ select.textInput option {
 }
 
 .clientSupportModalHeader {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 2.6rem minmax(0, 1fr) 2.6rem;
+  align-items: start;
   gap: 1rem;
   width: 100%;
 }
 
+.clientSupportModalSpacer {
+  width: 2.6rem;
+  height: 2.6rem;
+}
+
 .clientSupportModalHeader > div {
-  flex: 1;
   text-align: center;
 }
 
 .clientSupportModalClose {
+  justify-self: end;
   display: inline-flex;
   align-items: center;
   justify-content: center;
