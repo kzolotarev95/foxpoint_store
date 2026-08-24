@@ -1162,7 +1162,9 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
   );
   const notificationFeed = buildNotificationFeed(overview, profileSessions, overview.profile.notificationFeedClearedAt);
   const notificationFeedCount = notificationFeed.length;
-  const notificationBellBadge = notificationFeedCount > 99 ? "+99" : `+${notificationFeedCount}`;
+  const unreadNotificationCount = overview.stats.unreadNotificationCount;
+  const notificationBellBadge = unreadNotificationCount > 99 ? "+99" : `+${unreadNotificationCount}`;
+  const notificationHeaderCount = unreadNotificationCount > 0 ? unreadNotificationCount : notificationFeedCount;
   const primaryPaymentRouter = getPrimaryPaymentRouter(overview.routers);
   const paymentDeadline = primaryPaymentRouter?.currentSubscription?.endAt ?? primaryPaymentRouter?.trial?.endAt ?? null;
   const paymentDaysRemaining =
@@ -1192,11 +1194,11 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
             </Link>
             <details className="portalNotifications">
               <summary
-                className={notificationFeedCount ? "portalBellButton hasAlert" : "portalBellButton"}
+                className={unreadNotificationCount ? "portalBellButton hasAlert" : "portalBellButton"}
                 aria-label="Открыть уведомления"
               >
                 <BellIcon />
-                {notificationFeedCount ? <span className="portalBellBadge">{notificationBellBadge}</span> : null}
+                {unreadNotificationCount ? <span className="portalBellBadge">{notificationBellBadge}</span> : null}
               </summary>
               <div className="portalNotificationPopover">
                 <div className="portalNotificationHeader">
@@ -1204,7 +1206,7 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                     <strong>Уведомления и входы</strong>
                     <span>Новые уведомления и последние события по аккаунту.</span>
                   </div>
-                  <span className="portalNotificationCount">{notificationFeedCount}</span>
+                  <span className="portalNotificationCount">{notificationHeaderCount}</span>
                 </div>
                 <div className="portalNotificationList">
                   {notificationFeed.length ? (
@@ -1228,16 +1230,30 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                     </div>
                   )}
                 </div>
-                <form action="/cabinet/notifications/clear" className="portalNotificationFooter" method="post">
-                  <input name="returnTo" type="hidden" value={getCabinetTabHref(props.activeTab)} />
-                  {notificationFeedCount ? (
-                    <button className="secondaryButton portalGhostButton portalNotificationClear" type="submit">
-                      Очистить список
-                    </button>
+                <div className="portalNotificationFooter">
+                  {unreadNotificationCount || notificationFeedCount ? (
+                    <div className="portalNotificationFooterActions">
+                      {unreadNotificationCount ? (
+                        <form action="/cabinet/notifications/read" method="post">
+                          <input name="returnTo" type="hidden" value={getCabinetTabHref(props.activeTab)} />
+                          <button className="secondaryButton portalGhostButton portalNotificationRead" type="submit">
+                            Прочитать оповещения
+                          </button>
+                        </form>
+                      ) : null}
+                      {notificationFeedCount ? (
+                        <form action="/cabinet/notifications/clear" method="post">
+                          <input name="returnTo" type="hidden" value={getCabinetTabHref(props.activeTab)} />
+                          <button className="secondaryButton portalGhostButton portalNotificationClear" type="submit">
+                            Очистить список
+                          </button>
+                        </form>
+                      ) : null}
+                    </div>
                   ) : (
                     <span className="portalNotificationFooterNote">Новых уведомлений нет. Когда появятся новые события, они будут показаны здесь.</span>
                   )}
-                </form>
+                </div>
               </div>
             </details>
             <span className="portalUserChip portalUserChipRich">

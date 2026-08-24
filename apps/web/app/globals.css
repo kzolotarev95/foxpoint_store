@@ -634,6 +634,14 @@ textarea {
   justify-content: flex-end;
 }
 
+.portalNotificationFooterActions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  width: 100%;
+}
+
 .portalNotificationFooterNote {
   max-width: 18rem;
   color: rgba(219, 208, 236, 0.68);
@@ -642,6 +650,7 @@ textarea {
   text-align: right;
 }
 
+.portalNotificationRead,
 .portalNotificationClear {
   min-height: 2.35rem;
   padding: 0.55rem 0.95rem;

@@ -21,6 +21,7 @@ import {
   buildClientOverview,
   buildSiteSnapshot,
   buildYooMoneyCheckoutHtml,
+  clearClientNotificationFeed,
   createProfileRequestForUser,
   createAdminRouterAssignment,
   createRenewalPaymentForUser,
@@ -422,7 +423,7 @@ app.post("/api/me/sessions/:sessionId/revoke", async (request, reply) => {
   }
 });
 
-app.post("/api/me/notifications/clear", async (request, reply) => {
+app.post("/api/me/notifications/read", async (request, reply) => {
   const userId = await getAuthorizedUserId(request);
   if (!userId) {
     reply.code(401);
@@ -433,6 +434,27 @@ app.post("/api/me/notifications/clear", async (request, reply) => {
 
   try {
     return await markClientNotificationsRead({
+      userId
+    });
+  } catch (error) {
+    reply.code(400);
+    return {
+      error: error instanceof Error ? error.message : "Не удалось отметить уведомления прочитанными."
+    };
+  }
+});
+
+app.post("/api/me/notifications/clear", async (request, reply) => {
+  const userId = await getAuthorizedUserId(request);
+  if (!userId) {
+    reply.code(401);
+    return {
+      error: "unauthorized"
+    };
+  }
+
+  try {
+    return await clearClientNotificationFeed({
       userId
     });
   } catch (error) {

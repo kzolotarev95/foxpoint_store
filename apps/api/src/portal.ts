@@ -1198,6 +1198,24 @@ export async function createRouterOrderForUser(input: {
 }
 
 export async function markClientNotificationsRead(input: { userId: string }) {
+  const readAt = new Date();
+  const result = await prisma.notification.updateMany({
+    where: {
+      userId: input.userId,
+      readAt: null
+    },
+    data: {
+      readAt
+    }
+  });
+
+  return {
+    readAt: readAt.toISOString(),
+    updatedCount: result.count
+  };
+}
+
+export async function clearClientNotificationFeed(input: { userId: string }) {
   const clearedAt = new Date();
   const result = await prisma.$transaction(async (tx) => {
     const notifications = await tx.notification.updateMany({
