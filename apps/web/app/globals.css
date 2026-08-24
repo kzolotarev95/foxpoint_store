@@ -823,7 +823,7 @@ textarea {
 .profileIntro h1 {
   margin: 0;
   font-family: var(--font-heading, sans-serif);
-  font-size: clamp(2.45rem, 4vw, 3.45rem);
+  font-size: clamp(1.72rem, 2.25vw, 2.4rem);
   line-height: 0.96;
   letter-spacing: -0.065em;
   color: #fff8ef;
@@ -3514,7 +3514,7 @@ select.textInput option {
   max-width: 34rem;
   margin: 0;
   font-family: var(--font-heading, sans-serif);
-  font-size: clamp(2rem, 4vw, 3rem);
+  font-size: clamp(1.72rem, 2.25vw, 2.4rem);
   line-height: 0.98;
   letter-spacing: -0.05em;
   color: #fff8ef;
@@ -3638,7 +3638,7 @@ select.textInput option {
 .clientSupportHeroCopy h2 {
   margin: 0;
   font-family: var(--font-heading, sans-serif);
-  font-size: clamp(2.5rem, 4vw, 3.65rem);
+  font-size: clamp(1.72rem, 2.25vw, 2.4rem);
   line-height: 0.98;
   letter-spacing: -0.06em;
   color: #fff8ef;
@@ -3945,7 +3945,7 @@ select.textInput option {
 .clientPaymentsIntro h1 {
   margin: 0;
   font-family: var(--font-heading, sans-serif);
-  font-size: clamp(2rem, 4vw, 3.35rem);
+  font-size: clamp(1.72rem, 2.25vw, 2.4rem);
   line-height: 0.98;
   color: #fff8ef;
 }
@@ -4747,10 +4747,6 @@ select.textInput option {
     align-self: center;
   }
 
-  .clientSupportHeroCopy h2 {
-    font-size: clamp(2.2rem, 6vw, 3rem);
-  }
-
   .clientSupportHeroActions {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -4951,8 +4947,13 @@ select.textInput option {
     flex: 1 1 auto;
   }
 
-  .clientSupportHeroCopy h2 {
-    font-size: clamp(2rem, 8vw, 2.75rem);
+  .clientRoutersLead h1,
+  .clientRouterHeading h2,
+  .clientEmptyRouters h2,
+  .clientSupportHeroCopy h2,
+  .clientPaymentsIntro h1,
+  .profileIntro h1 {
+    font-size: clamp(1.2rem, 4.8vw, 1.62rem);
   }
 
   .clientSupportHeroCopy p {
@@ -5032,11 +5033,6 @@ select.textInput option {
   .clientSupportInfoIcon {
     width: 3.2rem;
     height: 3.2rem;
-  }
-
-  .clientRoutersLead h1,
-  .clientRouterHeading h2 {
-    font-size: clamp(1.2rem, 4.8vw, 1.62rem);
   }
 
   .clientRoutersLead h1 {
