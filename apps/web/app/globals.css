@@ -3235,6 +3235,8 @@ select.textInput option {
 .clientRouterTitleStack {
   display: grid;
   gap: 0.55rem;
+  justify-items: center;
+  text-align: center;
 }
 
 .clientRouterHeading p {
