@@ -618,7 +618,7 @@ function getRouterDeviceSkin(router: RouterOverviewItem, index: number): RouterD
       brandLabel: "XIAOMI",
       imageAlt: "Xiaomi Router AX3000T",
       imageClassName: "isXiaomi",
-      imageSrc: "/images/router-ax3000t.svg",
+      imageSrc: "/images/router-ax3000t.png",
       modelLabel: "AX3000T",
       variant
     };
@@ -630,7 +630,7 @@ function getRouterDeviceSkin(router: RouterOverviewItem, index: number): RouterD
       brandLabel: "CUDY",
       imageAlt: "Cudy WBR3000UAX",
       imageClassName: "isCudyWbr",
-      imageSrc: "/images/router-wbr3000uax.svg",
+      imageSrc: "/images/router-wbr3000uax.png",
       modelLabel: "WBR3000UAX",
       variant
     };
@@ -642,7 +642,7 @@ function getRouterDeviceSkin(router: RouterOverviewItem, index: number): RouterD
       brandLabel: "KEENETIC",
       imageAlt: router.model ? `Keenetic ${router.model}` : "Keenetic router",
       imageClassName: "isKeenetic",
-      imageSrc: "/images/router-keenetic.svg",
+      imageSrc: "/images/router-keenetic-hopper.png",
       modelLabel: router.model ?? "Hopper",
       variant
     };
@@ -654,7 +654,7 @@ function getRouterDeviceSkin(router: RouterOverviewItem, index: number): RouterD
       brandLabel: "CUDY",
       imageAlt: router.model ? `Cudy ${router.model}` : "Cudy router",
       imageClassName: "isCudy",
-      imageSrc: "/images/router-cudy.svg",
+      imageSrc: "/images/router-cudy-wr3000.png",
       modelLabel: router.model ?? "WR3000",
       variant
     };
@@ -665,7 +665,7 @@ function getRouterDeviceSkin(router: RouterOverviewItem, index: number): RouterD
     brandLabel: "NETIS",
     imageAlt: router.model ? `Netis ${router.model}` : "Netis router",
     imageClassName: "isNetis",
-    imageSrc: "/images/router-netis.svg",
+    imageSrc: "/images/router-netis-nx31.png",
     modelLabel: router.model ?? "NX31",
     variant
   };
