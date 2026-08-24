@@ -714,6 +714,20 @@ function getRouterStatusLabel(router: RouterOverviewItem): string {
   return statusLabels[router.status] ?? router.status;
 }
 
+function getRouterStatusTone(router: RouterOverviewItem): "active" | "pending" | "default" {
+  const label = getRouterStatusLabel(router);
+
+  if (label === "Активен" || label === "Тестовый режим") {
+    return "active";
+  }
+
+  if (label === "Ожидает активации") {
+    return "pending";
+  }
+
+  return "default";
+}
+
 function extractIpAddress(value: string | null | undefined): string | null {
   if (!value) {
     return null;
@@ -1259,6 +1273,8 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
               <div className="clientRouterDeck">
                 {overview.routers.map((router, index) => {
                   const routerIdentity = getRouterIdentity(router);
+                  const routerStatusLabel = getRouterStatusLabel(router);
+                  const routerStatusTone = getRouterStatusTone(router);
                   const supportTone = getRouterFactTone({
                     daysRemaining: router.currentSubscription?.daysRemaining ?? router.trial?.daysRemaining,
                     enabled: (router.currentSubscription?.supportType ?? "NONE") !== "NONE" || Boolean(router.trial?.endAt),
@@ -1282,7 +1298,7 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                             <h2>
                               {router.displayName} {router.model ? `— ${router.model}` : ""}
                             </h2>
-                            <p>{getRouterStatusLabel(router)}</p>
+                            <p className={`is-${routerStatusTone}`}>{routerStatusLabel}</p>
                           </div>
                         </div>
 
@@ -1392,7 +1408,7 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                   <h3>{router.displayName}</h3>
                   <p className="clientRouterControlLead">Настройте пакет, который будет применяться при следующем продлении роутера.</p>
                 </div>
-                <p className="clientRouterControlState">{getRouterStatusLabel(router)}</p>
+                <p className={`clientRouterControlState is-${getRouterStatusTone(router)}`}>{getRouterStatusLabel(router)}</p>
               </div>
 
               <div className="clientRouterFacts clientRouterControlFacts">
@@ -1410,7 +1426,7 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                 </div>
                 <div className="clientRouterFact">
                   <span className="clientRouterFactLabel">Статус</span>
-                  <strong>{getRouterStatusLabel(router)}</strong>
+                  <strong className={`clientRouterStatusValue is-${getRouterStatusTone(router)}`}>{getRouterStatusLabel(router)}</strong>
                 </div>
               </div>
 
