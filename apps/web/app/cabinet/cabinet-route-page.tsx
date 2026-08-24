@@ -296,7 +296,7 @@ function getSupportTicketMessageAuthorLabel(authorRole: string): string {
   return authorRole === "ADMIN" ? "Поддержка" : "Вы";
 }
 
-function renderSupportTicketThread(ticket: SupportTicketItem, openTicketId: string | null) {
+function renderSupportTicketThread(ticket: SupportTicketItem) {
   const statusMeta = getSupportTicketStatusMeta(ticket.status);
 
   return (
@@ -304,7 +304,7 @@ function renderSupportTicketThread(ticket: SupportTicketItem, openTicketId: stri
       key={ticket.id}
       className="clientSupportThreadCard"
       id={`ticket-${ticket.id}`}
-      open={ticket.id === openTicketId}
+      open={ticket.status === "OPEN"}
     >
       <summary className="clientSupportThreadSummary">
         <div className="clientSupportThreadSummaryBody">
@@ -1246,7 +1246,6 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
     overview.profile.notificationFeedClearedAt,
     overview.profile.notificationFeedSeenAt
   );
-  const defaultOpenSupportTicketId = null;
   const notificationFeedCount = notificationFeed.length;
   const newNotificationFeedCount = notificationFeed.filter((item) => item.isUnread).length;
   const notificationBellBadge = newNotificationFeedCount > 99 ? "+99" : `+${newNotificationFeedCount}`;
@@ -1671,7 +1670,7 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
 
             {supportTickets.length ? (
               <div className="clientSupportThreadList">
-                {supportTickets.map((ticket) => renderSupportTicketThread(ticket, defaultOpenSupportTicketId))}
+                {supportTickets.map((ticket) => renderSupportTicketThread(ticket))}
               </div>
             ) : (
               <div className="clientSupportEmptyState">
