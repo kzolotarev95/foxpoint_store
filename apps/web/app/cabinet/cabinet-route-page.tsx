@@ -1246,7 +1246,7 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
     overview.profile.notificationFeedClearedAt,
     overview.profile.notificationFeedSeenAt
   );
-  const defaultOpenSupportTicketId = supportTickets.find((ticket) => ticket.status !== "CLOSED")?.id ?? null;
+  const defaultOpenSupportTicketId = null;
   const notificationFeedCount = notificationFeed.length;
   const newNotificationFeedCount = notificationFeed.filter((item) => item.isUnread).length;
   const notificationBellBadge = newNotificationFeedCount > 99 ? "+99" : `+${newNotificationFeedCount}`;
