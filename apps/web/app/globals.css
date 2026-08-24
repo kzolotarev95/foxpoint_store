@@ -4531,26 +4531,28 @@ select.textInput option {
 
 .clientRouterControlCard {
   display: grid;
-  gap: 1.2rem;
-  justify-items: center;
-  text-align: center;
+  gap: 1.5rem;
+  align-items: start;
+  text-align: left;
 }
 
 .clientRouterControlHeader {
   display: grid;
-  justify-items: center;
-  gap: 0.8rem;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 1rem;
   width: 100%;
-  text-align: center;
+  text-align: left;
 }
 
-.clientRouterControlHeader > div:first-child {
+.clientRouterControlTitle {
   display: grid;
-  justify-items: center;
+  gap: 0.55rem;
+  justify-items: start;
 }
 
 .clientRouterControlHeader h3 {
-  margin: 0.6rem 0 0;
+  margin: 0;
   font-family: var(--font-heading, sans-serif);
   font-size: clamp(1.4rem, 2vw, 1.9rem);
   line-height: 1.02;
@@ -4558,8 +4560,8 @@ select.textInput option {
 }
 
 .clientRouterControlPrice {
-  min-width: 9rem;
-  padding: 0.8rem 1.1rem;
+  min-width: 9.5rem;
+  padding: 0.9rem 1.15rem;
   border-radius: 1rem;
   background:
     linear-gradient(135deg, rgba(255, 120, 28, 0.16), rgba(145, 73, 255, 0.16));
@@ -4573,50 +4575,52 @@ select.textInput option {
 
 .clientRouterControlLayout {
   display: grid;
-  gap: 1.05rem;
-  grid-template-columns: 1fr;
-  justify-items: center;
+  gap: 1.2rem;
+  grid-template-columns: minmax(0, 1.35fr) minmax(17rem, 0.95fr);
+  align-items: start;
   width: 100%;
   margin-top: 0;
 }
 
 .clientRouterSettingsForm {
   display: grid;
-  gap: 0.95rem;
-  justify-items: center;
-  width: min(100%, 31rem);
+  gap: 1rem;
+  align-items: start;
+  width: 100%;
 }
 
 .clientRouterSettingsForm .checkboxRow {
-  justify-content: center;
+  align-items: flex-start;
+  justify-content: flex-start;
   flex-wrap: wrap;
   width: 100%;
-  padding: 0.95rem 1rem;
+  padding: 1rem 1.05rem;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 1rem;
   background: linear-gradient(180deg, rgba(18, 14, 31, 0.9), rgba(11, 9, 21, 0.84));
-  text-align: center;
+  text-align: left;
 }
 
 .clientRouterSettingsForm .fieldStack {
   width: 100%;
-  justify-items: center;
-  gap: 0.5rem;
+  justify-items: stretch;
+  gap: 0.55rem;
 }
 
 .clientRouterSettingsForm .fieldLabel {
-  text-align: center;
+  text-align: left;
 }
 
 .clientRouterSettingsForm .textInput,
 .clientRouterSettingsForm select.textInput {
-  text-align: center;
-  text-align-last: center;
+  text-align: left;
+  text-align-last: left;
 }
 
 .clientRouterSettingsForm button {
   width: min(100%, 18rem);
   justify-content: center;
+  margin-top: 0.15rem;
 }
 
 .clientRouterControlMeta,
@@ -4626,23 +4630,23 @@ select.textInput option {
 }
 
 .clientRouterControlMeta {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   width: 100%;
 }
 
 .clientRouterMiniStat {
   display: grid;
-  gap: 0.35rem;
-  min-height: 6.2rem;
-  align-content: center;
-  justify-items: center;
-  padding: 1rem 1.05rem;
+  gap: 0.45rem;
+  min-height: 0;
+  align-content: start;
+  justify-items: start;
+  padding: 1rem 1.1rem;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 1rem;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
-  text-align: center;
+  text-align: left;
 }
 
 .clientRouterMiniStat span {
@@ -5020,6 +5024,11 @@ select.textInput option {
   }
 
   .clientRouterControlHeader {
+    justify-items: center;
+    text-align: center;
+  }
+
+  .clientRouterControlTitle {
     justify-items: center;
   }
 

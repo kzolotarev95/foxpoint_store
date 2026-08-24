@@ -1383,7 +1383,7 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
           {overview.routers.map((router) => (
             <article key={router.id} className="panel clientRouterControlCard" id={`router-controls-${router.id}`}>
               <div className="clientRouterControlHeader">
-                <div>
+                <div className="clientRouterControlTitle">
                   <span className="pill">Управление роутером</span>
                   <h3>{router.displayName}</h3>
                 </div>
