@@ -2629,29 +2629,62 @@ select.textInput option {
 
 .clientRoutersExperience .portalNavLink {
   gap: 0.42rem;
-  padding: 0.52rem 0.1rem 0.68rem;
+  padding: 0.7rem 1rem 0.9rem;
+  border: 1px solid rgba(159, 96, 255, 0.16);
+  border-radius: 1rem;
+  background: linear-gradient(180deg, rgba(22, 17, 35, 0.82), rgba(12, 10, 21, 0.9));
   color: rgba(214, 202, 236, 0.72);
   font-size: 0.96rem;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    0 10px 24px rgba(0, 0, 0, 0.16);
+  transition:
+    transform 180ms ease,
+    color 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease,
+    background 180ms ease;
 }
 
 .clientRoutersExperience .portalNavLink.isActive,
 .clientRoutersExperience .portalNavLink:hover {
   color: #fff;
+  border-color: rgba(255, 139, 48, 0.34);
+  background:
+    radial-gradient(circle at 50% 0, rgba(153, 88, 255, 0.18), transparent 62%),
+    linear-gradient(180deg, rgba(33, 24, 53, 0.94), rgba(14, 11, 24, 0.96));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 14px 30px rgba(0, 0, 0, 0.22),
+    0 0 0 1px rgba(255, 139, 48, 0.08);
+  transform: translateY(-1px);
 }
 
 .clientRoutersExperience .portalNavLink::after {
-  bottom: -0.64rem;
+  right: 0.8rem;
+  bottom: 0.42rem;
+  left: 0.8rem;
   height: 2px;
   background: linear-gradient(90deg, rgba(179, 104, 255, 0), rgba(179, 104, 255, 0.95), rgba(179, 104, 255, 0));
 }
 
+.clientRoutersExperience .portalNavLink .portalNavIcon,
+.clientRoutersExperience .portalNavLink .portalNavIcon svg {
+  color: rgba(197, 170, 242, 0.74);
+  transition: color 180ms ease;
+}
+
 .clientRoutersExperience .portalNavLink.isActive .portalNavIcon,
-.clientRoutersExperience .portalNavLink.isActive .portalNavIcon svg {
+.clientRoutersExperience .portalNavLink.isActive .portalNavIcon svg,
+.clientRoutersExperience .portalNavLink:hover .portalNavIcon,
+.clientRoutersExperience .portalNavLink:hover .portalNavIcon svg {
   color: #c272ff;
 }
 
 .clientRoutersExperience .portalNav {
-  gap: 1.55rem;
+  justify-content: flex-start;
+  gap: 0.8rem;
+  padding-left: 0.35rem;
 }
 
 .clientRoutersExperience:has(#support:target) .portalNavLink.isActive {
