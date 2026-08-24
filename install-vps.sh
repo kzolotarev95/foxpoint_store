@@ -247,7 +247,7 @@ install_dependencies() {
   npm cache clean --force >/dev/null 2>&1 || true
   npm run db:generate
   systemctl restart postgresql
-  npm run db:push
+  bash "$APP_DIR/deploy/scripts/prisma-safe-db-push.sh" "$APP_DIR"
   ensure_free_space_mb 900
   npm run build
   rm -rf "$APP_DIR/apps/web/.next/cache" /root/.npm/_cacache

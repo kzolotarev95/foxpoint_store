@@ -71,7 +71,7 @@ npm ci --include=optional
 npm rebuild sharp >/dev/null 2>&1 || npm install --include=optional sharp
 npm run db:generate
 npm run build
-npm run db:push
+bash "$APP_DIR/deploy/scripts/prisma-safe-db-push.sh" "$APP_DIR"
 
 sync_nginx_configs
 systemctl restart foxpoint-api foxpoint-web
