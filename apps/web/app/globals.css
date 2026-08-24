@@ -4531,8 +4531,9 @@ select.textInput option {
 
 .clientRouterControlCard {
   display: grid;
-  gap: 1.2rem;
+  gap: 1.45rem;
   align-items: start;
+  padding: 1.35rem;
   text-align: center;
 }
 
@@ -4564,6 +4565,7 @@ select.textInput option {
   color: rgba(237, 229, 250, 0.74);
   font-size: 0.95rem;
   line-height: 1.5;
+  max-width: 30rem;
 }
 
 .clientRouterControlState {
@@ -4585,13 +4587,28 @@ select.textInput option {
 .clientRouterControlFacts {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.62rem 0.72rem;
+  gap: 0.9rem;
   width: 100%;
+}
+
+.clientRouterControlFacts .clientRouterFact {
+  gap: 0.7rem;
+  min-height: 5.25rem;
+  padding: 1rem 1.1rem 1.05rem;
+}
+
+.clientRouterControlFacts .clientRouterFactLabel {
+  line-height: 1.4;
+  white-space: normal;
+}
+
+.clientRouterControlFacts .clientRouterFact strong {
+  line-height: 1.45;
 }
 
 .clientRouterSettingsForm {
   display: grid;
-  gap: 1rem;
+  gap: 1.15rem;
   justify-items: center;
   width: 100%;
 }
@@ -4599,16 +4616,16 @@ select.textInput option {
 .clientRouterControlOptions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.72rem;
+  gap: 0.9rem;
   width: 100%;
 }
 
 .clientRouterControlOptionCard {
   display: grid;
-  gap: 0.72rem;
+  gap: 1rem;
   align-content: start;
   min-height: 100%;
-  padding: 1rem 1.05rem;
+  padding: 1.15rem 1.2rem;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 1rem;
   background: linear-gradient(180deg, rgba(18, 14, 31, 0.9), rgba(11, 9, 21, 0.84));
@@ -4617,7 +4634,7 @@ select.textInput option {
 
 .clientRouterControlOptionCopy {
   display: grid;
-  gap: 0.34rem;
+  gap: 0.45rem;
 }
 
 .clientRouterControlOptionTitle {
@@ -4636,6 +4653,7 @@ select.textInput option {
   display: inline-flex;
   align-items: center;
   gap: 0.65rem;
+  margin-top: 0.15rem;
   color: #ffddb6;
   font-size: 0.92rem;
   font-weight: 600;
@@ -4651,15 +4669,17 @@ select.textInput option {
 .clientRouterSettingsForm .fieldStack {
   width: 100%;
   justify-items: stretch;
-  gap: 0.55rem;
+  gap: 0.75rem;
 }
 
 .clientRouterSettingsForm .fieldLabel {
   text-align: left;
+  line-height: 1.35;
 }
 
 .clientRouterSettingsForm .textInput,
 .clientRouterSettingsForm select.textInput {
+  min-height: 3.25rem;
   text-align: left;
   text-align-last: left;
 }
@@ -4667,7 +4687,7 @@ select.textInput option {
 .clientRouterSettingsForm button {
   width: min(100%, 18rem);
   justify-content: center;
-  margin-top: 0.1rem;
+  margin-top: 0.3rem;
 }
 
 .clientUtilityStats {
