@@ -7,6 +7,7 @@ import { getApiBaseUrl } from "../../lib/api";
 import { getAdminCookieName, readAdminSession } from "../../lib/admin-auth";
 import type { AdminOverview } from "../../lib/portal-types";
 import { getExpiredSessionCookieOptions } from "../../lib/session-cookie";
+import { TicketConversation } from "../../components/ticket-conversation";
 
 type AdminSettingRecord = {
   defaultValue: string;
@@ -503,8 +504,7 @@ async function updateTicketAction(formData: FormData) {
     redirectTo: `/admin#ticket-${ticketId}`,
     body: {
       status: String(formData.get("status") ?? "OPEN"),
-      assigneeId: String(formData.get("assigneeId") ?? "").trim() || undefined,
-      adminComment: String(formData.get("adminComment") ?? "").trim() || undefined
+      assigneeId: String(formData.get("assigneeId") ?? "").trim() || undefined
     }
   });
 }
@@ -1272,8 +1272,7 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
           <div className="contentStack">
             {overview.tickets.map((ticket) => {
               return (
-                <form key={ticket.id} id={getTicketAnchorId(ticket.id)} action={updateTicketAction} className="panel adminRecordCard adminTicketCard">
-                <input name="ticketId" type="hidden" value={ticket.id} />
+                <article key={ticket.id} id={getTicketAnchorId(ticket.id)} className="panel adminRecordCard adminTicketCard">
                 <div className="sectionHeader">
                   <div>
                     <h3 className="adminSectionTitle adminTicketTitleRow">
@@ -1288,75 +1287,61 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                 <p className="helperText" style={{ marginBottom: "16px" }}>
                   {ticket.description}
                 </p>
-                <div className="clientSupportMessageList adminTicketThread">
-                  {ticket.messages.map((message) => (
-                    <article
-                      key={message.id}
-                      className={getAdminTicketMessageClass(message)}
-                    >
-                      <div className="clientSupportMessageBubble">
-                        <div className="clientSupportMessageMeta">
-                          <strong>{getAdminTicketMessageAuthorLabel(message, ticket)}</strong>
-                          <span>{formatDateTime(message.createdAt)}</span>
-                        </div>
-                        <p>{message.body}</p>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-                <div className="settingsGrid">
-                  <label className="fieldStack">
-                    <span className="fieldLabel">Статус</span>
-                    <select className="textInput" defaultValue={ticket.status} name="status">
-                      <option value="OPEN">Новая</option>
-                      <option value="IN_PROGRESS">В работе</option>
-                      <option value="WAITING_CLIENT">Ждём клиента</option>
-                      <option value="RESOLVED">Решена</option>
-                      <option value="CLOSED">Закрыта</option>
-                    </select>
-                  </label>
-                  <label className="fieldStack">
-                    <span className="fieldLabel">Исполнитель</span>
-                    <input
-                      className="textInput"
-                      defaultValue={ticket.assigneeId ?? ""}
-                      name="assigneeId"
-                      placeholder="admin_1"
-                      type="text"
-                    />
-                  </label>
-                  <div className="fieldStack">
-                    <span className="fieldLabel">ID клиента</span>
-                    <strong>{ticket.userId}</strong>
+                <TicketConversation
+                  adminLabel="Поддержка"
+                  closed={ticket.status === "CLOSED"}
+                  closedLabel="Чат закрыт. Новые сообщения отправить нельзя."
+                  clientLabel={ticket.customerName}
+                  messages={ticket.messages}
+                  replyActionUrl={`/admin/tickets/${ticket.id}/message`}
+                  replyButtonLabel="Отправить"
+                  replyPlaceholder="Напишите сообщение..."
+                  ticketId={ticket.id}
+                />
+                <form action={updateTicketAction}>
+                  <input name="ticketId" type="hidden" value={ticket.id} />
+                  <div className="settingsGrid">
+                    <label className="fieldStack">
+                      <span className="fieldLabel">Статус</span>
+                      <select className="textInput" defaultValue={ticket.status} name="status">
+                        <option value="OPEN">Новая</option>
+                        <option value="IN_PROGRESS">В работе</option>
+                        <option value="WAITING_CLIENT">Ждём клиента</option>
+                        <option value="RESOLVED">Решена</option>
+                        <option value="CLOSED">Закрыта</option>
+                      </select>
+                    </label>
+                    <label className="fieldStack">
+                      <span className="fieldLabel">Исполнитель</span>
+                      <input
+                        className="textInput"
+                        defaultValue={ticket.assigneeId ?? ""}
+                        name="assigneeId"
+                        placeholder="admin_1"
+                        type="text"
+                      />
+                    </label>
+                    <div className="fieldStack">
+                      <span className="fieldLabel">ID клиента</span>
+                      <strong>{ticket.userId}</strong>
+                    </div>
                   </div>
-                </div>
-                <label className="fieldStack">
-                  <span className="fieldLabel">Новое сообщение</span>
-                  <textarea
-                    className="textInput adminTicketCommentInput"
-                    defaultValue=""
-                    name="adminComment"
-                    placeholder="Например: проверили линию, перезапустите роутер и сообщите результат."
-                    rows={4}
-                    disabled={ticket.status === "CLOSED"}
-                  />
-                  {ticket.status === "CLOSED" ? <span className="helperText">Чат закрыт. Новые сообщения отправить нельзя.</span> : null}
                   <span className="helperText">{getAdminTicketStatusHint(ticket.status)}</span>
-                </label>
-                <div className="ctaRow" style={{ marginTop: "16px" }}>
-                  <button className="primaryButton" type="submit">
-                    Сохранить обращение
-                  </button>
-                  <button
-                    aria-label={getAdminTicketDeleteLabel(ticket)}
-                    className="secondaryButton adminDangerButton"
-                    formAction={deleteTicketAction}
-                    type="submit"
-                  >
-                    Удалить
-                  </button>
-                </div>
+                  <div className="ctaRow" style={{ marginTop: "16px" }}>
+                    <button className="primaryButton" type="submit">
+                      Сохранить обращение
+                    </button>
+                    <button
+                      aria-label={getAdminTicketDeleteLabel(ticket)}
+                      className="secondaryButton adminDangerButton"
+                      formAction={deleteTicketAction}
+                      type="submit"
+                    >
+                      Удалить
+                    </button>
+                  </div>
                 </form>
+                </article>
               );
             })}
           </div>

@@ -151,6 +151,7 @@ async function appendSupportTicketMessage(input: {
   });
 
   return {
+    authorRole: message.authorRole,
     body: message.body,
     createdAt: message.createdAt.toISOString(),
     id: message.id
@@ -2230,6 +2231,13 @@ export async function updateAdminTicket(input: {
   const ticket = await prisma.supportTicket.findUnique({
     where: {
       id: input.ticketId
+    },
+    include: {
+      messages: {
+        select: {
+          authorRole: true
+        }
+      }
     }
   });
 
@@ -2237,13 +2245,10 @@ export async function updateAdminTicket(input: {
     throw new Error("Обращение не найдено.");
   }
 
-  if (input.adminComment?.trim()) {
-    await appendSupportTicketMessage({
-      authorRole: "ADMIN",
-      body: input.adminComment,
-      ticketId: input.ticketId
-    });
-  }
+  const shouldAddOperatorWaitMessage =
+    ticket.status !== "IN_PROGRESS" &&
+    input.status === "IN_PROGRESS" &&
+    !ticket.messages.some((message) => message.authorRole === "ADMIN");
 
   const updated = await prisma.supportTicket.update({
     where: {
@@ -2254,6 +2259,22 @@ export async function updateAdminTicket(input: {
       assigneeId: input.assigneeId?.trim() || null
     }
   });
+
+  if (shouldAddOperatorWaitMessage) {
+    await appendSupportTicketMessage({
+      authorRole: "ADMIN",
+      body: "Ожидайте оператора.",
+      ticketId: input.ticketId
+    });
+  }
+
+  if (input.adminComment?.trim()) {
+    await appendSupportTicketMessage({
+      authorRole: "ADMIN",
+      body: input.adminComment,
+      ticketId: input.ticketId
+    });
+  }
 
   await recordAdminAction({
     action: "ticket_updated",

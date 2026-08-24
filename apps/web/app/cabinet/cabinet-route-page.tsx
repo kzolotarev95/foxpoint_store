@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { PortalHeader } from "../../components/portal-header";
+import { TicketConversation } from "../../components/ticket-conversation";
 import { TelegramLoginWidget } from "../../components/telegram-login-widget";
 import {
   attachProfileEmailAction,
@@ -333,43 +334,17 @@ function renderSupportTicketThread(ticket: SupportTicketItem, openTicketId: stri
       </summary>
 
       <div className="clientSupportThreadBody">
-        <div className="clientSupportMessageList">
-          {ticket.messages.map((message) => (
-            <article
-              key={message.id}
-              className={message.authorRole === "ADMIN" ? "clientSupportMessage isAdmin" : "clientSupportMessage isClient"}
-            >
-              <div className="clientSupportMessageBubble">
-                <div className="clientSupportMessageMeta">
-                  <strong>{getSupportTicketMessageAuthorLabel(message.authorRole)}</strong>
-                  <span>{formatSupportMessageTime(message.createdAt)}</span>
-                </div>
-                <p>{message.body}</p>
-              </div>
-            </article>
-          ))}
-        </div>
-
-        {ticket.status === "CLOSED" ? (
-          <div className="clientSupportClosedNote">Чат закрыт. Новые сообщения отправить нельзя.</div>
-        ) : (
-          <form action="/cabinet/support/reply" className="clientSupportReplyForm" method="post">
-            <input name="ticketId" type="hidden" value={ticket.id} />
-            <input name="returnTo" type="hidden" value={`/cabinet/support#ticket-${ticket.id}`} />
-            <textarea
-              className="textInput clientSupportReplyInput"
-              maxLength={3000}
-              minLength={1}
-              name="message"
-              placeholder="Напишите сообщение..."
-              required
-              rows={1}
-            />
-            <button className="primaryButton portalActionButton clientSupportReplyButton" type="submit">
-              Отправить
-            </button>
-          </form>
-        )}
+        <TicketConversation
+          adminLabel="Поддержка"
+          closed={ticket.status === "CLOSED"}
+          closedLabel="Чат закрыт. Новые сообщения отправить нельзя."
+          clientLabel="Вы"
+          messages={ticket.messages}
+          replyActionUrl="/cabinet/support/reply"
+          replyButtonLabel="Отправить"
+          replyPlaceholder="Напишите сообщение..."
+          ticketId={ticket.id}
+        />
       </div>
     </details>
   );
