@@ -38,6 +38,10 @@ type NotificationFeedItem = {
   title: string;
 };
 
+const SESSION_GEO_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+const SESSION_GEO_REQUEST_TIMEOUT_MS = 800;
+const sessionGeoCache = new Map<string, { expiresAt: number; value: string }>();
+
 function getCabinetTabHref(tab: CabinetTab): string {
   const hrefs: Record<CabinetTab, string> = {
     overview: "/cabinet",
@@ -372,12 +376,17 @@ async function resolveSessionGeoLabel(ipAddress: string | null | undefined): Pro
     return "Частная сеть";
   }
 
+  const cached = sessionGeoCache.get(normalizedIp);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.value;
+  }
+
   try {
     const response = await fetch(`https://ipwho.is/${encodeURIComponent(normalizedIp)}`, {
       next: {
         revalidate: 21600
       },
-      signal: AbortSignal.timeout(1500)
+      signal: AbortSignal.timeout(SESSION_GEO_REQUEST_TIMEOUT_MS)
     });
 
     if (!response.ok) {
@@ -396,9 +405,14 @@ async function resolveSessionGeoLabel(ipAddress: string | null | undefined): Pro
     }
 
     const geoLabel = [payload.city, payload.region, payload.country].filter(Boolean).join(", ");
-    return geoLabel || payload.country || "Геоданные недоступны";
+    const resolvedLabel = geoLabel || payload.country || "Геоданные недоступны";
+    sessionGeoCache.set(normalizedIp, {
+      expiresAt: Date.now() + SESSION_GEO_CACHE_TTL_MS,
+      value: resolvedLabel
+    });
+    return resolvedLabel;
   } catch {
-    return "Геоданные недоступны";
+    return cached?.value ?? "Геоданные недоступны";
   }
 }
 
@@ -466,14 +480,13 @@ function getSessionBrowserLabel(userAgent: string): string {
   return "Браузер";
 }
 
-async function getProfileSessionMeta(session: ClientSessionItem) {
+function getSessionBaseMeta(session: ClientSessionItem) {
   const userAgent = (session.userAgent ?? "").toLowerCase();
   const isPhoneSession = /android|iphone|ipad|mobile/.test(userAgent);
   const isTelegramSession = /telegram/.test(userAgent);
   const platformLabel = getSessionPlatformLabel(userAgent);
   const browserLabel = getSessionBrowserLabel(userAgent);
   const ipLabel = extractIpAddress(session.ipAddress) ?? "IP не определен";
-  const geoLabel = await resolveSessionGeoLabel(session.ipAddress);
   const activityLabel = formatRelativeDateTime(session.lastSeenAt);
   const loginLabel = formatRelativeDateTime(session.createdAt);
   const deviceLabel =
@@ -485,11 +498,17 @@ async function getProfileSessionMeta(session: ClientSessionItem) {
     activityLabel,
     browserLabel,
     deviceLabel: isTelegramSession ? "Telegram / Встроенный браузер" : deviceLabel,
-    geoLabel,
     icon: isPhoneSession || isTelegramSession ? <DevicePhoneIcon /> : <MonitorIcon />,
     ipLabel,
     loginLabel,
     platformLabel
+  };
+}
+
+async function getProfileSessionMeta(session: ClientSessionItem) {
+  return {
+    ...getSessionBaseMeta(session),
+    geoLabel: await resolveSessionGeoLabel(session.ipAddress)
   };
 }
 
@@ -573,7 +592,7 @@ function getNotificationTypeMeta(type: string): Pick<NotificationFeedItem, "deta
 
 function buildNotificationFeed(
   overview: ClientOverview,
-  sessions: ProfileSessionViewItem[],
+  sessions: ClientSessionItem[],
   clearedAt: string | null,
   seenAt: string | null
 ): NotificationFeedItem[] {
@@ -599,16 +618,17 @@ function buildNotificationFeed(
   });
 
   const sessionNotifications = sessions.slice(0, 6).map((session) => {
+    const sessionMeta = getSessionBaseMeta(session);
     const createdAt = parseDateValue(session.lastSeenAt);
 
     return {
       createdAt: session.lastSeenAt,
-      detail: `${session.deviceLabel} · ${session.geoLabel} · ${session.ipLabel}`,
+      detail: `${sessionMeta.deviceLabel} · ${sessionMeta.ipLabel}`,
       href: "/cabinet/profile",
-      icon: session.icon,
+      icon: sessionMeta.icon,
       id: `session-${session.id}`,
       isUnread: createdAt ? (seenThreshold ? createdAt.getTime() > seenThreshold.getTime() : true) : false,
-      meta: `Активность ${session.activityLabel}`,
+      meta: `Активность ${sessionMeta.activityLabel}`,
       title: session.isCurrent ? "Текущее устройство в сети" : "Вход в кабинет"
     };
   });
@@ -1179,15 +1199,18 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
     ? buildTelegramBotUrl(overview.links.telegramBot, "link")
     : overview.links.support;
   const telegramLinkAuthUrl = telegramBotUsername ? await buildTelegramCallbackUrlForRequest("link") : "";
-  const profileSessions = await Promise.all(
-    overview.sessions.map(async (session) => ({
-      ...session,
-      ...(await getProfileSessionMeta(session))
-    }))
-  );
+  const profileSessions =
+    props.activeTab === "profile"
+      ? await Promise.all(
+          overview.sessions.map(async (session) => ({
+            ...session,
+            ...(await getProfileSessionMeta(session))
+          }))
+        )
+      : [];
   const notificationFeed = buildNotificationFeed(
     overview,
-    profileSessions,
+    overview.sessions,
     overview.profile.notificationFeedClearedAt,
     overview.profile.notificationFeedSeenAt
   );
