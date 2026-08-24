@@ -196,6 +196,14 @@ export async function createSupportTicketAction(formData: FormData) {
   const description = String(formData.get("description") ?? "").trim();
   const routerId = String(formData.get("routerId") ?? "").trim();
 
+  if (category.length < 2) {
+    redirect(`${returnTo}?error=${encodeMessage("Укажите категорию обращения минимум из 2 символов.")}`);
+  }
+
+  if (description.length < 10) {
+    redirect(`${returnTo}?error=${encodeMessage("Опишите проблему подробнее: минимум 10 символов.")}`);
+  }
+
   try {
     await fetchClientApi("/api/support", {
       method: "POST",

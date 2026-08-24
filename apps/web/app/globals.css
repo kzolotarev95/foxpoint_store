@@ -3822,7 +3822,7 @@ select.textInput option {
 
 .clientSupportGrid {
   display: grid;
-  gap: 1rem;
+  gap: 1.2rem;
   grid-template-columns: minmax(0, 1.65fr) minmax(340px, 1fr);
   align-items: start;
 }
@@ -3831,7 +3831,6 @@ select.textInput option {
 .clientSupportInfoCard,
 .clientSupportFormCard {
   border: 1px solid var(--cabinet-line);
-  background: var(--cabinet-panel);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.03),
     0 24px 52px rgba(0, 0, 0, 0.24);
@@ -3839,12 +3838,42 @@ select.textInput option {
 
 .clientSupportTicketsCard,
 .clientSupportInfoCard {
-  padding: 1.25rem 1.25rem 1rem;
+  padding: 1.35rem 1.35rem 1.1rem;
+  background:
+    radial-gradient(circle at top right, rgba(137, 70, 255, 0.12), transparent 28%),
+    linear-gradient(180deg, rgba(14, 11, 26, 0.98), rgba(10, 9, 21, 0.96));
+}
+
+.clientSupportFormCard {
+  background:
+    radial-gradient(circle at 15% 0%, rgba(255, 141, 51, 0.14), transparent 24%),
+    radial-gradient(circle at 85% 12%, rgba(129, 68, 255, 0.14), transparent 28%),
+    linear-gradient(180deg, rgba(15, 12, 28, 0.98), rgba(10, 9, 20, 0.96));
+}
+
+.clientSupportCardHeader {
+  display: grid;
+  gap: 0.45rem;
+  justify-items: center;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.clientSupportCardHeader .pill {
+  justify-self: center;
+}
+
+.clientSupportCardHeader p {
+  max-width: 30rem;
+  margin: 0;
+  color: rgba(222, 212, 239, 0.7);
+  font-size: 0.94rem;
+  line-height: 1.52;
 }
 
 .clientSupportTicketsCard h2,
 .clientSupportInfoCard h2 {
-  margin: 0 0 1rem;
+  margin: 0;
   font-family: var(--font-heading, sans-serif);
   font-size: clamp(1.55rem, 2vw, 2.05rem);
   line-height: 1.02;
@@ -3863,12 +3892,22 @@ select.textInput option {
   grid-template-columns: 3.85rem minmax(0, 1fr) auto 1.1rem;
   gap: 1rem;
   align-items: center;
-  padding: 0.8rem 1rem;
+  padding: 0.95rem 1rem;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 1.15rem;
   background:
     radial-gradient(circle at 100% 50%, rgba(130, 51, 255, 0.1), transparent 30%),
     linear-gradient(180deg, rgba(19, 15, 31, 0.98), rgba(11, 9, 20, 0.96));
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.clientSupportTicketRow:hover {
+  transform: translateY(-1px);
+  border-color: rgba(177, 113, 255, 0.28);
+  box-shadow: 0 16px 30px rgba(0, 0, 0, 0.18);
 }
 
 .clientSupportTicketIcon,
@@ -3909,7 +3948,7 @@ select.textInput option {
 }
 
 .clientSupportTicketBody p {
-  margin: 0.2rem 0 0;
+  margin: 0.28rem 0 0;
   color: rgba(214, 203, 235, 0.66);
   font-size: 0.92rem;
 }
@@ -3979,10 +4018,13 @@ select.textInput option {
 }
 
 .clientSupportEmptyState {
-  padding: 1rem 1.1rem;
+  padding: 1.15rem 1.2rem;
   border: 1px solid rgba(159, 96, 255, 0.18);
   border-radius: 1.1rem;
-  background: rgba(14, 10, 25, 0.88);
+  background:
+    radial-gradient(circle at top center, rgba(137, 71, 255, 0.12), transparent 30%),
+    rgba(14, 10, 25, 0.88);
+  text-align: center;
 }
 
 .clientSupportEmptyState p {
@@ -3993,6 +4035,7 @@ select.textInput option {
 
 .clientSupportInfoList {
   display: grid;
+  gap: 0.65rem;
 }
 
 .clientSupportInfoItem {
@@ -4000,11 +4043,11 @@ select.textInput option {
   grid-template-columns: 4.5rem minmax(0, 1fr);
   gap: 1rem;
   align-items: start;
-  padding: 0.55rem 0;
+  padding: 0.75rem 0;
 }
 
 .clientSupportInfoItem + .clientSupportInfoItem {
-  margin-top: 0.35rem;
+  margin-top: 0;
   padding-top: 1.1rem;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
@@ -4032,6 +4075,24 @@ select.textInput option {
   color: rgba(214, 203, 235, 0.72);
   font-size: 0.94rem;
   line-height: 1.45;
+}
+
+.clientSupportFormLead {
+  max-width: 38rem;
+}
+
+.clientSupportFormStack {
+  width: min(100%, 38rem);
+  margin: 0 auto;
+}
+
+.clientSupportFormCard .ctaRow {
+  justify-content: center;
+  margin-top: 0.2rem;
+}
+
+.clientSupportFormCard .ctaRow > * {
+  flex: 1 1 15rem;
 }
 
 .clientRouterControlsGrid,

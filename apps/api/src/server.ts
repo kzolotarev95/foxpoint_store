@@ -452,20 +452,27 @@ app.post("/api/support", async (request, reply) => {
     };
   }
 
-  const body = z
+  const payload = z
     .object({
-      category: z.string().trim().min(2).max(120),
-      description: z.string().trim().min(10).max(3000),
+      category: z.string().trim().min(2, "Категория должна содержать минимум 2 символа.").max(120),
+      description: z.string().trim().min(10, "Опишите проблему подробнее: минимум 10 символов.").max(3000),
       routerId: z.string().trim().min(1).optional()
     })
-    .parse(request.body);
+    .safeParse(request.body);
+
+  if (!payload.success) {
+    reply.code(400);
+    return {
+      error: payload.error.issues[0]?.message ?? "Проверьте корректность данных обращения."
+    };
+  }
 
   try {
     return await createSupportTicketForUser({
       userId,
-      category: body.category,
-      description: body.description,
-      routerId: body.routerId
+      category: payload.data.category,
+      description: payload.data.description,
+      routerId: payload.data.routerId
     });
   } catch (error) {
     reply.code(400);

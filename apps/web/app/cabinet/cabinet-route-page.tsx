@@ -1495,7 +1495,11 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
 
         <div className="clientSupportGrid">
           <article className="panel clientSupportTicketsCard">
-            <h2>Мои обращения</h2>
+            <div className="clientSupportCardHeader">
+              <span className="pill">История</span>
+              <h2>Мои обращения</h2>
+              <p>Следите за статусом заявок и при необходимости создавайте новые обращения без переписки.</p>
+            </div>
 
             {supportTickets.length ? (
               <>
@@ -1544,7 +1548,11 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
           </article>
 
           <article className="panel clientSupportInfoCard">
-            <h2>Как мы помогаем</h2>
+            <div className="clientSupportCardHeader">
+              <span className="pill">Поддержка</span>
+              <h2>Как мы помогаем</h2>
+              <p>Большинство вопросов закрываем удалённо: быстро, без долгих созвонов и лишних действий с вашей стороны.</p>
+            </div>
             <div className="clientSupportInfoList">
               <div className="clientSupportInfoItem">
                 <span className="clientSupportInfoIcon">
@@ -2083,12 +2091,17 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
         <article id="support-form" className="panel sectionPanel clientUtilityCard clientSupportFormCard">
           <span className="pill">Поддержка</span>
           <h2 className="sectionTitle">Создать обращение</h2>
-          <form action={createSupportTicketAction} className="contentStack">
+          <p className="sectionLead clientSupportFormLead">
+            Укажите тему и кратко опишите проблему. Если обращение связано с конкретным роутером, выберите его в списке.
+          </p>
+          <form action={createSupportTicketAction} className="contentStack clientSupportFormStack">
             <input name="returnTo" type="hidden" value="/cabinet/support" />
             <label className="fieldStack">
               <span className="fieldLabel">Категория</span>
               <input
                 className="textInput"
+                minLength={2}
+                maxLength={120}
                 name="category"
                 placeholder="Продление, настройка, доставка"
                 required
@@ -2111,6 +2124,8 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
               <textarea
                 className="textAreaInput"
                 name="description"
+                minLength={10}
+                maxLength={3000}
                 placeholder="Опишите ситуацию и что именно нужно сделать."
                 required
               />
