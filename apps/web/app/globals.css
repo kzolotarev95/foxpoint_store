@@ -4408,6 +4408,11 @@ select.textInput option {
 
 .clientSupportFormStack .textInput,
 .clientSupportFormStack .textAreaInput {
+  text-align: center;
+}
+
+.clientSupportFormStack input.textInput:not(:placeholder-shown),
+.clientSupportFormStack .textAreaInput:not(:placeholder-shown) {
   text-align: left;
 }
 
