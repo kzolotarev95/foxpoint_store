@@ -6,7 +6,6 @@ import { TelegramLoginWidget } from "../../components/telegram-login-widget";
 import {
   attachProfileEmailAction,
   createRouterOrderAction,
-  createSupportTicketAction,
   logoutClientAction,
   revokeAllClientSessionsAction,
   revokeClientSessionAction,
@@ -2111,8 +2110,8 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
           <p className="sectionLead clientSupportFormLead">
             Укажите тему и кратко опишите проблему. Если обращение связано с конкретным роутером, выберите его в списке.
           </p>
-          <form action={createSupportTicketAction} className="contentStack clientSupportFormStack">
-            <input name="returnTo" type="hidden" value="/cabinet/support" />
+          <form action="/cabinet/support/create" className="contentStack clientSupportFormStack" method="post">
+            <input name="returnTo" type="hidden" value="/cabinet/support#support-form" />
             <label className="fieldStack">
               <span className="fieldLabel">Категория</span>
               <input
