@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 
 type TicketConversationMessage = {
   authorRole: "ADMIN" | "CLIENT";
@@ -11,13 +11,14 @@ type TicketConversationMessage = {
 
 type TicketConversationProps = {
   adminLabel: string;
-  closed: boolean;
   closedLabel: string;
   clientLabel: string;
   replyActionUrl: string;
   replyButtonLabel: string;
   replyPlaceholder: string;
   ticketId: string;
+  refreshUrl: string;
+  status: string;
   messages: TicketConversationMessage[];
 };
 
@@ -32,25 +33,86 @@ function formatMessageTime(value: string): string {
 
 export function TicketConversation({
   adminLabel,
-  closed,
   closedLabel,
   clientLabel,
   messages: initialMessages,
   replyActionUrl,
   replyButtonLabel,
   replyPlaceholder,
+  refreshUrl,
+  status: initialStatus,
   ticketId
 }: TicketConversationProps) {
   const [messages, setMessages] = useState(initialMessages);
+  const [ticketStatus, setTicketStatus] = useState(initialStatus);
   const [message, setMessage] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
+  const syncInFlight = useRef(false);
+
+  useEffect(() => {
+    setMessages(initialMessages);
+    setTicketStatus(initialStatus);
+  }, [initialMessages, initialStatus]);
+
+  useEffect(() => {
+    let active = true;
+
+    const syncTicket = async () => {
+      if (syncInFlight.current) {
+        return;
+      }
+
+      syncInFlight.current = true;
+
+      try {
+        const response = await fetch(refreshUrl, {
+          headers: {
+            Accept: "application/json"
+          },
+          cache: "no-store"
+        });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const payload = (await response.json().catch(() => null)) as
+          | {
+              messages?: TicketConversationMessage[];
+              status?: string;
+            }
+          | null;
+
+        if (!active || !payload?.messages || !payload.status) {
+          return;
+        }
+
+        setMessages(payload.messages);
+        setTicketStatus(payload.status);
+      } catch {
+        // Ignore transient sync issues.
+      } finally {
+        syncInFlight.current = false;
+      }
+    };
+
+    void syncTicket();
+    const interval = window.setInterval(() => {
+      void syncTicket();
+    }, 5000);
+
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+    };
+  }, [refreshUrl]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const trimmed = message.trim();
-    if (!trimmed || isSending || closed) {
+    if (!trimmed || isSending || ticketStatus === "CLOSED") {
       return;
     }
 
@@ -110,7 +172,7 @@ export function TicketConversation({
         ))}
       </div>
 
-      {closed ? (
+      {ticketStatus === "CLOSED" ? (
         <div className="clientSupportClosedNote">{closedLabel}</div>
       ) : (
         <form className="clientSupportReplyForm" onSubmit={handleSubmit}>

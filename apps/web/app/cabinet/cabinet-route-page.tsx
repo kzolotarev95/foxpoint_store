@@ -336,13 +336,14 @@ function renderSupportTicketThread(ticket: SupportTicketItem, openTicketId: stri
       <div className="clientSupportThreadBody">
         <TicketConversation
           adminLabel="Поддержка"
-          closed={ticket.status === "CLOSED"}
           closedLabel="Чат закрыт. Новые сообщения отправить нельзя."
           clientLabel="Вы"
           messages={ticket.messages}
           replyActionUrl="/cabinet/support/reply"
           replyButtonLabel="Отправить"
           replyPlaceholder="Напишите сообщение..."
+          refreshUrl={`/cabinet/support/${ticket.id}`}
+          status={ticket.status}
           ticketId={ticket.id}
         />
       </div>

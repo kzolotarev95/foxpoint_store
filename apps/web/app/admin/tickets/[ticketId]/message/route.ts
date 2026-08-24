@@ -27,6 +27,45 @@ async function redirectToTarget(
   return NextResponse.redirect(location, { status: 303 });
 }
 
+export async function GET(request: NextRequest, { params }: { params: Promise<{ ticketId: string }> }) {
+  const { ticketId } = await params;
+  const token = request.cookies.get(getAdminCookieName())?.value ?? "";
+
+  if (!token) {
+    return NextResponse.json({ error: "Сессия истекла. Войдите снова." }, { status: 401 });
+  }
+
+  const response = await fetch(`${getApiBaseUrl()}/api/admin/overview`, {
+    headers: {
+      Accept: "application/json",
+      cookie: request.headers.get("cookie") ?? "",
+      "x-admin-session": token
+    },
+    cache: "no-store"
+  });
+
+  if (response.status === 401) {
+    return NextResponse.json({ error: "Сессия истекла. Войдите снова." }, { status: 401 });
+  }
+
+  if (!response.ok) {
+    const errorMessage = await parseApiError(response, "Не удалось обновить чат.");
+    return NextResponse.json({ error: errorMessage }, { status: response.status });
+  }
+
+  const payload = (await response.json()) as { tickets?: Array<{ id: string; messages: unknown[]; status: string }> };
+  const ticket = payload.tickets?.find((item) => item.id === ticketId);
+
+  if (!ticket) {
+    return NextResponse.json({ error: "Тикет не найден." }, { status: 404 });
+  }
+
+  return NextResponse.json({
+    messages: ticket.messages,
+    status: ticket.status
+  });
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ ticketId: string }> }

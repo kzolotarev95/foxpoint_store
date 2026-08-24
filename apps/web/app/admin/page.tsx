@@ -1303,13 +1303,14 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                 </p>
                 <TicketConversation
                   adminLabel="Поддержка"
-                  closed={ticket.status === "CLOSED"}
                   closedLabel="Чат закрыт. Новые сообщения отправить нельзя."
                   clientLabel={ticket.customerName}
                   messages={ticket.messages}
                   replyActionUrl={`/admin/tickets/${ticket.id}/message`}
                   replyButtonLabel="Отправить"
                   replyPlaceholder="Напишите сообщение..."
+                  refreshUrl={`/admin/tickets/${ticket.id}/message`}
+                  status={ticket.status}
                   ticketId={ticket.id}
                 />
                 <form action={updateTicketAction}>
