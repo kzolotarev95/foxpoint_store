@@ -1992,13 +1992,35 @@ textarea {
 }
 
 .adminDashboardShell .sideNav a {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 0.78rem;
   padding: 0.72rem 0.85rem;
+  border: 1px solid transparent;
   border-radius: 0.95rem;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.025), rgba(255, 255, 255, 0));
   font-size: 0.93rem;
   line-height: 1.2;
+  overflow: hidden;
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.adminDashboardShell .sideNav a::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(255, 160, 76, 0), rgba(255, 160, 76, 0.14), rgba(191, 110, 255, 0.12), rgba(255, 160, 76, 0));
+  opacity: 0;
+  transform: translateX(-24%);
+  transition:
+    opacity 180ms ease,
+    transform 240ms ease;
+  pointer-events: none;
 }
 
 .adminSideNavIcon {
@@ -2013,11 +2035,18 @@ textarea {
   background: linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.025));
   color: #ffc891;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  transition:
+    transform 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease,
+    color 180ms ease,
+    box-shadow 180ms ease;
 }
 
 .adminSideNavIcon svg {
   width: 0.98rem;
   height: 0.98rem;
+  transition: transform 180ms ease;
 }
 
 .adminSideNavLabel {
@@ -2045,6 +2074,39 @@ textarea {
   line-height: 1;
   letter-spacing: 0.03em;
   box-shadow: 0 10px 18px rgba(255, 102, 46, 0.12);
+}
+
+.adminDashboardShell .sideNav a:hover {
+  transform: translateX(4px);
+  border-color: rgba(255, 181, 119, 0.18);
+  background: linear-gradient(135deg, rgba(255, 168, 95, 0.08), rgba(181, 103, 255, 0.08));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 12px 24px rgba(0, 0, 0, 0.16);
+}
+
+.adminDashboardShell .sideNav a:hover::before {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.adminDashboardShell .sideNav a:hover .adminSideNavIcon {
+  transform: translateY(-1px) scale(1.04);
+  border-color: rgba(255, 195, 142, 0.24);
+  background: linear-gradient(180deg, rgba(255, 184, 120, 0.14), rgba(182, 103, 255, 0.08));
+  color: #ffe3c3;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 8px 18px rgba(255, 125, 52, 0.12);
+}
+
+.adminDashboardShell .sideNav a:hover .adminSideNavIcon svg {
+  transform: scale(1.06);
+}
+
+.adminDashboardShell .sideNav a:hover .adminSideNavBadge {
+  border-color: rgba(255, 210, 156, 0.38);
+  box-shadow: 0 12px 22px rgba(255, 102, 46, 0.18);
 }
 
 .adminDashboardShell .navMeta {
