@@ -10,19 +10,38 @@ type PortalNavItem = {
 };
 
 type PortalHeaderProps = {
+  brandHref?: string;
   navItems?: PortalNavItem[];
+  reloadBrandOnClick?: boolean;
   rightSlot?: ReactNode;
 };
 
-export function PortalHeader({ navItems = [], rightSlot }: PortalHeaderProps) {
+export function PortalHeader({
+  brandHref = "/",
+  navItems = [],
+  reloadBrandOnClick = false,
+  rightSlot
+}: PortalHeaderProps) {
+  const brandContent = (
+    <>
+      <Image alt="" aria-hidden="true" height={40} src="/images/foxpoint-logo.png" width={40} />
+      <span className="brandWordmark">
+        <strong>FOX POINT</strong>
+      </span>
+    </>
+  );
+
   return (
     <header className="portalTopBar panel">
-      <Link className="brandMark" href="/">
-        <Image alt="" aria-hidden="true" height={40} src="/images/foxpoint-logo.png" width={40} />
-        <span className="brandWordmark">
-          <strong>FOX POINT</strong>
-        </span>
-      </Link>
+      {reloadBrandOnClick ? (
+        <a className="brandMark" href={brandHref}>
+          {brandContent}
+        </a>
+      ) : (
+        <Link className="brandMark" href={brandHref}>
+          {brandContent}
+        </Link>
+      )}
 
       {navItems.length ? (
         <nav aria-label="Основная навигация" className="portalNav">

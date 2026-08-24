@@ -1053,12 +1053,14 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
   return (
     <main className="shell portalPage clientDashboardPage clientRoutersExperience">
       <PortalHeader
+        brandHref={getCabinetTabHref(props.activeTab)}
         navItems={[
           { href: getCabinetTabHref("routers"), label: "Мои роутеры", icon: <RouterIcon />, active: isRoutersTab },
           { href: getCabinetTabHref("support"), label: "Поддержка", icon: <SupportIcon />, active: isSupportTab },
           { href: getCabinetTabHref("payments"), label: "Платежи", icon: <PaymentIcon />, active: isPaymentsTab },
           { href: getCabinetTabHref("profile"), label: "Профиль", icon: <ProfileIcon />, active: isProfileTab }
         ]}
+        reloadBrandOnClick
         rightSlot={
           <>
             <Link className="primaryButton portalActionButton portalOrderButton" href="/cabinet#order">
