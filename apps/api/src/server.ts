@@ -134,7 +134,8 @@ app.get("/api/routes", async () => {
       "/api/routers/:routerId/template",
       "/api/routers/:routerId/renew",
       "/api/admin/overview",
-      "/api/admin/routers"
+      "/api/admin/routers",
+      "/api/admin/audit/clear"
     ]
   };
 });
@@ -697,6 +698,27 @@ app.get("/api/admin/overview", async (request, reply) => {
   return buildAdminOverview({
     clientQuery: query.q
   });
+});
+
+app.post("/api/admin/audit/clear", async (request, reply) => {
+  if (!isAuthorizedAdminRequest(request)) {
+    reply.code(401);
+    return {
+      error: "unauthorized"
+    };
+  }
+
+  try {
+    const result = await prisma.adminAuditLog.deleteMany();
+    return {
+      deletedCount: result.count
+    };
+  } catch (error) {
+    reply.code(400);
+    return {
+      error: error instanceof Error ? error.message : "Не удалось очистить аудит."
+    };
+  }
 });
 
 app.put("/api/admin/settings", async (request, reply) => {

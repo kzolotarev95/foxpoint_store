@@ -522,6 +522,18 @@ async function deleteTicketAction(formData: FormData) {
   });
 }
 
+async function clearAuditAction() {
+  "use server";
+
+  await submitAdminMutation({
+    path: "/api/admin/audit/clear",
+    fallbackError: "Не удалось очистить аудит.",
+    successMessage: "Аудит очищен.",
+    redirectTo: "/admin#audit",
+    body: {}
+  });
+}
+
 function getTicketAnchorId(ticketId: string): string {
   return `ticket-${ticketId}`;
 }
@@ -1404,6 +1416,13 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
         <section id="audit" className="panel sectionPanel adminSectionPanel">
           <span className="pill">Аудит</span>
           <h2 className="adminSectionTitle">Последние действия</h2>
+          <div className="ctaRow">
+            <form action={clearAuditAction}>
+              <button className="secondaryButton adminDangerButton" type="submit" disabled={!overview.logs.length}>
+                Очистить аудит
+              </button>
+            </form>
+          </div>
           <ul className="list adminList">
             {overview.logs.length ? (
               overview.logs.map((log) => (
