@@ -564,7 +564,12 @@ function getNotificationTypeMeta(type: string): Pick<NotificationFeedItem, "deta
   };
 }
 
-function buildNotificationFeed(overview: ClientOverview, sessions: ProfileSessionViewItem[]): NotificationFeedItem[] {
+function buildNotificationFeed(
+  overview: ClientOverview,
+  sessions: ProfileSessionViewItem[],
+  clearedAt: string | null
+): NotificationFeedItem[] {
+  const clearedAtDate = parseDateValue(clearedAt);
   const systemNotifications = overview.notifications.map((notification) => {
     const meta = getNotificationTypeMeta(notification.type);
 
@@ -633,6 +638,15 @@ function buildNotificationFeed(overview: ClientOverview, sessions: ProfileSessio
   }));
 
   return [...systemNotifications, ...sessionNotifications, ...paymentNotifications, ...supportNotifications, ...orderNotifications]
+    .filter((item) => {
+      const createdAt = parseDateValue(item.createdAt);
+
+      if (!createdAt) {
+        return false;
+      }
+
+      return clearedAtDate ? createdAt.getTime() > clearedAtDate.getTime() : true;
+    })
     .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
     .slice(0, 10);
 }
@@ -1146,8 +1160,9 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
       ...(await getProfileSessionMeta(session))
     }))
   );
-  const notificationFeed = buildNotificationFeed(overview, profileSessions);
-  const unreadNotificationCount = overview.stats.unreadNotificationCount;
+  const notificationFeed = buildNotificationFeed(overview, profileSessions, overview.profile.notificationFeedClearedAt);
+  const notificationFeedCount = notificationFeed.length;
+  const notificationBellBadge = notificationFeedCount > 99 ? "+99" : `+${notificationFeedCount}`;
   const primaryPaymentRouter = getPrimaryPaymentRouter(overview.routers);
   const paymentDeadline = primaryPaymentRouter?.currentSubscription?.endAt ?? primaryPaymentRouter?.trial?.endAt ?? null;
   const paymentDaysRemaining =
@@ -1176,16 +1191,20 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
               <CartIcon />
             </Link>
             <details className="portalNotifications">
-              <summary className={unreadNotificationCount ? "portalBellButton hasAlert" : "portalBellButton"} aria-label="Открыть уведомления">
+              <summary
+                className={notificationFeedCount ? "portalBellButton hasAlert" : "portalBellButton"}
+                aria-label="Открыть уведомления"
+              >
                 <BellIcon />
+                {notificationFeedCount ? <span className="portalBellBadge">{notificationBellBadge}</span> : null}
               </summary>
               <div className="portalNotificationPopover">
                 <div className="portalNotificationHeader">
                   <div className="portalNotificationHeading">
                     <strong>Уведомления и входы</strong>
-                    <span>Непрочитанные уведомления и последние события по аккаунту.</span>
+                    <span>Новые уведомления и последние события по аккаунту.</span>
                   </div>
-                  <span className="portalNotificationCount">{unreadNotificationCount}</span>
+                  <span className="portalNotificationCount">{notificationFeedCount}</span>
                 </div>
                 <div className="portalNotificationList">
                   {notificationFeed.length ? (
@@ -1205,18 +1224,18 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                     ))
                   ) : (
                     <div className="portalNotificationEmpty">
-                      Последние события по аккаунту будут появляться здесь.
+                      Список очищен. Новые события по аккаунту будут появляться здесь.
                     </div>
                   )}
                 </div>
                 <form action="/cabinet/notifications/clear" className="portalNotificationFooter" method="post">
                   <input name="returnTo" type="hidden" value={getCabinetTabHref(props.activeTab)} />
-                  {unreadNotificationCount ? (
+                  {notificationFeedCount ? (
                     <button className="secondaryButton portalGhostButton portalNotificationClear" type="submit">
-                      Отметить прочитанными
+                      Очистить список
                     </button>
                   ) : (
-                    <span className="portalNotificationFooterNote">Новых уведомлений нет. История событий остаётся доступной здесь.</span>
+                    <span className="portalNotificationFooterNote">Новых уведомлений нет. Когда появятся новые события, они будут показаны здесь.</span>
                   )}
                 </form>
               </div>

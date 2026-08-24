@@ -420,6 +420,7 @@ textarea {
 }
 
 .portalBellButton {
+  position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -438,22 +439,39 @@ textarea {
 }
 
 .portalBellButton.hasAlert {
-  position: relative;
   color: #fff;
   border-color: rgba(243, 138, 29, 0.38);
   box-shadow: 0 0 0 1px rgba(243, 138, 29, 0.12), 0 10px 24px rgba(243, 138, 29, 0.12);
 }
 
 .portalBellButton.hasAlert::after {
-  content: "";
+  content: none;
+}
+
+.portalBellBadge {
   position: absolute;
-  top: 0.32rem;
-  right: 0.34rem;
-  width: 0.42rem;
-  height: 0.42rem;
+  top: -0.38rem;
+  right: -0.7rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.65rem;
+  height: 1.2rem;
+  padding: 0 0.38rem;
+  border: 1px solid rgba(255, 196, 143, 0.34);
   border-radius: 999px;
-  background: #ff6b1a;
-  box-shadow: 0 0 0 0.2rem rgba(255, 107, 26, 0.18);
+  background: linear-gradient(135deg, #ff8c34, #ff5e1f);
+  color: #fffaf3;
+  font-size: 0.7rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  box-shadow: 0 0.45rem 1rem rgba(255, 94, 31, 0.26);
+}
+
+.portalBellButton.hasAlert .portalBellBadge {
+  position: absolute;
+  animation: portalBellBadgePulse 2.6s ease-in-out infinite;
 }
 
 .portalNotifications {
@@ -629,6 +647,19 @@ textarea {
   padding: 0.55rem 0.95rem;
   border-radius: 0.85rem;
   font-size: 0.88rem;
+}
+
+@keyframes portalBellBadgePulse {
+  0%,
+  100% {
+    transform: translateY(0);
+    box-shadow: 0 0.45rem 1rem rgba(255, 94, 31, 0.26);
+  }
+
+  50% {
+    transform: translateY(-1px);
+    box-shadow: 0 0.65rem 1.2rem rgba(255, 94, 31, 0.34);
+  }
 }
 
 .portalUserAvatar {
