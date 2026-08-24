@@ -1415,7 +1415,7 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                 <input name="returnTo" type="hidden" value="/cabinet/routers" />
 
                 <div className="clientRouterControlOptions">
-                  <label className="clientRouterControlOptionCard">
+                  <label className="clientRouterControlOptionCard clientRouterControlOptionCardInline">
                     <span className="clientRouterControlOptionCopy">
                       <span className="clientRouterControlOptionTitle">Расширенный доступ</span>
                       <span className="clientRouterControlOptionHint">Добавит удалённый доступ к роутеру за {overview.catalog.extendedAccessPrice} ₽.</span>

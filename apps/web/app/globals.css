@@ -4632,9 +4632,23 @@ select.textInput option {
   text-align: left;
 }
 
+.clientRouterControlOptionCardInline {
+  justify-items: center;
+  text-align: center;
+}
+
 .clientRouterControlOptionCopy {
   display: grid;
   gap: 0.45rem;
+}
+
+.clientRouterControlOptionCardInline .clientRouterControlOptionCopy {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  width: 100%;
+  text-align: center;
 }
 
 .clientRouterControlOptionTitle {
@@ -4649,6 +4663,11 @@ select.textInput option {
   line-height: 1.45;
 }
 
+.clientRouterControlOptionCardInline .clientRouterControlOptionTitle,
+.clientRouterControlOptionCardInline .clientRouterControlOptionHint {
+  white-space: nowrap;
+}
+
 .clientRouterControlCheck {
   display: inline-flex;
   align-items: center;
@@ -4657,6 +4676,10 @@ select.textInput option {
   color: #ffddb6;
   font-size: 0.92rem;
   font-weight: 600;
+}
+
+.clientRouterControlOptionCardInline .clientRouterControlCheck {
+  justify-content: center;
 }
 
 .clientRouterControlCheck input {
