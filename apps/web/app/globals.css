@@ -3293,12 +3293,12 @@ select.textInput option {
 }
 
 .clientRouterFactTop {
-  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.75rem;
-  width: 100%;
+  gap: 0.38rem;
+  width: auto;
+  max-width: 100%;
 }
 
 .clientRouterFact:last-child {
@@ -3324,11 +3324,10 @@ select.textInput option {
 }
 
 .clientRouterFactStatus {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   flex: 0 0 auto;
-  position: absolute;
-  top: 50%;
-  right: 0;
-  transform: translateY(-50%);
   line-height: 1;
 }
 
