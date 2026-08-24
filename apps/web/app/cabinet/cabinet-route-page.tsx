@@ -725,14 +725,6 @@ function IconShell({ children }: { children: ReactNode }) {
   return <span className="routerIconShell">{children}</span>;
 }
 
-function HomeIcon() {
-  return (
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path d="M4 11.5 12 5l8 6.5V20a1 1 0 0 1-1 1h-4.5v-6h-5v6H5a1 1 0 0 1-1-1z" fill="none" stroke="currentColor" strokeWidth="1.8" />
-    </svg>
-  );
-}
-
 function RouterIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -1062,7 +1054,6 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
     <main className="shell portalPage clientDashboardPage clientRoutersExperience">
       <PortalHeader
         navItems={[
-          { href: getCabinetTabHref("overview"), label: "Кабинет", icon: <HomeIcon />, active: isOverviewTab },
           { href: getCabinetTabHref("routers"), label: "Мои роутеры", icon: <RouterIcon />, active: isRoutersTab },
           { href: getCabinetTabHref("support"), label: "Поддержка", icon: <SupportIcon />, active: isSupportTab },
           { href: getCabinetTabHref("payments"), label: "Платежи", icon: <PaymentIcon />, active: isPaymentsTab },
