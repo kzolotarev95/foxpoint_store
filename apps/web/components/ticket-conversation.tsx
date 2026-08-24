@@ -49,11 +49,23 @@ export function TicketConversation({
   const [error, setError] = useState<string | null>(null);
   const [isSending, setIsSending] = useState(false);
   const syncInFlight = useRef(false);
+  const threadBodyRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setMessages(initialMessages);
     setTicketStatus(initialStatus);
   }, [initialMessages, initialStatus]);
+
+  useEffect(() => {
+    if (ticketStatus !== "CLOSED") {
+      return;
+    }
+
+    const detailsElement = threadBodyRef.current?.closest("details");
+    if (detailsElement instanceof HTMLDetailsElement) {
+      detailsElement.open = false;
+    }
+  }, [ticketStatus]);
 
   useEffect(() => {
     let active = true;
@@ -154,7 +166,7 @@ export function TicketConversation({
   }
 
   return (
-    <div className="clientSupportThreadBody">
+    <div ref={threadBodyRef} className="clientSupportThreadBody">
       <div className="clientSupportMessageList">
         {messages.map((item) => (
           <article
