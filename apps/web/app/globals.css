@@ -3856,6 +3856,65 @@ select.textInput option {
     linear-gradient(180deg, rgba(15, 12, 28, 0.98), rgba(10, 9, 20, 0.96));
 }
 
+.clientSupportModal {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  padding: 1.2rem;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity 180ms ease,
+    visibility 180ms ease;
+}
+
+.clientSupportModal:target {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.clientSupportModalBackdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(7, 6, 16, 0.76);
+  backdrop-filter: blur(8px);
+}
+
+.clientSupportModalCard {
+  position: relative;
+  z-index: 1;
+  width: min(100%, 42rem);
+  max-height: min(100dvh - 2.4rem, 46rem);
+  overflow: auto;
+  padding: 1.35rem 1.35rem 1.2rem;
+}
+
+.clientSupportModalHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.clientSupportModalClose {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #fff8ef;
+  text-decoration: none;
+  font-size: 1.4rem;
+  line-height: 1;
+}
+
 .clientSupportCardHeader {
   display: grid;
   gap: 0.45rem;

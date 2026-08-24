@@ -1609,6 +1609,69 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
             </div>
           </article>
         </div>
+
+        <article id="support-form" className="clientSupportModal" aria-labelledby="support-modal-title">
+          <Link className="clientSupportModalBackdrop" href="#support" aria-label="Закрыть окно" />
+          <div className="panel sectionPanel clientUtilityCard clientSupportFormCard clientSupportModalCard">
+            <div className="clientSupportModalHeader">
+              <div>
+                <span className="pill">Поддержка</span>
+                <h2 id="support-modal-title" className="sectionTitle">Создать обращение</h2>
+              </div>
+              <Link className="clientSupportModalClose" href="#support" aria-label="Закрыть окно">
+                ×
+              </Link>
+            </div>
+            <p className="sectionLead clientSupportFormLead">
+              Укажите тему и кратко опишите проблему. Если обращение связано с конкретным роутером, выберите его в списке.
+            </p>
+            <form action="/cabinet/support/create" className="contentStack clientSupportFormStack" method="post">
+              <input name="returnTo" type="hidden" value="/cabinet/support#support-form" />
+              <label className="fieldStack">
+                <span className="fieldLabel">Категория</span>
+                <input
+                  className="textInput"
+                  maxLength={120}
+                  minLength={2}
+                  name="category"
+                  placeholder="Продление, настройка, доставка"
+                  required
+                  type="text"
+                />
+              </label>
+              <label className="fieldStack">
+                <span className="fieldLabel">Роутер</span>
+                <select className="textInput" name="routerId">
+                  <option value="">Без привязки к роутеру</option>
+                  {overview.routers.map((router) => (
+                    <option key={router.id} value={router.id}>
+                      {router.displayName}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="fieldStack">
+                <span className="fieldLabel">Описание</span>
+                <textarea
+                  className="textAreaInput"
+                  maxLength={3000}
+                  minLength={10}
+                  name="description"
+                  placeholder="Опишите ситуацию и что именно нужно сделать."
+                  required
+                />
+              </label>
+              <div className="ctaRow">
+                <button className="primaryButton portalActionButton" type="submit">
+                  Отправить обращение
+                </button>
+                <Link className="secondaryButton portalGhostButton" href={overview.links.support} target="_blank">
+                  Открыть поддержку
+                </Link>
+              </div>
+            </form>
+          </div>
+        </article>
       </section>
       ) : null}
 
@@ -2106,61 +2169,6 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
             <button className="primaryButton portalActionButton" type="submit">
               Создать заказ
             </button>
-          </form>
-        </article>
-        ) : null}
-
-        {isSupportTab ? (
-        <article id="support-form" className="panel sectionPanel clientUtilityCard clientSupportFormCard">
-          <span className="pill">Поддержка</span>
-          <h2 className="sectionTitle">Создать обращение</h2>
-          <p className="sectionLead clientSupportFormLead">
-            Укажите тему и кратко опишите проблему. Если обращение связано с конкретным роутером, выберите его в списке.
-          </p>
-          <form action="/cabinet/support/create" className="contentStack clientSupportFormStack" method="post">
-            <input name="returnTo" type="hidden" value="/cabinet/support#support-form" />
-            <label className="fieldStack">
-              <span className="fieldLabel">Категория</span>
-              <input
-                className="textInput"
-                minLength={2}
-                maxLength={120}
-                name="category"
-                placeholder="Продление, настройка, доставка"
-                required
-                type="text"
-              />
-            </label>
-            <label className="fieldStack">
-              <span className="fieldLabel">Роутер</span>
-              <select className="textInput" name="routerId">
-                <option value="">Без привязки к роутеру</option>
-                {overview.routers.map((router) => (
-                  <option key={router.id} value={router.id}>
-                    {router.displayName}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="fieldStack">
-              <span className="fieldLabel">Описание</span>
-              <textarea
-                className="textAreaInput"
-                name="description"
-                minLength={10}
-                maxLength={3000}
-                placeholder="Опишите ситуацию и что именно нужно сделать."
-                required
-              />
-            </label>
-            <div className="ctaRow">
-              <button className="primaryButton portalActionButton" type="submit">
-                Отправить обращение
-              </button>
-              <Link className="secondaryButton portalGhostButton" href={overview.links.support} target="_blank">
-                Открыть поддержку
-              </Link>
-            </div>
           </form>
         </article>
         ) : null}

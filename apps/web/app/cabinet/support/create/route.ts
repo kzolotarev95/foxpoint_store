@@ -48,6 +48,11 @@ function getReturnToPath(value: FormDataEntryValue | null): string {
   return candidate;
 }
 
+function stripHash(value: string): string {
+  const [path] = value.split("#", 1);
+  return path && path.startsWith("/cabinet") ? path : "/cabinet/support";
+}
+
 async function parseApiError(response: Response, fallback: string): Promise<string> {
   const payload = (await response.json().catch(() => null)) as { error?: string } | null;
   return payload?.error ?? fallback;
@@ -107,5 +112,5 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  return redirectToTarget(request, returnTo, "success", "Обращение создано.");
+  return redirectToTarget(request, stripHash(returnTo), "success", "Обращение создано.");
 }
