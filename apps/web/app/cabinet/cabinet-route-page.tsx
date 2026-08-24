@@ -1529,10 +1529,10 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
             </p>
           </div>
           <div className="clientSupportHeroActions">
-            <Link className="clientSupportHeroButton isPrimary" href="#support-form">
+            <a className="clientSupportHeroButton isPrimary" href="#support-form">
               <TicketCreateIcon />
               Создать обращение
-            </Link>
+            </a>
             <Link className="clientSupportHeroButton isSecondary" href={overview.links.support} target="_blank">
               <TelegramIcon />
               Открыть Telegram
@@ -1611,16 +1611,16 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
         </div>
 
         <article id="support-form" className="clientSupportModal" aria-labelledby="support-modal-title">
-          <Link className="clientSupportModalBackdrop" href="#support" aria-label="Закрыть окно" />
+          <a className="clientSupportModalBackdrop" href="#support" aria-label="Закрыть окно" />
           <div className="panel sectionPanel clientUtilityCard clientSupportFormCard clientSupportModalCard">
             <div className="clientSupportModalHeader">
               <div>
                 <span className="pill">Поддержка</span>
                 <h2 id="support-modal-title" className="sectionTitle">Создать обращение</h2>
               </div>
-              <Link className="clientSupportModalClose" href="#support" aria-label="Закрыть окно">
+              <a className="clientSupportModalClose" href="#support" aria-label="Закрыть окно">
                 ×
-              </Link>
+              </a>
             </div>
             <p className="sectionLead clientSupportFormLead">
               Укажите тему и кратко опишите проблему. Если обращение связано с конкретным роутером, выберите его в списке.
