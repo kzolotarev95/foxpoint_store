@@ -1,9 +1,5 @@
 <svg width="300" height="220" viewBox="0 0 300 220" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="wbrGlow" x1="150" y1="156" x2="150" y2="214" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#7B33FF" stop-opacity="0.46"/>
-      <stop offset="1" stop-color="#7B33FF" stop-opacity="0"/>
-    </linearGradient>
     <linearGradient id="wbrBodyTop" x1="150" y1="78" x2="150" y2="170" gradientUnits="userSpaceOnUse">
       <stop stop-color="#2E3138"/>
       <stop offset="0.58" stop-color="#17191F"/>
@@ -21,8 +17,6 @@
       <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#09070E" flood-opacity="0.52"/>
     </filter>
   </defs>
-
-  <ellipse cx="150" cy="190" rx="94" ry="21" fill="url(#wbrGlow)"/>
 
   <g filter="url(#wbrShadow)">
     <rect x="36" y="18" width="13" height="96" rx="6.5" fill="url(#wbrAntenna)" transform="rotate(-16 36 18)"/>

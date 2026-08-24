@@ -1,9 +1,5 @@
 <svg width="300" height="220" viewBox="0 0 300 220" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="cudyGlowGeneric" x1="150" y1="154" x2="150" y2="214" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#7A32FF" stop-opacity="0.42"/>
-      <stop offset="1" stop-color="#7A32FF" stop-opacity="0"/>
-    </linearGradient>
     <linearGradient id="cudyBodyTopGeneric" x1="150" y1="82" x2="150" y2="170" gradientUnits="userSpaceOnUse">
       <stop stop-color="#2F3239"/>
       <stop offset="0.56" stop-color="#17191F"/>
@@ -21,8 +17,6 @@
       <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#08070E" flood-opacity="0.5"/>
     </filter>
   </defs>
-
-  <ellipse cx="150" cy="189" rx="94" ry="21" fill="url(#cudyGlowGeneric)"/>
 
   <g filter="url(#cudyShadowGeneric)">
     <rect x="38" y="18" width="13" height="94" rx="6.5" fill="url(#cudyAntennaGeneric)" transform="rotate(-15 38 18)"/>
