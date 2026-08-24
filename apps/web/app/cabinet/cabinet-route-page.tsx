@@ -1630,7 +1630,7 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
               </>
             ) : (
               <div className="clientSupportEmptyState">
-                <p>Обращений пока нет. Первый запрос можно создать через форму ниже или сразу открыть Telegram.</p>
+                <p>Обращений пока нет. Первый запрос можно создать через форму или сразу написать в Telegram.</p>
               </div>
             )}
           </article>
