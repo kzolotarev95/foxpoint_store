@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { PortalHeader } from "../../components/portal-header";
 import { TicketConversation } from "../../components/ticket-conversation";
+import { TicketStatusBadge } from "../../components/ticket-status-badge";
 import { TelegramLoginWidget } from "../../components/telegram-login-widget";
 import {
   attachProfileEmailAction,
@@ -297,8 +298,6 @@ function getSupportTicketMessageAuthorLabel(authorRole: string): string {
 }
 
 function renderSupportTicketThread(ticket: SupportTicketItem, openTicketId: string | null) {
-  const statusMeta = getSupportTicketStatusMeta(ticket.status);
-
   return (
     <details
       key={ticket.id}
@@ -318,16 +317,7 @@ function renderSupportTicketThread(ticket: SupportTicketItem, openTicketId: stri
             <p>Открыт {formatSupportTicketCreatedAt(ticket.createdAt)}</p>
           </div>
         </div>
-        <span className={`clientSupportStatusBadge is-${statusMeta.tone}`}>
-          {statusMeta.tone === "resolved" ? (
-            <CheckCircleIcon />
-          ) : statusMeta.tone === "waiting" ? (
-            <ClockIcon />
-          ) : (
-            <SupportIcon />
-          )}
-          {statusMeta.label}
-        </span>
+        <TicketStatusBadge initialStatus={ticket.status} refreshUrl={`/cabinet/support/${ticket.id}`} />
         <span className="clientSupportTicketChevron" aria-hidden="true">
           <ChevronIcon />
         </span>
