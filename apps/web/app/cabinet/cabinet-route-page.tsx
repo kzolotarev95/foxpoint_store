@@ -476,7 +476,7 @@ function getNotificationTypeMeta(type: string): Pick<NotificationFeedItem, "deta
   if (normalized.includes("ORDER") || normalized.includes("ROUTER")) {
     return {
       detail: "Есть обновление по заказу роутера.",
-      href: "/cabinet#order",
+      href: "/cabinet/routers",
       icon: <CartIcon />,
       title: "Заказ роутера"
     };
@@ -559,7 +559,7 @@ function buildNotificationFeed(overview: ClientOverview, sessions: ProfileSessio
   const orderNotifications = overview.orders.slice(0, 3).map((order) => ({
     createdAt: order.receivedAt ?? order.createdAt,
     detail: `${order.totalPriceLabel} · ${getOrderStatusLabel(order.status)}`,
-    href: "/cabinet#order",
+    href: "/cabinet/routers",
     icon: <CartIcon />,
     id: `order-${order.id}`,
     isUnread: false,
@@ -1063,7 +1063,7 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
         reloadBrandOnClick
         rightSlot={
           <>
-            <Link className="primaryButton portalActionButton portalOrderButton" href="/cabinet#order">
+            <Link className="primaryButton portalActionButton portalOrderButton" href="/cabinet/routers">
               Заказать роутер
               <CartIcon />
             </Link>
@@ -1940,7 +1940,7 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
             </div>
           </div>
           <form action={createRouterOrderAction}>
-            <input name="returnTo" type="hidden" value="/cabinet" />
+            <input name="returnTo" type="hidden" value="/cabinet/routers" />
             <button className="primaryButton portalActionButton" type="submit">
               Создать заказ
             </button>

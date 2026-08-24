@@ -50,7 +50,7 @@ export default async function LoginPage(props: { searchParams: PageSearchParams 
       });
 
       if (response.ok) {
-        redirect("/cabinet");
+        redirect("/cabinet/routers");
       }
     } catch {
       // If the API is temporarily unavailable or the cookie is stale, fall back to a fresh login.

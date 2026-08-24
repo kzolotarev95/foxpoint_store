@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
   }
 
   const result = (await response.json()) as { isNew: boolean; token: string };
-  const target = await buildPublicUrl(request, result.isNew ? "/cabinet?welcome=1" : "/cabinet");
+  const target = await buildPublicUrl(request, result.isNew ? "/cabinet/routers?welcome=1" : "/cabinet/routers");
   const nextResponse = NextResponse.redirect(target);
 
   nextResponse.cookies.set({

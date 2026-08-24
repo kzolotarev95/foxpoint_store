@@ -55,7 +55,7 @@ export async function loginWithEmailAction(formData: FormData) {
 
   const payload = (await response.json()) as { isNew: boolean; token: string };
   await setClientSessionCookie(payload.token);
-  redirect(payload.isNew ? "/cabinet?welcome=1" : "/cabinet");
+  redirect(payload.isNew ? "/cabinet/routers?welcome=1" : "/cabinet/routers");
 }
 
 export async function authenticateClientAction(formData: FormData) {
@@ -91,7 +91,7 @@ export async function authenticateClientAction(formData: FormData) {
 
   const payload = (await response.json()) as { isNew: boolean; token: string };
   await setClientSessionCookie(payload.token);
-  redirect(payload.isNew ? "/cabinet?welcome=1" : "/cabinet");
+  redirect(payload.isNew ? "/cabinet/routers?welcome=1" : "/cabinet/routers");
 }
 
 export async function logoutClientAction() {
@@ -167,7 +167,7 @@ export async function revokeAllClientSessionsAction(formData: FormData) {
 }
 
 export async function createRouterOrderAction(formData: FormData) {
-  const returnTo = getReturnToPath(formData, "/cabinet");
+  const returnTo = getReturnToPath(formData, "/cabinet/routers");
   const provider = String(formData.get("provider") ?? "").trim();
   try {
     const payload = await fetchClientApi<{ paymentUrl: string; totalPriceLabel: string }>("/api/orders", {
