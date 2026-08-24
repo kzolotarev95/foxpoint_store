@@ -180,6 +180,24 @@ function getPaymentStatusMeta(status: string): { label: string; tone: "paid" | "
   };
 }
 
+function getPaymentMethodMonogram(label: string): string {
+  const normalized = String(label ?? "")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim();
+
+  if (!normalized) {
+    return "FP";
+  }
+
+  const parts = normalized.split(/\s+/).filter(Boolean);
+
+  if (parts.length >= 2) {
+    return `${parts[0].slice(0, 1)}${parts[1].slice(0, 1)}`.toUpperCase();
+  }
+
+  return parts[0].slice(0, 2).toUpperCase();
+}
+
 function formatSupportTicketCreatedAt(value: string): string {
   return new Intl.DateTimeFormat("ru-RU", {
     day: "numeric",
@@ -1824,55 +1842,74 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
 
         <div className="clientPaymentsHeroGrid">
           <article className="panel clientPaymentsServiceCard">
-            <div className="clientPaymentsServiceBadge">
-              <ShieldIcon />
-            </div>
-            <div className="clientPaymentsServiceBody">
-              <span className="pill">Текущее обслуживание</span>
-              <h2>
-                {primaryPaymentRouter
-                  ? `${primaryPaymentRouter.displayName}${primaryPaymentRouter.model ? ` - ${primaryPaymentRouter.model}` : ""}`
-                  : "Роутер еще не подключен"}
-              </h2>
-              <p className="clientPaymentsStatusLine">
-                {paymentDeadline ? `Активно до ${formatDate(paymentDeadline)}` : "Платный пакет пока не активирован"}
-              </p>
-              <p className="clientPaymentsMuted">{formatRemainingDays(paymentDaysRemaining)}</p>
-
-              <div className="clientPaymentsMethodGrid">
-                {enabledPaymentMethods.length ? (
-                  enabledPaymentMethods.map((method, index) =>
-                    primaryPaymentRouter ? (
-                      <form key={method.id} action={renewRouterAction}>
-                        <input name="provider" type="hidden" value={method.id} />
-                        <input name="returnTo" type="hidden" value="/cabinet/payments" />
-                        <input name="routerId" type="hidden" value={primaryPaymentRouter.id} />
-                        <button
-                          className={index === 0 ? "clientPaymentsMethodButton isPrimary" : "clientPaymentsMethodButton isSecondary"}
-                          type="submit"
-                        >
-                          Продлить через {method.label}
-                        </button>
-                      </form>
-                    ) : (
-                      <form key={method.id} action={createRouterOrderAction}>
-                        <input name="provider" type="hidden" value={method.id} />
-                        <input name="returnTo" type="hidden" value="/cabinet/payments" />
-                        <button
-                          className={index === 0 ? "clientPaymentsMethodButton isPrimary" : "clientPaymentsMethodButton isSecondary"}
-                          type="submit"
-                        >
-                          Заказать роутер через {method.label}
-                        </button>
-                      </form>
-                    )
-                  )
-                ) : (
-                  <Link className="clientPaymentsMethodButton isSecondary" href={overview.links.support} target="_blank">
-                    Написать в поддержку
-                  </Link>
-                )}
+            <div className="clientPaymentsServiceHeader">
+              <div className="clientPaymentsServiceBadge">
+                <ShieldIcon />
               </div>
+              <div className="clientPaymentsServiceBody">
+                <span className="pill">Текущее обслуживание</span>
+                <h2>
+                  {primaryPaymentRouter
+                    ? `${primaryPaymentRouter.displayName}${primaryPaymentRouter.model ? ` - ${primaryPaymentRouter.model}` : ""}`
+                    : "Роутер еще не подключен"}
+                </h2>
+                <p className="clientPaymentsStatusLine">
+                  {paymentDeadline ? `Активно до ${formatDate(paymentDeadline)}` : "Платный пакет пока не активирован"}
+                </p>
+                <p className="clientPaymentsMuted">{formatRemainingDays(paymentDaysRemaining)}</p>
+              </div>
+            </div>
+
+            <div className="clientPaymentsServiceHighlights">
+              <div className="clientPaymentsServiceHighlight">
+                <span>Срок обслуживания</span>
+                <strong>{paymentDeadline ? formatDate(paymentDeadline) : "Не активирован"}</strong>
+              </div>
+              <div className="clientPaymentsServiceHighlight">
+                <span>Состояние</span>
+                <strong>{paymentDaysRemaining === null ? "Новый заказ" : formatRemainingDays(paymentDaysRemaining)}</strong>
+              </div>
+            </div>
+
+            <div className="clientPaymentsMethodGrid">
+              {enabledPaymentMethods.length ? (
+                enabledPaymentMethods.map((method, index) =>
+                  primaryPaymentRouter ? (
+                    <form key={method.id} action={renewRouterAction}>
+                      <input name="provider" type="hidden" value={method.id} />
+                      <input name="returnTo" type="hidden" value="/cabinet/payments" />
+                      <input name="routerId" type="hidden" value={primaryPaymentRouter.id} />
+                      <button
+                        className={index === 0 ? "clientPaymentsMethodButton isPrimary" : "clientPaymentsMethodButton isSecondary"}
+                        type="submit"
+                      >
+                        <span className="clientPaymentsMethodLogo" aria-hidden="true">
+                          {getPaymentMethodMonogram(method.label)}
+                        </span>
+                        <span className="clientPaymentsMethodText">Продлить через {method.label}</span>
+                      </button>
+                    </form>
+                  ) : (
+                    <form key={method.id} action={createRouterOrderAction}>
+                      <input name="provider" type="hidden" value={method.id} />
+                      <input name="returnTo" type="hidden" value="/cabinet/payments" />
+                      <button
+                        className={index === 0 ? "clientPaymentsMethodButton isPrimary" : "clientPaymentsMethodButton isSecondary"}
+                        type="submit"
+                      >
+                        <span className="clientPaymentsMethodLogo" aria-hidden="true">
+                          {getPaymentMethodMonogram(method.label)}
+                        </span>
+                        <span className="clientPaymentsMethodText">Заказать роутер через {method.label}</span>
+                      </button>
+                    </form>
+                  )
+                )
+              ) : (
+                <Link className="clientPaymentsMethodButton isSecondary" href={overview.links.support} target="_blank">
+                  <span className="clientPaymentsMethodText">Написать в поддержку</span>
+                </Link>
+              )}
             </div>
           </article>
 
@@ -1901,7 +1938,10 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
         <div className="clientPaymentsContentGrid">
           <article className="panel clientPaymentsHistoryCard">
             <div className="clientPaymentsCardHeader">
-              <div>
+              <div className="clientPaymentsCardHeading">
+                <div className="clientPaymentsCardIcon">
+                  <PaymentIcon />
+                </div>
                 <span className="pill">История платежей</span>
                 <h2>Последние оплаты</h2>
               </div>
@@ -1938,6 +1978,9 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
           </article>
 
           <article className="panel clientPaymentsSupportCard">
+            <div className="clientPaymentsCardIcon">
+              <SupportIcon />
+            </div>
             <span className="pill">Другой способ</span>
             <h2>Нужен другой способ оплаты?</h2>
             <p>Если нужен корпоративный счет, нестандартная сумма или помощь с оплатой, напишите нам в поддержку.</p>
@@ -1945,8 +1988,13 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
             <div className="clientPaymentsSupportList">
               {enabledPaymentMethods.map((method) => (
                 <div key={method.id} className="clientPaymentsSupportItem">
-                  <strong>{method.label}</strong>
-                  <span>{method.description}</span>
+                  <div className="clientPaymentsSupportLogo" aria-hidden="true">
+                    {getPaymentMethodMonogram(method.label)}
+                  </div>
+                  <div className="clientPaymentsSupportCopy">
+                    <strong>{method.label}</strong>
+                    <span>{method.description}</span>
+                  </div>
                 </div>
               ))}
             </div>
