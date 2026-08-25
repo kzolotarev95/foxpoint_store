@@ -230,10 +230,24 @@ app.get("/api/me/overview", async (request, reply) => {
     };
   }
 
-  return buildClientOverview({
-    userId: session.u,
-    currentSessionId: session.sid
-  });
+  try {
+    return await buildClientOverview({
+      userId: session.u,
+      currentSessionId: session.sid
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message === "User not found.") {
+      reply.code(401);
+      return {
+        error: "unauthorized"
+      };
+    }
+
+    reply.code(503);
+    return {
+      error: error instanceof Error ? error.message : "Сервис временно недоступен. Попробуйте обновить страницу."
+    };
+  }
 });
 
 app.post("/api/me/profile/email", async (request, reply) => {

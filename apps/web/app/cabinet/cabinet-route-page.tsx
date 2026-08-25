@@ -719,6 +719,43 @@ function buildNotificationFeed(
     .slice(0, 10);
 }
 
+function renderCabinetUnavailablePage(activeTab: CabinetTab) {
+  const retryHref = `${getCabinetTabHref(activeTab)}?retry=${Date.now()}`;
+
+  return (
+    <main className="shell portalPage clientDashboardPage clientRoutersExperience">
+      <PortalHeader
+        brandHref={getCabinetTabHref(activeTab)}
+        navItems={[
+          { href: getCabinetTabHref("routers"), label: "Мои роутеры", icon: <RouterIcon />, active: activeTab === "routers" },
+          { href: getCabinetTabHref("support"), label: "Поддержка", icon: <SupportIcon />, active: activeTab === "support" },
+          { href: getCabinetTabHref("payments"), label: "Платежи", icon: <PaymentIcon />, active: activeTab === "payments" },
+          { href: getCabinetTabHref("profile"), label: "Профиль", icon: <ProfileIcon />, active: activeTab === "profile" }
+        ]}
+        reloadBrandOnClick
+      />
+
+      <section className="panel clientSupportHeroCard" style={{ marginTop: "1rem" }}>
+        <div className="clientSupportHeroOrb">
+          <SupportIcon />
+        </div>
+        <div className="clientSupportHeroCopy">
+          <h2>Кабинет временно недоступен</h2>
+          <p>Мы уже пытаемся восстановить данные. Попробуйте обновить страницу или войти заново.</p>
+        </div>
+        <div className="clientSupportHeroActions">
+          <Link className="clientSupportHeroButton isPrimary" href={retryHref}>
+            Обновить
+          </Link>
+          <Link className="clientSupportHeroButton isSecondary" href="/login">
+            Войти снова
+          </Link>
+        </div>
+      </section>
+    </main>
+  );
+}
+
 type RouterDeviceVariant = "netis" | "keenetic" | "cudy" | "xiaomi-ax3000t" | "cudy-wbr3000uax";
 
 type RouterDeviceSkin = {
@@ -1197,10 +1234,15 @@ function DevicePreview({ router, index }: { router: RouterOverviewItem; index: n
 }
 
 export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchParams: PageSearchParams }) {
-  const [overview, searchParams] = await Promise.all([
-    fetchClientApi<ClientOverview>("/api/me/overview"),
-    props.searchParams
-  ]);
+  const searchParams = await props.searchParams;
+  let overview: ClientOverview;
+
+  try {
+    overview = await fetchClientApi<ClientOverview>("/api/me/overview");
+  } catch {
+    return renderCabinetUnavailablePage(props.activeTab);
+  }
+
   const successMessage = getSingleParam(searchParams.success);
   const errorMessage = getSingleParam(searchParams.error);
   const paymentUrl = getSingleParam(searchParams.payment);
