@@ -3596,6 +3596,12 @@ select.textInput option {
   width: 100%;
 }
 
+.clientRouterControlSlot {
+  display: grid;
+  grid-column: 1 / -1;
+  margin-top: 0.1rem;
+}
+
 .clientRouterActionButton {
   appearance: none;
   display: grid;
