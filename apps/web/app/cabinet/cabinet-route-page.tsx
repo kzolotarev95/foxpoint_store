@@ -901,7 +901,7 @@ function getRouterStatusLabel(router: RouterOverviewItem): string {
   return statusLabels[router.status] ?? router.status;
 }
 
-function getRouterStatusTone(router: RouterOverviewItem): "active" | "pending" | "default" {
+function getRouterStatusTone(router: RouterOverviewItem): "active" | "pending" | "expired" | "default" {
   const label = getRouterStatusLabel(router);
 
   if (label === "Активен" || label === "Тестовый режим") {
@@ -910,6 +910,10 @@ function getRouterStatusTone(router: RouterOverviewItem): "active" | "pending" |
 
   if (label === "Ожидает активации") {
     return "pending";
+  }
+
+  if (label === "Истекла") {
+    return "expired";
   }
 
   return "default";

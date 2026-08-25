@@ -3502,6 +3502,13 @@ select.textInput option {
   color: #ffd27a;
 }
 
+.clientRouterHeading p.is-expired,
+.clientRouterControlState.is-expired {
+  border-color: rgba(255, 102, 102, 0.34);
+  background: rgba(255, 77, 77, 0.16);
+  color: #ff8e8e;
+}
+
 .clientRouterFacts {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -5249,6 +5256,10 @@ select.textInput option {
 
 .clientRouterStatusValue {
   color: #fff8ef;
+}
+
+.clientRouterStatusValue.is-expired {
+  color: #ff8e8e;
 }
 
 .clientRouterSettingsForm {
