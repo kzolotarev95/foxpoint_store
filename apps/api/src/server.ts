@@ -31,6 +31,7 @@ import {
   createRouterOrderForUser,
   createSupportTicketForUser,
   handlePlategaCallback,
+  handleYooKassaCallback,
   handleYooMoneyCallback,
   markClientNotificationsRead,
   attachEmailForUser,
@@ -682,6 +683,22 @@ app.post("/api/payments/yoomoney/callback", async (request, reply) => {
     reply.code(400);
     return {
       error: error instanceof Error ? error.message : "YooMoney callback rejected."
+    };
+  }
+});
+
+app.post("/api/payments/yookassa/callback", async (request, reply) => {
+  const body = z.record(z.string(), z.unknown()).parse(request.body);
+
+  try {
+    await handleYooKassaCallback(body);
+    return {
+      ok: true
+    };
+  } catch (error) {
+    reply.code(400);
+    return {
+      error: error instanceof Error ? error.message : "YooKassa callback rejected."
     };
   }
 });

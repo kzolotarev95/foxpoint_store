@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 import net from "node:net";
 import {
   ConfigurationType,
@@ -26,7 +26,7 @@ import { prisma } from "./prisma.js";
 
 type SettingMap = Map<string, string>;
 type PublicLinks = Awaited<ReturnType<typeof getPublicSettingLinks>>;
-type PaymentProviderId = "manual_mvp" | "platega" | "yoomoney";
+type PaymentProviderId = "manual_mvp" | "platega" | "yookassa" | "yoomoney";
 type ClientPaymentMethodId = Exclude<PaymentProviderId, "manual_mvp">;
 type RouterTemplateLike = {
   accessEnabled: boolean;
@@ -357,6 +357,10 @@ function buildCabinetPaymentFailedUrl(links: PublicLinks): string {
   return `${links.appUrl}/cabinet/payments?error=${encodeURIComponent("Платеж не был завершен.")}`;
 }
 
+function buildCabinetPaymentsUrl(links: PublicLinks): string {
+  return `${links.appUrl}/cabinet/payments`;
+}
+
 function buildYooMoneyCheckoutUrl(links: PublicLinks, paymentId: string): string {
   return `${links.apiUrl}/api/payments/${paymentId}/checkout`;
 }
@@ -372,6 +376,12 @@ function getEnabledPaymentMethods(settings: SettingMap) {
       label: "Platega",
       description: "Быстрый checkout с автоматическим подтверждением статуса.",
       enabled: getBooleanSetting(settings, "platega_enabled", true)
+    },
+    {
+      id: "yookassa" as const,
+      label: "ЮKassa",
+      description: "Оплата банковской картой и другими способами через ЮKassa.",
+      enabled: getBooleanSetting(settings, "yookassa_enabled", true) && isYooKassaConfigured(settings)
     },
     {
       id: "yoomoney" as const,
@@ -402,9 +412,22 @@ function isYooMoneyConfigured(settings: SettingMap): boolean {
   );
 }
 
+function isYooKassaConfigured(settings: SettingMap): boolean {
+  return Boolean(
+    getSettingValue(settings, "yookassa_shop_id") &&
+      getSettingValue(settings, "yookassa_shop_id") !== "shop-id-change-me" &&
+      getSettingValue(settings, "yookassa_secret_key") &&
+      getSettingValue(settings, "yookassa_secret_key") !== "yookassa-secret-change-me"
+  );
+}
+
 function getPaymentProviderLabel(provider: string): string {
   if (provider === "platega") {
     return "Platega";
+  }
+
+  if (provider === "yookassa") {
+    return "ЮKassa";
   }
 
   if (provider === "yoomoney") {
@@ -424,6 +447,14 @@ function resolveRequestedPaymentProvider(
   }
 
   if (
+    normalized === "yookassa" &&
+    getBooleanSetting(settings, "yookassa_enabled", true) &&
+    isYooKassaConfigured(settings)
+  ) {
+    return "yookassa";
+  }
+
+  if (
     normalized === "yoomoney" &&
     getBooleanSetting(settings, "yoomoney_enabled", true) &&
     isYooMoneyConfigured(settings)
@@ -433,6 +464,10 @@ function resolveRequestedPaymentProvider(
 
   if (getBooleanSetting(settings, "platega_enabled", true) && isPlategaConfigured(settings)) {
     return "platega";
+  }
+
+  if (getBooleanSetting(settings, "yookassa_enabled", true) && isYooKassaConfigured(settings)) {
+    return "yookassa";
   }
 
   if (getBooleanSetting(settings, "yoomoney_enabled", true) && isYooMoneyConfigured(settings)) {
@@ -544,6 +579,89 @@ async function createPlategaTransaction(input: {
     paymentUrl: payload.redirect,
     providerPaymentId: payload.transactionId
   };
+}
+
+type YooKassaPaymentResponse = {
+  amount?: {
+    currency?: string;
+    value?: string;
+  };
+  confirmation?: {
+    confirmation_url?: string;
+    type?: string;
+  };
+  id?: string;
+  metadata?: Record<string, unknown> | null;
+  status?: string;
+};
+
+function getYooKassaAuthorizationHeader(settings: SettingMap): string {
+  const shopId = ensureConfiguredSetting(settings, "yookassa_shop_id", "ЮKassa Shop ID", "shop-id-change-me");
+  const secretKey = ensureConfiguredSetting(settings, "yookassa_secret_key", "ЮKassa Secret Key", "yookassa-secret-change-me");
+  return `Basic ${Buffer.from(`${shopId}:${secretKey}`).toString("base64")}`;
+}
+
+async function createYooKassaTransaction(input: {
+  amount: number;
+  description: string;
+  links: PublicLinks;
+  metadata?: Record<string, string>;
+  paymentId: string;
+  settings: SettingMap;
+}) {
+  const response = await fetch("https://api.yookassa.ru/v3/payments", {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      Authorization: getYooKassaAuthorizationHeader(input.settings),
+      "Content-Type": "application/json",
+      "Idempotence-Key": randomUUID()
+    },
+    body: JSON.stringify({
+      amount: {
+        currency: "RUB",
+        value: formatDecimalAmount(input.amount)
+      },
+      capture: true,
+      confirmation: {
+        return_url: buildCabinetPaymentsUrl(input.links),
+        type: "redirect"
+      },
+      description: input.description,
+      metadata: {
+        foxpoint_payment_id: input.paymentId,
+        ...(input.metadata ?? {})
+      }
+    })
+  });
+
+  const payload = (await response.json().catch(() => null)) as YooKassaPaymentResponse | null;
+
+  if (!response.ok || !payload?.id || !payload.confirmation?.confirmation_url) {
+    throw new Error("ЮKassa не вернула ссылку на оплату. Проверьте Shop ID, Secret Key и настройки магазина.");
+  }
+
+  return {
+    paymentUrl: payload.confirmation.confirmation_url,
+    providerPaymentId: payload.id
+  };
+}
+
+async function fetchYooKassaPayment(input: { paymentId: string; settings: SettingMap }) {
+  const response = await fetch(`https://api.yookassa.ru/v3/payments/${encodeURIComponent(input.paymentId)}`, {
+    headers: {
+      Accept: "application/json",
+      Authorization: getYooKassaAuthorizationHeader(input.settings)
+    }
+  });
+
+  const payload = (await response.json().catch(() => null)) as YooKassaPaymentResponse | null;
+
+  if (!response.ok || !payload?.id) {
+    throw new Error("Не удалось получить данные платежа YooKassa.");
+  }
+
+  return payload;
 }
 
 async function applyPaymentSuccess(input: {
@@ -1448,6 +1566,21 @@ export async function createRouterOrderForUser(input: {
     });
     paymentUrl = transaction.paymentUrl;
     providerPaymentId = transaction.providerPaymentId;
+  } else if (provider === "yookassa") {
+    const transaction = await createYooKassaTransaction({
+      amount: totalPrice,
+      description,
+      links,
+      metadata: {
+        foxpoint_order_id: result.order.id,
+        foxpoint_payment_type: "router_order",
+        foxpoint_user_id: input.userId
+      },
+      paymentId: result.payment.id,
+      settings
+    });
+    paymentUrl = transaction.paymentUrl;
+    providerPaymentId = transaction.providerPaymentId;
   } else if (provider === "yoomoney") {
     paymentUrl = buildYooMoneyCheckoutUrl(links, result.payment.id);
     payloadSnapshot = {
@@ -1876,6 +2009,21 @@ export async function createRenewalPaymentForUser(input: {
     });
     paymentUrl = transaction.paymentUrl;
     providerPaymentId = transaction.providerPaymentId;
+  } else if (provider === "yookassa") {
+    const transaction = await createYooKassaTransaction({
+      amount,
+      description,
+      links,
+      metadata: {
+        foxpoint_payment_type: "subscription_renewal",
+        foxpoint_router_id: input.routerId,
+        foxpoint_user_id: input.userId
+      },
+      paymentId: payment.id,
+      settings
+    });
+    paymentUrl = transaction.paymentUrl;
+    providerPaymentId = transaction.providerPaymentId;
   } else if (provider === "yoomoney") {
     paymentUrl = buildYooMoneyCheckoutUrl(links, payment.id);
     payloadSnapshot = {
@@ -2128,6 +2276,79 @@ export async function handleYooMoneyCallback(payload: Record<string, string>) {
     providerPaymentId: payload.operation_id ?? payment.providerPaymentId ?? null,
     providerStatus: payload.notification_type ?? "p2p-incoming"
   });
+}
+
+export async function handleYooKassaCallback(payload: Record<string, unknown>) {
+  if (payload.type !== "notification") {
+    throw new Error("Некорректный callback YooKassa.");
+  }
+
+  const event = typeof payload.event === "string" ? payload.event : "";
+  const object = payload.object && typeof payload.object === "object" ? (payload.object as Record<string, unknown>) : null;
+  const providerPaymentId = typeof object?.id === "string" ? object.id : null;
+
+  if (!event || !providerPaymentId) {
+    throw new Error("В callback YooKassa отсутствуют данные платежа.");
+  }
+
+  const settings = await getSettingMap();
+  const providerPayment = await fetchYooKassaPayment({
+    paymentId: providerPaymentId,
+    settings
+  });
+
+  const localPaymentId =
+    typeof providerPayment.metadata?.foxpoint_payment_id === "string" ? providerPayment.metadata.foxpoint_payment_id : null;
+
+  if (!localPaymentId) {
+    throw new Error("В callback YooKassa отсутствует идентификатор FoxPoint.");
+  }
+
+  const payment = await prisma.payment.findUnique({
+    where: {
+      id: localPaymentId
+    }
+  });
+
+  if (!payment) {
+    throw new Error("Платеж YooKassa не найден.");
+  }
+
+  if (payment.provider !== "yookassa") {
+    throw new Error("Некорректный провайдер платежа YooKassa.");
+  }
+
+  if (payment.providerPaymentId && payment.providerPaymentId !== providerPayment.id) {
+    throw new Error("Идентификатор платежа YooKassa не совпадает.");
+  }
+
+  const providerAmount = Number(providerPayment.amount?.value ?? "0");
+  if (!Number.isFinite(providerAmount) || Math.abs(toNumber(payment.amount) - providerAmount) > 0.01) {
+    throw new Error("Сумма callback YooKassa не совпадает с суммой платежа.");
+  }
+
+  const normalizedStatus = String(providerPayment.status ?? "").trim().toLowerCase();
+  if (normalizedStatus === "succeeded") {
+    return applyPaymentSuccess({
+      paymentId: payment.id,
+      providerPaymentId: providerPayment.id ?? payment.providerPaymentId ?? null,
+      providerStatus: normalizedStatus
+    });
+  }
+
+  if (normalizedStatus === "canceled") {
+    return applyPaymentFailure({
+      paymentId: payment.id,
+      providerPaymentId: providerPayment.id ?? payment.providerPaymentId ?? null,
+      providerStatus: normalizedStatus,
+      status: "CANCELED"
+    });
+  }
+
+  return {
+    paymentId: payment.id,
+    status: payment.status
+  };
 }
 
 export async function buildAdminOverview(input: { clientQuery?: string | null } = {}) {

@@ -147,6 +147,33 @@ const adminSettingDefinitions: AdminSettingDefinition[] = [
     public: false
   },
   {
+    key: "yookassa_enabled",
+    label: "ЮKassa включена",
+    description: "Показывать оплату через ЮKassa в личном кабинете и при заказе роутера.",
+    group: "Платежи",
+    input: "boolean",
+    defaultValue: "true",
+    public: false
+  },
+  {
+    key: "yookassa_shop_id",
+    label: "ЮKassa Shop ID",
+    description: "Идентификатор магазина из кабинета ЮKassa.",
+    group: "Платежи",
+    input: "text",
+    defaultValue: "shop-id-change-me",
+    public: false
+  },
+  {
+    key: "yookassa_secret_key",
+    label: "ЮKassa Secret Key",
+    description: "Секретный ключ магазина ЮKassa для создания платежей и проверки уведомлений.",
+    group: "Платежи",
+    input: "password",
+    defaultValue: "yookassa-secret-change-me",
+    public: false
+  },
+  {
     key: "router_price",
     label: "Цена роутера",
     description: "Стоимость готового устройства без прошивки и настройки.",

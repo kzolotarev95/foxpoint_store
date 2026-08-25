@@ -35,7 +35,7 @@ export type ClientOverview = {
     telegramChannel: string;
   };
   paymentMethods: Array<{
-    id: "platega" | "yoomoney";
+    id: "platega" | "yoomoney" | "yookassa";
     label: string;
     description: string;
     enabled: boolean;
