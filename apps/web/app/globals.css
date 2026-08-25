@@ -3256,21 +3256,28 @@ select.textInput option {
 .routerDeviceStage.is-keenetic,
 .routerDeviceStage.is-cudy,
 .routerDeviceStage.is-netis {
-  align-items: end;
+  align-items: center;
   padding: 0.95rem 0.7rem 0.85rem;
+}
+
+.routerDevicePreviewStack {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  align-self: center;
+  gap: 0.3rem;
+  width: 100%;
 }
 
 .routerDeviceImageWrap {
   position: relative;
   z-index: 1;
   display: grid;
-  align-self: stretch;
+  align-self: auto;
   align-items: center;
   justify-items: center;
   width: 100%;
-  min-height: 10rem;
-  gap: 0.58rem;
-  padding-top: 0.6rem;
+  min-height: 0;
 }
 
 .routerDeviceImage {
@@ -3289,7 +3296,6 @@ select.textInput option {
   place-items: center;
   width: 10.75rem;
   height: 3.32rem;
-  margin-bottom: 0.2rem;
 }
 
 .routerDeviceBadgeFrame::before {
