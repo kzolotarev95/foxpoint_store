@@ -3592,7 +3592,7 @@ select.textInput option {
 }
 
 .clientRouterActions .clientRouterActionButton {
-  min-height: 11rem;
+  min-height: 4.35rem;
 }
 
 .clientRouterActions form {
