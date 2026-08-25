@@ -1504,12 +1504,6 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                       </div>
 
                       <div className="clientRouterActions">
-                        <Link className="clientRouterActionButton isGhost" href={`#router-controls-${router.id}`}>
-                          <span className="clientRouterActionIcon clientRouterActionIconPlaceholder" aria-hidden="true" />
-                          <span className="clientRouterActionLabel">Подробнее</span>
-                          <ChevronIcon />
-                        </Link>
-
                         <form action={renewRouterAction}>
                           <input name="routerId" type="hidden" value={router.id} />
                           <input name="returnTo" type="hidden" value="/cabinet/routers" />
@@ -1531,7 +1525,14 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                         </Link>
                       </div>
 
-                      <div className="clientRouterControlSlot" id={`router-controls-${router.id}`}>
+                      <details className="clientRouterControlDisclosure" id={`router-controls-${router.id}`}>
+                        <summary className="clientRouterActionButton isGhost clientRouterControlDisclosureSummary">
+                          <span className="clientRouterActionIcon clientRouterActionIconPlaceholder" aria-hidden="true" />
+                          <span className="clientRouterActionLabel">Управление роутером</span>
+                          <span className="clientRouterControlDisclosureState clientRouterControlDisclosureStateClosed">Открыть</span>
+                          <span className="clientRouterControlDisclosureState clientRouterControlDisclosureStateOpen">Скрыть</span>
+                          <ChevronIcon />
+                        </summary>
                         <article className="panel clientRouterControlCard">
                           <div className="clientRouterControlHeader">
                             <div className="clientRouterControlTitle">
@@ -1594,7 +1595,7 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                             </button>
                           </form>
                         </article>
-                      </div>
+                      </details>
                     </article>
                   );
                 })}

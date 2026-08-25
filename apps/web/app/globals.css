@@ -3596,12 +3596,6 @@ select.textInput option {
   width: 100%;
 }
 
-.clientRouterControlSlot {
-  display: grid;
-  grid-column: 1 / -1;
-  margin-top: 0.1rem;
-}
-
 .clientRouterActionButton {
   appearance: none;
   display: grid;
@@ -3674,6 +3668,48 @@ select.textInput option {
 
 .clientRouterActionIconPlaceholder {
   opacity: 0;
+}
+
+.clientRouterControlDisclosure {
+  display: grid;
+  grid-column: 1 / -1;
+  gap: 0.9rem;
+  margin-top: 0.15rem;
+}
+
+.clientRouterControlDisclosure > summary {
+  list-style: none;
+}
+
+.clientRouterControlDisclosure > summary::-webkit-details-marker {
+  display: none;
+}
+
+.clientRouterControlDisclosureSummary {
+  width: 100%;
+  grid-template-columns: 1rem minmax(0, 1fr) auto 1rem;
+}
+
+.clientRouterControlDisclosureState {
+  display: none;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  justify-self: end;
+}
+
+.clientRouterControlDisclosure[open] .clientRouterControlDisclosureStateClosed {
+  display: none;
+}
+
+.clientRouterControlDisclosure[open] .clientRouterControlDisclosureStateOpen {
+  display: inline-flex;
+}
+
+.clientRouterControlDisclosure:not([open]) .clientRouterControlDisclosureStateClosed {
+  display: inline-flex;
 }
 
 .clientRoutersMascot {
