@@ -3289,6 +3289,7 @@ select.textInput option {
   place-items: center;
   width: 10.75rem;
   height: 3.32rem;
+  margin-top: -0.55rem;
 }
 
 .routerDeviceBadgeFrame::before {
