@@ -1571,29 +1571,29 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                             </span>
                             <strong>{formatRelativeDateTime(getRouterLastActivity(router))}</strong>
                           </div>
-                        </div>
-                        
-                        <div className="clientRouterActions">
-                          <form action={renewRouterAction}>
-                            <input name="routerId" type="hidden" value={router.id} />
-                            <input name="returnTo" type="hidden" value="/cabinet/routers" />
-                            <button className="clientRouterActionButton isAccent" type="submit">
-                              <span className="clientRouterActionIcon">
-                                <ServerIcon />
-                              </span>
-                              <span className="clientRouterActionLabel">Продлить</span>
-                              <ChevronIcon />
-                            </button>
-                          </form>
+                          </div>
+                      </div>
 
-                          <Link className="clientRouterActionButton isGhost" href={getCabinetTabHref("support")}>
+                      <div className="clientRouterActions">
+                        <form action={renewRouterAction}>
+                          <input name="routerId" type="hidden" value={router.id} />
+                          <input name="returnTo" type="hidden" value="/cabinet/routers" />
+                          <button className="clientRouterActionButton isAccent" type="submit">
                             <span className="clientRouterActionIcon">
-                              <SupportIcon />
+                              <ServerIcon />
                             </span>
-                            <span className="clientRouterActionLabel">Поддержка</span>
+                            <span className="clientRouterActionLabel">Продлить</span>
                             <ChevronIcon />
-                          </Link>
-                        </div>
+                          </button>
+                        </form>
+
+                        <Link className="clientRouterActionButton isGhost" href={getCabinetTabHref("support")}>
+                          <span className="clientRouterActionIcon">
+                            <SupportIcon />
+                          </span>
+                          <span className="clientRouterActionLabel">Поддержка</span>
+                          <ChevronIcon />
+                        </Link>
                       </div>
 
                       <details className="clientRouterControlDisclosure" id={`router-controls-${router.id}`}>

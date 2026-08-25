@@ -3202,7 +3202,9 @@ select.textInput option {
 .clientRouterRow {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(214px, 228px) minmax(0, 1fr) minmax(212px, 220px);
+  width: fit-content;
+  justify-self: center;
+  grid-template-columns: minmax(214px, 228px) max-content max-content;
   gap: 1.25rem;
   align-items: stretch;
   min-height: var(--router-row-min-height);
@@ -5559,6 +5561,8 @@ select.textInput option {
   .clientRouterRow {
     grid-template-columns: 1fr;
     min-height: 0;
+    width: 100%;
+    justify-self: stretch;
   }
 
   .profileActionGrid,
