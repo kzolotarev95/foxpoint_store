@@ -1574,7 +1574,7 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                           <form action={renewRouterAction} className="clientRouterFactActionForm">
                           <input name="routerId" type="hidden" value={router.id} />
                           <input name="returnTo" type="hidden" value="/cabinet/routers" />
-                          <button className="clientRouterActionButton isAccent" type="submit">
+                          <button className="clientRouterActionButton" type="submit">
                             <span className="clientRouterActionIcon">
                               <ServerIcon />
                             </span>
