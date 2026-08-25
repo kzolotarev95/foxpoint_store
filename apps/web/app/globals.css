@@ -3592,7 +3592,7 @@ select.textInput option {
 }
 
 .clientRouterActions .clientRouterActionButton {
-  min-height: 4.35rem;
+  min-height: 11rem;
 }
 
 .clientRouterActions form {
@@ -5748,6 +5748,10 @@ select.textInput option {
 
   .clientRouterActions {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .clientRouterActions .clientRouterActionButton {
+    min-height: 4.35rem;
   }
 
   .clientRouterFacts {
