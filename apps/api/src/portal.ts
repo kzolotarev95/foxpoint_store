@@ -2398,8 +2398,11 @@ export async function updateAdminOrder(input: {
 export async function updateAdminRouter(input: {
   adminNote?: string | null;
   configurationType: ConfigurationType;
+  displayName: string;
   ownerUserId: string;
+  model?: string | null;
   routerId: string;
+  serialNumber?: string | null;
   status: RouterStatus;
 }) {
   const [router, owner] = await Promise.all([
@@ -2429,6 +2432,9 @@ export async function updateAdminRouter(input: {
     },
     data: {
       ownerUserId: input.ownerUserId,
+      displayName: input.displayName.trim(),
+      model: input.model?.trim() || null,
+      serialNumber: input.serialNumber?.trim() || null,
       configurationType: input.configurationType,
       status: input.status,
       adminNote: input.adminNote?.trim() || null
@@ -2440,13 +2446,19 @@ export async function updateAdminRouter(input: {
     entityType: "Router",
     entityId: updated.id,
     beforeData: {
+      displayName: router.displayName,
       ownerUserId: router.ownerUserId,
+      model: router.model,
+      serialNumber: router.serialNumber,
       configurationType: router.configurationType,
       status: router.status,
       adminNote: router.adminNote
     },
     afterData: {
+      displayName: updated.displayName,
       ownerUserId: updated.ownerUserId,
+      model: updated.model,
+      serialNumber: updated.serialNumber,
       configurationType: updated.configurationType,
       status: updated.status,
       adminNote: updated.adminNote

@@ -910,6 +910,9 @@ app.post("/api/admin/routers/:routerId", async (request, reply) => {
   const body = z
     .object({
       ownerUserId: z.string().trim().min(1),
+      displayName: z.string().trim().min(2).max(120),
+      model: z.string().trim().max(120).optional(),
+      serialNumber: z.string().trim().max(120).optional(),
       configurationType: z.enum(["BASIC", "EXTENDED"]),
       status: z.enum(["DRAFT", "ACTIVE", "SUSPENDED", "DISABLED"]),
       adminNote: z.string().trim().max(1000).optional()
@@ -919,7 +922,10 @@ app.post("/api/admin/routers/:routerId", async (request, reply) => {
   try {
     return await updateAdminRouter({
       routerId: params.routerId,
+      displayName: body.displayName,
       ownerUserId: body.ownerUserId,
+      model: body.model,
+      serialNumber: body.serialNumber,
       configurationType: body.configurationType,
       status: body.status,
       adminNote: body.adminNote

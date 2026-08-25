@@ -658,6 +658,9 @@ async function updateRouterAction(formData: FormData) {
     fallbackError: "Не удалось обновить роутер.",
     successMessage: "Роутер обновлен.",
     body: {
+      displayName: String(formData.get("displayName") ?? "").trim(),
+      model: String(formData.get("model") ?? "").trim() || undefined,
+      serialNumber: String(formData.get("serialNumber") ?? "").trim() || undefined,
       ownerUserId: String(formData.get("ownerUserId") ?? "").trim(),
       configurationType: String(formData.get("configurationType") ?? "BASIC"),
       status: String(formData.get("status") ?? "ACTIVE"),
@@ -1131,14 +1134,26 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                 </div>
                 <div className="settingsGrid">
                   <label className="fieldStack">
-                    <span className="fieldLabel">Владелец</span>
+                    <span className="fieldLabel">Клиент</span>
                     <select className="textInput" defaultValue={router.ownerId} name="ownerUserId">
                       {overview.users.map((user) => (
-                      <option key={user.id} value={user.id}>
+                        <option key={user.id} value={user.id}>
                           {getAdminUserName(user)} · {getAdminUserEmail(user)}
-                      </option>
-                    ))}
+                        </option>
+                      ))}
                     </select>
+                  </label>
+                  <label className="fieldStack">
+                    <span className="fieldLabel">Название роутера</span>
+                    <input className="textInput" defaultValue={router.displayName} name="displayName" required type="text" />
+                  </label>
+                  <label className="fieldStack">
+                    <span className="fieldLabel">Модель</span>
+                    <input className="textInput" defaultValue={router.model ?? ""} name="model" type="text" />
+                  </label>
+                  <label className="fieldStack">
+                    <span className="fieldLabel">Серийный номер</span>
+                    <input className="textInput" defaultValue={router.serialNumber ?? ""} name="serialNumber" type="text" />
                   </label>
                   <label className="fieldStack">
                     <span className="fieldLabel">Статус</span>
