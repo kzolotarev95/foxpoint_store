@@ -171,6 +171,44 @@ function getDaysRemaining(endAt: Date | null | undefined): number | null {
   return Math.ceil(diff / (1000 * 60 * 60 * 24));
 }
 
+const AUTO_EXPIRE_SUBSCRIPTION_STATUSES = new Set(["ACTIVE", "PENDING_ACTIVATION", "READY"]);
+
+function getEffectiveSubscriptionStatus(
+  subscription:
+    | {
+        status: string;
+        endAt: Date | null;
+        pendingActivation?: boolean | null;
+      }
+    | null
+    | undefined
+): string | null {
+  if (!subscription) {
+    return null;
+  }
+
+  if (subscription.endAt && subscription.endAt.getTime() <= Date.now() && AUTO_EXPIRE_SUBSCRIPTION_STATUSES.has(subscription.status)) {
+    return "EXPIRED";
+  }
+
+  if (subscription.pendingActivation || subscription.status === "PENDING_ACTIVATION") {
+    return "PENDING_ACTIVATION";
+  }
+
+  return subscription.status;
+}
+
+function pickCurrentSubscription<T extends { status: string; endAt: Date | null; pendingActivation?: boolean | null }>(
+  subscriptions: T[]
+): T | null {
+  return (
+    subscriptions.find((subscription) => getEffectiveSubscriptionStatus(subscription) === "ACTIVE") ??
+    subscriptions.find((subscription) => getEffectiveSubscriptionStatus(subscription) === "PENDING_ACTIVATION") ??
+    subscriptions[0] ??
+    null
+  );
+}
+
 async function getSettingMap(): Promise<SettingMap> {
   const settings = await getAdminSettings();
   return new Map(settings.map((setting) => [setting.key, setting.value]));
@@ -507,11 +545,7 @@ async function applyPaymentSuccess(input: {
       return;
     }
 
-    const currentSubscription =
-      router.subscriptions.find((subscription) => subscription.status === "ACTIVE") ??
-      router.subscriptions.find((subscription) => subscription.status === "PENDING_ACTIVATION") ??
-      router.subscriptions[0] ??
-      null;
+    const currentSubscription = pickCurrentSubscription(router.subscriptions);
     const accessEnabled = snapshot.accessEnabled ?? router.template?.accessEnabled ?? false;
     const supportType = snapshot.supportType ?? router.template?.supportType ?? "NONE";
     const requiresActivation =
@@ -1083,7 +1117,7 @@ export async function buildClientOverview(input: { currentSessionId?: string; us
         ? {
             accessEnabled: currentSubscription.accessEnabled,
             supportType: currentSubscription.supportType,
-            status: currentSubscription.status,
+            status: getEffectiveSubscriptionStatus(currentSubscription) ?? currentSubscription.status,
             startAt: currentSubscription.startAt?.toISOString() ?? null,
             endAt: currentSubscription.endAt?.toISOString() ?? null,
             daysRemaining: getDaysRemaining(currentSubscription.endAt),
@@ -2173,7 +2207,7 @@ export async function buildAdminOverview(input: { clientQuery?: string | null } 
       routerId: subscription.routerId,
       routerName: subscription.router.displayName,
       bundleLabel: describeBundle(subscription),
-      status: subscription.status,
+      status: getEffectiveSubscriptionStatus(subscription) ?? subscription.status,
       startAt: subscription.startAt?.toISOString() ?? null,
       endAt: subscription.endAt?.toISOString() ?? null,
       price: toNumber(subscription.priceSnapshot),

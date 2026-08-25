@@ -122,6 +122,11 @@ function formatRelativeDateTime(value: string | null | undefined): string {
   return `${formatDate(value)}, ${timeLabel}`;
 }
 
+function isPastDateTime(value: string | null | undefined): boolean {
+  const parsed = parseDateValue(value);
+  return Boolean(parsed && parsed.getTime() <= Date.now());
+}
+
 function formatSupportMessageTime(value: string | null | undefined): string {
   const parsed = parseDateValue(value);
 
@@ -873,6 +878,10 @@ function getRouterStatusLabel(router: RouterOverviewItem): string {
     INACTIVE: "Неактивен"
   };
 
+  if (router.currentSubscription?.endAt && isPastDateTime(router.currentSubscription.endAt)) {
+    return "Истекла";
+  }
+
   if (router.currentSubscription?.pendingActivation) {
     return "Ожидает активации";
   }
@@ -882,6 +891,10 @@ function getRouterStatusLabel(router: RouterOverviewItem): string {
   }
 
   if (router.trial?.endAt) {
+    if (isPastDateTime(router.trial.endAt)) {
+      return "Истекла";
+    }
+
     return "Тестовый режим";
   }
 
