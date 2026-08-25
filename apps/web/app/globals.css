@@ -3265,11 +3265,12 @@ select.textInput option {
   z-index: 1;
   display: grid;
   align-self: stretch;
-  align-items: end;
+  align-items: center;
   justify-items: center;
   width: 100%;
   min-height: 10rem;
   gap: 0.58rem;
+  padding-top: 0.6rem;
 }
 
 .routerDeviceImage {
