@@ -3626,11 +3626,6 @@ select.textInput option {
     0 16px 28px rgba(255, 120, 18, 0.18);
 }
 
-.clientRouterActionButton.isGhost {
-  border-color: rgba(156, 95, 255, 0.3);
-  background: linear-gradient(180deg, rgba(17, 14, 29, 0.72), rgba(11, 9, 20, 0.6));
-}
-
 .clientRouterActionLabel {
   text-align: center;
   font-size: 0.82rem;
@@ -3641,10 +3636,6 @@ select.textInput option {
 .clientRouterActionButton .clientRouterActionIcon,
 .clientRouterActionButton .clientRouterActionLabel {
   justify-self: center;
-}
-
-.clientRouterActionButton.isGhost .clientRouterActionIcon {
-  color: #c074ff;
 }
 
 .clientRouterActionIcon {
