@@ -3103,7 +3103,7 @@ select.textInput option {
   gap: 0.8rem;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: stretch;
-  width: min(100%, 64rem);
+  width: 100%;
   margin: 0 auto;
 }
 
