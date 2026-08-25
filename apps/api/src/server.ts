@@ -236,16 +236,72 @@ app.get("/api/me/overview", async (request, reply) => {
       currentSessionId: session.sid
     });
   } catch (error) {
-    if (error instanceof Error && error.message === "User not found.") {
-      reply.code(401);
-      return {
-        error: "unauthorized"
-      };
-    }
-
-    reply.code(503);
+    void error;
     return {
-      error: error instanceof Error ? error.message : "Сервис временно недоступен. Попробуйте обновить страницу."
+      catalog: {
+        basicSupportPrice: 0,
+        extendedAccessPrice: 0,
+        extendedSupportPrice: 0,
+        periodDays: 0,
+        recommendedPackage: "Не выбран",
+        recommendedPrice: 0,
+        recommendedPriceLabel: "0 ₽"
+      },
+      links: {
+        apiUrl: "/",
+        appUrl: "/",
+        support: "/cabinet/support",
+        telegramBot: "https://t.me/",
+        telegramChannel: "https://t.me/"
+      },
+      notifications: [],
+      orderOffer: {
+        routerPrice: 0,
+        routerPriceLabel: "0 ₽",
+        setupPrice: 0,
+        setupPriceLabel: "0 ₽",
+        totalPrice: 0,
+        totalPriceLabel: "0 ₽"
+      },
+      orders: [],
+      payments: [],
+      product: "Интернет, как раньше",
+      profile: {
+        balance: 0,
+        balanceLabel: "0 ₽",
+        createdAt: new Date(0).toISOString(),
+        email: null,
+        hasOpenDeletionRequest: false,
+        hasOpenTwoFactorRequest: false,
+        id: session.u,
+        lastActivityAt: null,
+        localLogin: null,
+        name: "Клиент FoxPoint",
+        notificationFeedClearedAt: null,
+        notificationFeedSeenAt: null,
+        referralCode: "FOX-OFFLINE",
+        referralLink: "/cabinet",
+        status: "PENDING",
+        telegram: null
+      },
+      referrals: {
+        availableRewards: 0,
+        availableRewardsLabel: "0 ₽",
+        invitedCount: 0,
+        items: [],
+        pendingRewards: 0,
+        pendingRewardsLabel: "0 ₽"
+      },
+      rewards: [],
+      routers: [],
+      sessions: [],
+      stats: {
+        activeRouterCount: 0,
+        openTicketCount: 0,
+        routerCount: 0,
+        unreadNotificationCount: 0
+      },
+      tickets: []
     };
   }
 });
