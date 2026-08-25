@@ -44,6 +44,82 @@ const SESSION_GEO_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 const SESSION_GEO_REQUEST_TIMEOUT_MS = 800;
 const sessionGeoCache = new Map<string, { expiresAt: number; value: string }>();
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+function createFallbackCabinetOverview(): ClientOverview {
+  return {
+    product: "Интернет, как раньше",
+    profile: {
+      id: "offline",
+      name: "Клиент FoxPoint",
+      email: null,
+      telegram: null,
+      localLogin: null,
+      createdAt: new Date(0).toISOString(),
+      lastActivityAt: null,
+      notificationFeedSeenAt: null,
+      notificationFeedClearedAt: null,
+      status: "PENDING",
+      balance: 0,
+      balanceLabel: "0 ₽",
+      referralCode: "FOX-OFFLINE",
+      referralLink: "/login",
+      hasOpenTwoFactorRequest: false,
+      hasOpenDeletionRequest: false
+    },
+    sessions: [],
+    links: {
+      apiUrl: "/",
+      appUrl: "/",
+      support: "/cabinet/support",
+      telegramBot: "https://t.me/",
+      telegramChannel: "https://t.me/"
+    },
+    paymentMethods: [],
+    stats: {
+      routerCount: 0,
+      activeRouterCount: 0,
+      openTicketCount: 0,
+      unreadNotificationCount: 0
+    },
+    catalog: {
+      periodDays: 0,
+      extendedAccessPrice: 0,
+      basicSupportPrice: 0,
+      extendedSupportPrice: 0,
+      recommendedPrice: 0,
+      recommendedPriceLabel: "0 ₽",
+      recommendedPackage: "Не выбран"
+    },
+    orderOffer: {
+      routerPrice: 0,
+      routerPriceLabel: "0 ₽",
+      setupPrice: 0,
+      setupPriceLabel: "0 ₽",
+      totalPrice: 0,
+      totalPriceLabel: "0 ₽"
+    },
+    routers: [],
+    orders: [],
+    tickets: [],
+    payments: [],
+    referrals: {
+      invitedCount: 0,
+      availableRewards: 0,
+      availableRewardsLabel: "0 ₽",
+      pendingRewards: 0,
+      pendingRewardsLabel: "0 ₽",
+      items: []
+    },
+    rewards: [],
+    notifications: []
+  };
+}
+
 function getCabinetTabHref(tab: CabinetTab): string {
   const hrefs: Record<CabinetTab, string> = {
     overview: "/cabinet",
@@ -1235,12 +1311,16 @@ function DevicePreview({ router, index }: { router: RouterOverviewItem; index: n
 
 export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchParams: PageSearchParams }) {
   const searchParams = await props.searchParams;
-  let overview: ClientOverview;
+  let overview: ClientOverview = createFallbackCabinetOverview();
 
-  try {
-    overview = await fetchClientApi<ClientOverview>("/api/me/overview");
-  } catch {
-    return renderCabinetUnavailablePage(props.activeTab);
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      overview = await fetchClientApi<ClientOverview>("/api/me/overview");
+      break;
+    } catch (error) {
+      await sleep(300 * (attempt + 1));
+      void error;
+    }
   }
 
   const successMessage = getSingleParam(searchParams.success);
