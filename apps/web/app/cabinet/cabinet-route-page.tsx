@@ -1204,6 +1204,7 @@ function DevicePreview({ router, index }: { router: RouterOverviewItem; index: n
     <div className={`routerDeviceStage is-${skin.variant}`}>
       {skin.imageSrc ? (
         <>
+          {modelBadge}
           <div className="routerDeviceImageWrap">
             <Image
               alt={skin.imageAlt ?? skin.modelLabel}
@@ -1214,10 +1215,10 @@ function DevicePreview({ router, index }: { router: RouterOverviewItem; index: n
               width={300}
             />
           </div>
-          {modelBadge}
         </>
       ) : (
         <>
+          {modelBadge}
           <div className={`routerDevice is-${skin.variant}`}>
             <div className="routerDeviceAntennaRow">
               {antennaIndices.map((item) => (
@@ -1234,7 +1235,6 @@ function DevicePreview({ router, index }: { router: RouterOverviewItem; index: n
               </div>
             </div>
           </div>
-          {modelBadge}
         </>
       )}
     </div>
