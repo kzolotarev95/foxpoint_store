@@ -3577,9 +3577,9 @@ select.textInput option {
 
 .clientRouterActions {
   display: grid;
-  align-self: stretch;
+  align-self: start;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-auto-rows: 1fr;
+  grid-auto-rows: auto;
   gap: 0.55rem;
   position: relative;
   z-index: 1;
@@ -3588,10 +3588,11 @@ select.textInput option {
 .clientRouterActions > * {
   min-width: 0;
   width: 100%;
-  align-self: stretch;
+  align-self: start;
 }
 
 .clientRouterActions .clientRouterActionButton {
+  height: auto;
   min-height: 4.35rem;
 }
 
