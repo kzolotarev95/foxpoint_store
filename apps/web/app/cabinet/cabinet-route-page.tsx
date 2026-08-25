@@ -1599,17 +1599,17 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                       <details className="clientRouterControlDisclosure" id={`router-controls-${router.id}`}>
                         <summary className="clientRouterActionButton isGhost clientRouterControlDisclosureSummary">
                           <span className="clientRouterActionIcon clientRouterActionIconPlaceholder" aria-hidden="true" />
-                          <span className="clientRouterActionLabel">Управление роутером</span>
-                          <span className="clientRouterControlDisclosureState clientRouterControlDisclosureStateClosed">Открыть</span>
+                          <span className="clientRouterActionLabel">Настройки</span>
+                          <span className="clientRouterControlDisclosureState clientRouterControlDisclosureStateClosed">Показать</span>
                           <span className="clientRouterControlDisclosureState clientRouterControlDisclosureStateOpen">Скрыть</span>
                           <ChevronIcon />
                         </summary>
                         <article className="panel clientRouterControlCard">
                           <div className="clientRouterControlHeader">
                             <div className="clientRouterControlTitle">
-                              <span className="pill">Управление роутером</span>
+                              <span className="pill">Роутер</span>
                               <h3>{router.displayName}</h3>
-                              <p className="clientRouterControlLead">Настройте пакет, который будет применяться при следующем продлении роутера.</p>
+                              <p className="clientRouterControlLead">Пакет на следующее продление.</p>
                             </div>
                             <p className={`clientRouterControlState is-${getRouterStatusTone(router)}`}>{getRouterStatusLabel(router)}</p>
                           </div>
