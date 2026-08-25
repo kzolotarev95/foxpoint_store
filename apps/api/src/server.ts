@@ -231,9 +231,19 @@ app.get("/api/me/overview", async (request, reply) => {
   }
 
   try {
+    const query = z
+      .object({
+        liveCheck: z.enum(["1", "true"]).optional()
+      })
+      .catch({
+        liveCheck: undefined
+      })
+      .parse(request.query);
+
     return await buildClientOverview({
       userId: session.u,
-      currentSessionId: session.sid
+      currentSessionId: session.sid,
+      liveCheck: Boolean(query.liveCheck)
     });
   } catch (error) {
     request.log.error({ error }, "Failed to build client overview");

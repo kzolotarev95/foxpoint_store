@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { redirect } from "next/navigation";
+import { CabinetAutoRefresh } from "../../components/cabinet-auto-refresh";
 import { PortalHeader } from "../../components/portal-header";
 import { TicketConversation } from "../../components/ticket-conversation";
 import { TicketStatusBadge } from "../../components/ticket-status-badge";
@@ -140,21 +141,6 @@ function formatSupportMessageTime(value: string | null | undefined): string {
     minute: "2-digit",
     month: "2-digit"
   }).format(parsed);
-}
-
-function getRouterLastActivity(router: RouterOverviewItem): string | null {
-  const dates = [
-    router.recentPayments[0]?.createdAt,
-    router.recentTickets[0]?.updatedAt,
-    router.currentSubscription?.startAt,
-    router.trial?.startAt
-  ].filter((item): item is string => Boolean(item));
-
-  if (!dates.length) {
-    return null;
-  }
-
-  return dates.sort((left, right) => new Date(right).getTime() - new Date(left).getTime())[0] ?? null;
 }
 
 function getNearestSubscriptionEnd(routers: RouterOverviewItem[]): string | null {
@@ -956,6 +942,14 @@ function getRouterFactTone(input: { daysRemaining: number | null | undefined; en
   return input.daysRemaining > 5 ? "ok" : "warning";
 }
 
+function getRouterLastCheckLabel(router: RouterOverviewItem): string {
+  if (router.lastCheckAt) {
+    return formatRelativeDateTime(router.lastCheckAt);
+  }
+
+  return extractIpAddress(router.adminNote) ? "проверка не выполнена" : "нет IP для проверки";
+}
+
 function IconShell({ children }: { children: ReactNode }) {
   return <span className="routerIconShell">{children}</span>;
 }
@@ -1261,6 +1255,8 @@ function DevicePreview({ router, index }: { router: RouterOverviewItem; index: n
 export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchParams: PageSearchParams }) {
   const searchParams = await props.searchParams;
   const sessionToken = await getClientSessionToken();
+  const shouldRunLiveChecks = props.activeTab === "overview" || props.activeTab === "routers";
+  const overviewPath = shouldRunLiveChecks ? "/api/me/overview?liveCheck=1" : "/api/me/overview";
 
   if (!sessionToken) {
     redirect("/login");
@@ -1271,7 +1267,7 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
     try {
-      overview = await fetchClientApi<ClientOverview>("/api/me/overview");
+      overview = await fetchClientApi<ClientOverview>(overviewPath);
       break;
     } catch (error) {
       if (isRedirectError(error)) {
@@ -1342,6 +1338,7 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
 
   return (
     <main className="shell portalPage clientDashboardPage clientRoutersExperience">
+      {shouldRunLiveChecks ? <CabinetAutoRefresh intervalMs={60_000} /> : null}
       <PortalHeader
         brandHref={getCabinetTabHref(props.activeTab)}
         navItems={[
@@ -1586,7 +1583,7 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                               <ClockIcon />
                               Последняя проверка
                             </span>
-                            <strong>{formatRelativeDateTime(getRouterLastActivity(router))}</strong>
+                            <strong>{getRouterLastCheckLabel(router)}</strong>
                           </div>
                           <form action={renewRouterAction} className="clientRouterFactActionForm">
                           <input name="routerId" type="hidden" value={router.id} />

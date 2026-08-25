@@ -72,6 +72,8 @@ export type ClientOverview = {
     status: string;
     adminNote: string | null;
     currentPackage: string;
+    lastCheckAt: string | null;
+    lastCheckReachable: boolean | null;
     currentSubscription: {
       accessEnabled: boolean;
       supportType: string;

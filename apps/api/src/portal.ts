@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import net from "node:net";
 import {
   ConfigurationType,
   OrderStatus,
@@ -37,6 +38,17 @@ type TicketMessageView = {
   createdAt: string;
   id: string;
 };
+type RouterMonitorTarget = {
+  host: string;
+  ports: number[];
+};
+type RouterLiveCheckResult = {
+  checkedAt: string | null;
+  reachable: boolean | null;
+};
+
+const DEFAULT_ROUTER_CHECK_PORTS = [80, 443, 8080, 8443];
+const ROUTER_CHECK_TIMEOUT_MS = 1200;
 
 function toNumber(value: Prisma.Decimal | number | string | null | undefined): number {
   if (value == null) {
@@ -169,6 +181,76 @@ function getDaysRemaining(endAt: Date | null | undefined): number | null {
   }
 
   return Math.ceil(diff / (1000 * 60 * 60 * 24));
+}
+
+function extractRouterMonitorTarget(value: string | null | undefined): RouterMonitorTarget | null {
+  if (!value) {
+    return null;
+  }
+
+  const match = value.match(/\b((?:\d{1,3}\.){3}\d{1,3})(?::(\d{2,5}))?\b/);
+  if (!match) {
+    return null;
+  }
+
+  const host = match[1];
+  const customPort = Number(match[2] ?? "");
+
+  if (Number.isInteger(customPort) && customPort > 0 && customPort <= 65535) {
+    return {
+      host,
+      ports: [customPort]
+    };
+  }
+
+  return {
+    host,
+    ports: DEFAULT_ROUTER_CHECK_PORTS
+  };
+}
+
+function probeRouterPort(host: string, port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const socket = new net.Socket();
+    let settled = false;
+
+    const finish = (value: boolean) => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      socket.destroy();
+      resolve(value);
+    };
+
+    socket.setTimeout(ROUTER_CHECK_TIMEOUT_MS);
+    socket.once("connect", () => finish(true));
+    socket.once("timeout", () => finish(false));
+    socket.once("error", () => finish(false));
+
+    try {
+      socket.connect(port, host);
+    } catch {
+      finish(false);
+    }
+  });
+}
+
+async function runRouterLiveCheck(adminNote: string | null | undefined): Promise<RouterLiveCheckResult> {
+  const target = extractRouterMonitorTarget(adminNote);
+  if (!target) {
+    return {
+      checkedAt: null,
+      reachable: null
+    };
+  }
+
+  const results = await Promise.all(target.ports.map((port) => probeRouterPort(target.host, port)));
+  return {
+    checkedAt: new Date().toISOString(),
+    reachable: results.some(Boolean)
+  };
 }
 
 const AUTO_EXPIRE_SUBSCRIPTION_STATUSES = new Set(["ACTIVE", "PENDING_ACTIVATION", "READY"]);
@@ -937,7 +1019,7 @@ export async function buildSiteSnapshot() {
   };
 }
 
-export async function buildClientOverview(input: { currentSessionId?: string; userId: string }) {
+export async function buildClientOverview(input: { currentSessionId?: string; liveCheck?: boolean; userId: string }) {
   const [links, settings, user, openTwoFactorRequest, openDeletionRequest, clientSessions] = await Promise.all([
     getPublicSettingLinks(),
     getSettingMap(),
@@ -1092,17 +1174,24 @@ export async function buildClientOverview(input: { currentSessionId?: string; us
   const recommendedTemplate = getRecommendedTemplate();
   const recommendedPrice = calculateBundlePrice(settings, recommendedTemplate);
   const localLogin = getLocalIdentity(user.identities);
+  const liveCheckEntries: Array<readonly [string, RouterLiveCheckResult]> = await Promise.all(
+    user.routers.map(async (router): Promise<readonly [string, RouterLiveCheckResult]> => [
+      router.id,
+      input.liveCheck ? await runRouterLiveCheck(router.adminNote) : { checkedAt: null, reachable: null }
+    ])
+  );
+  const liveCheckByRouterId = new Map<string, RouterLiveCheckResult>(liveCheckEntries);
   const routerCards = user.routers.map((router) => {
-    const currentSubscription =
-      router.subscriptions.find((subscription) => subscription.status === "ACTIVE") ??
-      router.subscriptions.find((subscription) => subscription.status === "PENDING_ACTIVATION") ??
-      router.subscriptions[0] ??
-      null;
+    const currentSubscription = pickCurrentSubscription(router.subscriptions);
     const savedTemplate = router.template ?? currentSubscription ?? {
       accessEnabled: false,
       supportType: "NONE" as const
     };
     const nextPrice = calculateBundlePrice(settings, savedTemplate);
+    const liveCheck = liveCheckByRouterId.get(router.id) ?? {
+      checkedAt: null,
+      reachable: null
+    };
 
     return {
       id: router.id,
@@ -1113,6 +1202,8 @@ export async function buildClientOverview(input: { currentSessionId?: string; us
       status: router.status,
       adminNote: router.adminNote,
       currentPackage: describeBundle(savedTemplate),
+      lastCheckAt: liveCheck.checkedAt,
+      lastCheckReachable: liveCheck.reachable,
       currentSubscription: currentSubscription
         ? {
             accessEnabled: currentSubscription.accessEnabled,
