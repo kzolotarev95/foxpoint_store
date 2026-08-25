@@ -919,8 +919,12 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
             </label>
 
             <label className="fieldStack">
-              <span className="fieldLabel">Заметка администратора</span>
-              <textarea className="textAreaInput" name="adminNote" placeholder="Комментарий по привязке, доставке или конфигурации." />
+              <span className="fieldLabel">Заметка администратора / IP роутера</span>
+              <textarea
+                className="textAreaInput"
+                name="adminNote"
+                placeholder="Комментарий по привязке. Для автопроверки укажите IP роутера, например 192.168.1.1 или 203.0.113.10:8080."
+              />
             </label>
 
             <div className="ctaRow">
@@ -1177,8 +1181,13 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                   </div>
                 </div>
                 <label className="fieldStack" style={{ marginTop: "16px" }}>
-                  <span className="fieldLabel">Заметка администратора</span>
-                  <textarea className="textAreaInput" defaultValue={router.adminNote ?? ""} name="adminNote" />
+                  <span className="fieldLabel">Заметка администратора / IP роутера</span>
+                  <textarea
+                    className="textAreaInput"
+                    defaultValue={router.adminNote ?? ""}
+                    name="adminNote"
+                    placeholder="Для автопроверки укажите IP роутера, например 192.168.1.1 или 203.0.113.10:8080."
+                  />
                 </label>
                 <div className="ctaRow" style={{ marginTop: "16px" }}>
                   <button className="primaryButton" type="submit">

@@ -947,7 +947,7 @@ function getRouterLastCheckLabel(router: RouterOverviewItem): string {
     return formatRelativeDateTime(router.lastCheckAt);
   }
 
-  return extractIpAddress(router.adminNote) ? "проверка не выполнена" : "нет IP для проверки";
+  return extractIpAddress(router.adminNote) ? "проверка не выполнена" : "не указан IP роутера";
 }
 
 function IconShell({ children }: { children: ReactNode }) {
