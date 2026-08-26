@@ -1334,7 +1334,7 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
     primaryPaymentRouter?.currentSubscription?.priceLabel ??
     primaryPaymentRouter?.savedTemplate.nextPriceLabel ??
     overview.catalog.recommendedPriceLabel;
-  const enabledPaymentMethods = overview.paymentMethods.filter((method) => method.enabled);
+  const firstEnabledPaymentMethodIndex = overview.paymentMethods.findIndex((method) => method.enabled);
 
   return (
     <main className="shell portalPage clientDashboardPage clientRoutersExperience">
@@ -2181,39 +2181,52 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
             </div>
 
             <div className="clientPaymentsMethodGrid">
-              {enabledPaymentMethods.length ? (
-                enabledPaymentMethods.map((method, index) =>
-                  primaryPaymentRouter ? (
+              {overview.paymentMethods.length ? (
+                overview.paymentMethods.map((method, index) => {
+                  const isPrimary = index === (firstEnabledPaymentMethodIndex >= 0 ? firstEnabledPaymentMethodIndex : 0);
+                  const buttonClassName = isPrimary
+                    ? "clientPaymentsMethodButton isPrimary"
+                    : "clientPaymentsMethodButton isSecondary";
+
+                  return primaryPaymentRouter ? (
                     <form key={method.id} action={renewRouterAction}>
                       <input name="provider" type="hidden" value={method.id} />
                       <input name="returnTo" type="hidden" value="/cabinet/payments" />
                       <input name="routerId" type="hidden" value={primaryPaymentRouter.id} />
-                      <button
-                        className={index === 0 ? "clientPaymentsMethodButton isPrimary" : "clientPaymentsMethodButton isSecondary"}
-                        type="submit"
-                      >
+                      <button className={buttonClassName} disabled={!method.enabled} type="submit">
                         <span className="clientPaymentsMethodLogo" aria-hidden="true">
                           {getPaymentMethodMonogram(method.label)}
                         </span>
-                        <span className="clientPaymentsMethodText">Продлить через {method.label}</span>
+                        <span className="clientPaymentsMethodBody">
+                          <span className="clientPaymentsMethodText">
+                            {method.enabled ? `Продлить через ${method.label}` : method.label}
+                          </span>
+                          {!method.enabled ? (
+                            <span className="clientPaymentsMethodMeta">Настройте в админке</span>
+                          ) : null}
+                        </span>
                       </button>
                     </form>
                   ) : (
                     <form key={method.id} action={createRouterOrderAction}>
                       <input name="provider" type="hidden" value={method.id} />
                       <input name="returnTo" type="hidden" value="/cabinet/payments" />
-                      <button
-                        className={index === 0 ? "clientPaymentsMethodButton isPrimary" : "clientPaymentsMethodButton isSecondary"}
-                        type="submit"
-                      >
+                      <button className={buttonClassName} disabled={!method.enabled} type="submit">
                         <span className="clientPaymentsMethodLogo" aria-hidden="true">
                           {getPaymentMethodMonogram(method.label)}
                         </span>
-                        <span className="clientPaymentsMethodText">Заказать роутер через {method.label}</span>
+                        <span className="clientPaymentsMethodBody">
+                          <span className="clientPaymentsMethodText">
+                            {method.enabled ? `Заказать роутер через ${method.label}` : method.label}
+                          </span>
+                          {!method.enabled ? (
+                            <span className="clientPaymentsMethodMeta">Настройте в админке</span>
+                          ) : null}
+                        </span>
                       </button>
                     </form>
-                  )
-                )
+                  );
+                })
               ) : (
                 <Link className="clientPaymentsMethodButton isSecondary" href={overview.links.support} target="_blank">
                   <span className="clientPaymentsMethodText">Написать в поддержку</span>
@@ -2295,7 +2308,7 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
             <p>Если нужен корпоративный счет, нестандартная сумма или помощь с оплатой, напишите нам в поддержку.</p>
 
             <div className="clientPaymentsSupportList">
-              {enabledPaymentMethods.map((method) => (
+              {overview.paymentMethods.map((method) => (
                 <div key={method.id} className="clientPaymentsSupportItem">
                   <div className="clientPaymentsSupportLogo" aria-hidden="true">
                     {getPaymentMethodMonogram(method.label)}

@@ -375,21 +375,33 @@ function getEnabledPaymentMethods(settings: SettingMap) {
       id: "platega" as const,
       label: "Platega",
       description: "Быстрый checkout с автоматическим подтверждением статуса.",
-      enabled: getBooleanSetting(settings, "platega_enabled", true)
+      enabled: isPaymentProviderAvailable(settings, "platega")
     },
     {
       id: "yookassa" as const,
       label: "ЮKassa",
       description: "Оплата банковской картой и другими способами через ЮKassa.",
-      enabled: getBooleanSetting(settings, "yookassa_enabled", true) && isYooKassaConfigured(settings)
+      enabled: isPaymentProviderAvailable(settings, "yookassa")
     },
     {
       id: "yoomoney" as const,
       label: "ЮMoney",
       description: "Оплата через кошелек ЮMoney или банковскую карту.",
-      enabled: getBooleanSetting(settings, "yoomoney_enabled", true)
+      enabled: isPaymentProviderAvailable(settings, "yoomoney")
     }
   ];
+}
+
+function isPaymentProviderAvailable(settings: SettingMap, provider: ClientPaymentMethodId): boolean {
+  if (provider === "platega") {
+    return getBooleanSetting(settings, "platega_enabled", true) && isPlategaConfigured(settings);
+  }
+
+  if (provider === "yookassa") {
+    return getBooleanSetting(settings, "yookassa_enabled", true) && isYooKassaConfigured(settings);
+  }
+
+  return getBooleanSetting(settings, "yoomoney_enabled", true) && isYooMoneyConfigured(settings);
 }
 
 function isPlategaConfigured(settings: SettingMap): boolean {
@@ -442,35 +454,23 @@ function resolveRequestedPaymentProvider(
   requestedProvider: string | null | undefined
 ): PaymentProviderId {
   const normalized = requestedProvider?.trim().toLowerCase();
-  if (normalized === "platega" && getBooleanSetting(settings, "platega_enabled", true) && isPlategaConfigured(settings)) {
+  if (normalized === "platega" || normalized === "yookassa" || normalized === "yoomoney") {
+    if (isPaymentProviderAvailable(settings, normalized)) {
+      return normalized;
+    }
+
+    throw new Error(`Способ оплаты "${getPaymentProviderLabel(normalized)}" не настроен в админке.`);
+  }
+
+  if (isPaymentProviderAvailable(settings, "platega")) {
     return "platega";
   }
 
-  if (
-    normalized === "yookassa" &&
-    getBooleanSetting(settings, "yookassa_enabled", true) &&
-    isYooKassaConfigured(settings)
-  ) {
+  if (isPaymentProviderAvailable(settings, "yookassa")) {
     return "yookassa";
   }
 
-  if (
-    normalized === "yoomoney" &&
-    getBooleanSetting(settings, "yoomoney_enabled", true) &&
-    isYooMoneyConfigured(settings)
-  ) {
-    return "yoomoney";
-  }
-
-  if (getBooleanSetting(settings, "platega_enabled", true) && isPlategaConfigured(settings)) {
-    return "platega";
-  }
-
-  if (getBooleanSetting(settings, "yookassa_enabled", true) && isYooKassaConfigured(settings)) {
-    return "yookassa";
-  }
-
-  if (getBooleanSetting(settings, "yoomoney_enabled", true) && isYooMoneyConfigured(settings)) {
+  if (isPaymentProviderAvailable(settings, "yoomoney")) {
     return "yoomoney";
   }
 

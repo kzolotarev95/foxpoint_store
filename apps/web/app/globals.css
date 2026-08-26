@@ -4848,6 +4848,15 @@ select.textInput option {
   box-shadow: 0 16px 28px rgba(0, 0, 0, 0.18);
 }
 
+.clientPaymentsMethodButton:disabled,
+.clientPaymentsMethodButton:disabled:hover {
+  cursor: not-allowed;
+  transform: none;
+  border-color: rgba(204, 163, 255, 0.12);
+  box-shadow: none;
+  opacity: 0.55;
+}
+
 .clientPaymentsMethodButton.isPrimary {
   border-color: rgba(255, 176, 74, 0.58);
   background: linear-gradient(135deg, #ffb347, #ff7b29);
@@ -4884,6 +4893,19 @@ select.textInput option {
   min-width: 0;
   font-size: 0.96rem;
   font-weight: 600;
+  text-align: left;
+}
+
+.clientPaymentsMethodBody {
+  display: grid;
+  gap: 0.14rem;
+  min-width: 0;
+}
+
+.clientPaymentsMethodMeta {
+  color: rgba(221, 211, 238, 0.68);
+  font-size: 0.8rem;
+  font-weight: 500;
   text-align: left;
 }
 
