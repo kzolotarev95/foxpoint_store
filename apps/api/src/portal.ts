@@ -409,7 +409,6 @@ function isPlategaConfigured(settings: SettingMap): boolean {
     getSettingValue(settings, "platega_api_base_url") &&
       getSettingValue(settings, "platega_merchant_id") &&
       getSettingValue(settings, "platega_secret") &&
-      getSettingValue(settings, "platega_api_base_url") !== "https://app.platega.io" &&
       getSettingValue(settings, "platega_merchant_id") !== "merchant-id-change-me" &&
       getSettingValue(settings, "platega_secret") !== "platega-secret-change-me"
   );
