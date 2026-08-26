@@ -65,21 +65,6 @@ function getFieldInputMode(input: AdminSettingRecord["input"]) {
   return "text";
 }
 
-const paymentSettingKeys = new Set([
-  "api_public_url",
-  "platega_enabled",
-  "platega_api_base_url",
-  "platega_merchant_id",
-  "platega_secret",
-  "yoomoney_enabled",
-  "yoomoney_receiver",
-  "yoomoney_payment_type",
-  "yoomoney_notification_secret",
-  "yookassa_enabled",
-  "yookassa_shop_id",
-  "yookassa_secret_key"
-]);
-
 const paymentSettingsBlocks = [
   {
     title: "Общие",
@@ -102,10 +87,6 @@ const paymentSettingsBlocks = [
     keys: ["yookassa_enabled", "yookassa_shop_id", "yookassa_secret_key"]
   }
 ] as const;
-
-function getAdminSettingDisplayValue(setting: AdminSettingRecord): string {
-  return paymentSettingKeys.has(setting.key) ? "" : setting.value;
-}
 
 function formatDate(value: string | null | undefined): string {
   if (!value) {
@@ -964,8 +945,6 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                                   return null;
                                 }
 
-                                const displayValue = getAdminSettingDisplayValue(setting);
-
                                 return (
                                   <label key={setting.key} className="fieldStack">
                                     <span className="fieldLabel">{setting.label}</span>
@@ -988,7 +967,7 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                                         className="textInput"
                                         data-form-type="other"
                                         data-lpignore="true"
-                                        defaultValue={displayValue}
+                                        defaultValue={setting.value}
                                         inputMode={getFieldInputMode(setting.input)}
                                         name={setting.key}
                                         type={
