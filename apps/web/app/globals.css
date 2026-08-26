@@ -4741,6 +4741,10 @@ select.textInput option {
   grid-template-columns: minmax(0, 1.42fr) minmax(320px, 0.98fr);
 }
 
+.clientPaymentsHeroGrid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .clientPaymentsServiceCard {
   display: grid;
   gap: 1.15rem;
@@ -5046,6 +5050,14 @@ select.textInput option {
   background: rgba(110, 51, 10, 0.2);
 }
 
+.clientPaymentsServiceDetailsGrid {
+  display: grid;
+  gap: 1rem;
+  width: 100%;
+  grid-template-columns: minmax(280px, 0.92fr) minmax(0, 1.45fr);
+  align-items: start;
+}
+
 .clientPaymentsBankMarkIcon {
   display: inline-flex;
   width: 1rem;
@@ -5186,6 +5198,21 @@ select.textInput option {
     0 20px 40px rgba(7, 6, 17, 0.28);
 }
 
+.clientPaymentsTariffCard.isEmbedded,
+.clientPaymentsHistoryCard.isEmbedded {
+  padding: 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1.32rem;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    0 16px 30px rgba(7, 6, 16, 0.16);
+}
+
+.clientPaymentsTariffCard.isEmbedded {
+  align-self: stretch;
+}
+
 .clientPaymentsLabel {
   color: rgba(221, 211, 238, 0.7);
   font-size: 0.98rem;
@@ -5248,6 +5275,10 @@ select.textInput option {
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.03),
     0 18px 36px rgba(7, 6, 16, 0.22);
+}
+
+.clientPaymentsHistoryCard.isEmbedded {
+  padding: 1.25rem;
 }
 
 .clientPaymentsCardHeader h2,
@@ -6088,6 +6119,10 @@ select.textInput option {
   }
 
   .clientPaymentsServiceHighlights {
+    grid-template-columns: 1fr;
+  }
+
+  .clientPaymentsServiceDetailsGrid {
     grid-template-columns: 1fr;
   }
 
