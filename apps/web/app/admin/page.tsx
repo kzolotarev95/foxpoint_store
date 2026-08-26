@@ -592,6 +592,10 @@ function getAdminOrderDeleteLabel(order: AdminOverview["orders"][number]): strin
   return `Удалить заказ ${order.customerName} · ${order.totalPriceLabel}`;
 }
 
+function getAdminRouterDeleteLabel(router: AdminOverview["routers"][number]): string {
+  return `Удалить роутер ${router.displayName} · ${router.ownerName}`;
+}
+
 function renderAdminNavLabel(item: { badge?: string | null; label: string }) {
   return (
     <span className="adminSideNavLabel">
@@ -682,6 +686,18 @@ async function updateRouterAction(formData: FormData) {
       status: String(formData.get("status") ?? "ACTIVE"),
       adminNote: String(formData.get("adminNote") ?? "").trim() || undefined
     }
+  });
+}
+
+async function deleteRouterAction(formData: FormData) {
+  "use server";
+
+  const routerId = String(formData.get("routerId") ?? "").trim();
+  await submitAdminMutation({
+    path: `/api/admin/routers/${routerId}/delete`,
+    fallbackError: "Не удалось удалить роутер.",
+    successMessage: "Роутер удален.",
+    body: {}
   });
 }
 
@@ -1282,6 +1298,14 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                 <div className="ctaRow" style={{ marginTop: "16px" }}>
                   <button className="primaryButton" type="submit">
                     Сохранить роутер
+                  </button>
+                  <button
+                    aria-label={getAdminRouterDeleteLabel(router)}
+                    className="secondaryButton adminDangerButton"
+                    formAction={deleteRouterAction}
+                    type="submit"
+                  >
+                    Удалить
                   </button>
                 </div>
               </form>

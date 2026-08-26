@@ -39,6 +39,7 @@ import {
   saveLocalCredentialsForUser,
   updateAdminOrder,
   updateAdminReward,
+  deleteAdminRouter,
   updateAdminRouter,
   updateAdminSubscription,
   updateAdminTicket,
@@ -1028,6 +1029,28 @@ app.post("/api/admin/users/:userId", async (request, reply) => {
     reply.code(400);
     return {
       error: error instanceof Error ? error.message : "Не удалось обновить клиента."
+    };
+  }
+});
+
+app.post("/api/admin/routers/:routerId/delete", async (request, reply) => {
+  if (!isAuthorizedAdminRequest(request)) {
+    reply.code(401);
+    return {
+      error: "unauthorized"
+    };
+  }
+
+  const params = z.object({ routerId: z.string().trim().min(1) }).parse(request.params);
+
+  try {
+    return await deleteAdminRouter({
+      routerId: params.routerId
+    });
+  } catch (error) {
+    reply.code(400);
+    return {
+      error: error instanceof Error ? error.message : "Не удалось удалить роутер."
     };
   }
 });

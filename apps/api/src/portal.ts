@@ -2775,6 +2775,43 @@ export async function deleteAdminOrder(input: { orderId: string }) {
   };
 }
 
+export async function deleteAdminRouter(input: { routerId: string }) {
+  const router = await prisma.router.findUnique({
+    where: {
+      id: input.routerId
+    }
+  });
+
+  if (!router) {
+    throw new Error("Роутер не найден.");
+  }
+
+  await prisma.router.delete({
+    where: {
+      id: input.routerId
+    }
+  });
+
+  await recordAdminAction({
+    action: "router_deleted",
+    entityType: "Router",
+    entityId: router.id,
+    beforeData: {
+      adminNote: router.adminNote,
+      configurationType: router.configurationType,
+      displayName: router.displayName,
+      ownerUserId: router.ownerUserId,
+      model: router.model,
+      serialNumber: router.serialNumber,
+      status: router.status
+    }
+  });
+
+  return {
+    routerId: router.id
+  };
+}
+
 export async function updateAdminRouter(input: {
   adminNote?: string | null;
   configurationType: ConfigurationType;
