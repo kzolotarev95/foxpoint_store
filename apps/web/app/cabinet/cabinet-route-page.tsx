@@ -2318,16 +2318,17 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                 </div>
               </article>
 
-              <article className="panel clientPaymentsHistoryCard isEmbedded">
-                <div className="clientPaymentsCardHeader">
-                  <div className="clientPaymentsCardHeading">
-                    <div className="clientPaymentsCardIcon">
-                      <PaymentIcon />
-                    </div>
+              <details className="panel clientPaymentsHistoryCard isEmbedded clientPaymentsHistoryDisclosure">
+                <summary className="clientPaymentsHistorySummary">
+                  <div className="clientPaymentsHistorySummaryCopy">
                     <span className="pill">История платежей</span>
-                    <h2>Последние оплаты</h2>
+                    <strong>Последние оплаты</strong>
                   </div>
-                </div>
+                  <span className="clientPaymentsHistorySummaryAction">
+                    <span className="isClosed">Открыть</span>
+                    <span className="isOpen">Закрыть</span>
+                  </span>
+                </summary>
 
                 {overview.payments.length ? (
                   <div className="clientPaymentsHistoryTable">
@@ -2357,7 +2358,7 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                     Оплат пока нет. Как только вы оплатите продление или заказ, история появится здесь.
                   </div>
                 )}
-              </article>
+              </details>
             </div>
           </article>
         </div>

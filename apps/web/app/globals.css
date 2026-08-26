@@ -5211,6 +5211,42 @@ select.textInput option {
 
 .clientPaymentsTariffCard.isEmbedded {
   align-self: stretch;
+  gap: 0.52rem;
+  padding: 1rem 1rem 1.08rem;
+}
+
+.clientPaymentsTariffCard.isEmbedded .clientPaymentsTariffIcon {
+  width: 4rem;
+  height: 4rem;
+}
+
+.clientPaymentsTariffCard.isEmbedded .clientPaymentsTariffIcon svg {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.clientPaymentsTariffCard.isEmbedded .clientPaymentsLabel {
+  font-size: 0.86rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.clientPaymentsTariffCard.isEmbedded strong {
+  font-size: clamp(1.55rem, 2.4vw, 2.15rem);
+}
+
+.clientPaymentsTariffCard.isEmbedded .clientPaymentsTariffPeriod {
+  font-size: 0.9rem;
+}
+
+.clientPaymentsTariffCard.isEmbedded .clientPaymentsTariffFeature {
+  gap: 0.72rem;
+  padding: 0.82rem 0.9rem;
+}
+
+.clientPaymentsTariffCard.isEmbedded .clientPaymentsTariffFeature p {
+  font-size: 0.92rem;
+  line-height: 1.42;
 }
 
 .clientPaymentsLabel {
@@ -5279,6 +5315,71 @@ select.textInput option {
 
 .clientPaymentsHistoryCard.isEmbedded {
   padding: 1.25rem;
+}
+
+.clientPaymentsHistoryDisclosure {
+  align-self: stretch;
+}
+
+.clientPaymentsHistoryDisclosure summary {
+  list-style: none;
+}
+
+.clientPaymentsHistoryDisclosure summary::-webkit-details-marker {
+  display: none;
+}
+
+.clientPaymentsHistorySummary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  cursor: pointer;
+}
+
+.clientPaymentsHistorySummaryCopy {
+  display: grid;
+  gap: 0.3rem;
+}
+
+.clientPaymentsHistorySummaryCopy strong {
+  color: #fff8ef;
+  font-family: var(--font-heading, sans-serif);
+  font-size: clamp(1.05rem, 1.7vw, 1.35rem);
+  line-height: 1.02;
+}
+
+.clientPaymentsHistorySummaryAction {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 7.4rem;
+  padding: 0.62rem 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03));
+  color: #fff3e6;
+  font-size: 0.88rem;
+  font-weight: 700;
+  transition:
+    transform 160ms ease,
+    border-color 160ms ease,
+    background 160ms ease;
+}
+
+.clientPaymentsHistorySummary:hover .clientPaymentsHistorySummaryAction {
+  transform: translateY(-1px);
+  border-color: rgba(255, 193, 120, 0.24);
+  background: linear-gradient(180deg, rgba(255, 191, 122, 0.1), rgba(255, 255, 255, 0.04));
+}
+
+.clientPaymentsHistorySummaryAction .isOpen,
+.clientPaymentsHistoryDisclosure[open] .clientPaymentsHistorySummaryAction .isClosed {
+  display: none;
+}
+
+.clientPaymentsHistoryDisclosure[open] .clientPaymentsHistorySummaryAction .isOpen {
+  display: inline;
 }
 
 .clientPaymentsCardHeader h2,
