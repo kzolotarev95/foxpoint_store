@@ -2256,9 +2256,11 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                       <input name="returnTo" type="hidden" value="/cabinet/payments" />
                       <input name="routerId" type="hidden" value={primaryPaymentRouter.id} />
                       <button className={buttonClassName} type="submit">
-                        <span className="clientPaymentsMethodLogo" aria-hidden="true">
-                          {getPaymentMethodMonogram(method.label)}
-                        </span>
+                        {!hasSingleEnabledPaymentMethod ? (
+                          <span className="clientPaymentsMethodLogo" aria-hidden="true">
+                            {getPaymentMethodMonogram(method.label)}
+                          </span>
+                        ) : null}
                         <span className="clientPaymentsMethodBody">
                           <span className="clientPaymentsMethodText">
                             {hasSingleEnabledPaymentMethod ? "Оплатить без комиссии" : `Продлить через ${method.label}`}
@@ -2277,9 +2279,11 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                       <input name="provider" type="hidden" value={method.id} />
                       <input name="returnTo" type="hidden" value="/cabinet/payments" />
                       <button className={buttonClassName} type="submit">
-                        <span className="clientPaymentsMethodLogo" aria-hidden="true">
-                          {getPaymentMethodMonogram(method.label)}
-                        </span>
+                        {!hasSingleEnabledPaymentMethod ? (
+                          <span className="clientPaymentsMethodLogo" aria-hidden="true">
+                            {getPaymentMethodMonogram(method.label)}
+                          </span>
+                        ) : null}
                         <span className="clientPaymentsMethodBody">
                           <span className="clientPaymentsMethodText">
                             {hasSingleEnabledPaymentMethod ? "Оплатить без комиссии" : `Заказать роутер через ${method.label}`}
