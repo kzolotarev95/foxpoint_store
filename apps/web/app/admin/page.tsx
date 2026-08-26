@@ -23,10 +23,6 @@ type AdminSettingRecord = {
 type PageSearchParams = Promise<Record<string, string | string[] | undefined>>;
 type AdminUserRecord = AdminOverview["users"][number];
 
-function encodeMessage(message: string): string {
-  return encodeURIComponent(message);
-}
-
 function getSingleParam(value: string | string[] | undefined): string | null {
   if (typeof value === "string") {
     return value;
@@ -478,46 +474,6 @@ async function submitAdminMutation(input: {
   revalidatePath("/cabinet/profile");
   revalidatePath("/cabinet/support");
   redirect(appendMessageToPath(input.redirectTo ?? "/admin", "success", input.successMessage));
-}
-
-async function saveSettingsAction(formData: FormData) {
-  "use server";
-
-  const settings = Object.fromEntries(
-    Array.from(formData.entries()).map(([key, value]) => [key, typeof value === "string" ? value : ""])
-  );
-
-  let response: Response;
-  try {
-    response = await fetch(`${getApiBaseUrl()}/api/admin/settings`, {
-      method: "PUT",
-      headers: {
-        ...(Object.fromEntries((await getAdminRequestHeadersOrRedirect()).entries()) ?? {}),
-        "content-type": "application/json"
-      },
-      body: JSON.stringify({ settings }),
-      cache: "no-store"
-    });
-  } catch {
-    redirect("/admin?error=Не удалось%20сохранить%20настройки.");
-  }
-
-  if (response.status === 401) {
-    redirect("/admin/login?error=Сессия%20истекла.%20Войдите%20снова.");
-  }
-
-  if (!response.ok) {
-    const errorMessage = await parseAdminError(response, "Не удалось сохранить настройки.");
-    redirect(`/admin?error=${encodeMessage(errorMessage)}`);
-  }
-
-  revalidatePath("/");
-  revalidatePath("/admin");
-  revalidatePath("/login");
-  revalidatePath("/cabinet");
-  revalidatePath("/cabinet/payments");
-  revalidatePath("/cabinet/routers");
-  redirect("/admin?success=Настройки%20сохранены.");
 }
 
 async function createRouterAction(formData: FormData) {
@@ -985,7 +941,8 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
           </form>
         </section>
 
-        <form action={saveSettingsAction} className="contentStack">
+        <form action="/admin/settings" autoComplete="off" className="contentStack" method="post">
+          <input name="returnTo" type="hidden" value="/admin#Платежи" />
           {groupNames.map((groupName) => (
             <section key={groupName} id={groupName} className="panel settingsSection adminSettingsSection">
               <div className="sectionHeader">
@@ -1027,7 +984,10 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                                       </>
                                     ) : (
                                       <input
+                                        autoComplete={setting.input === "password" ? "new-password" : "off"}
                                         className="textInput"
+                                        data-form-type="other"
+                                        data-lpignore="true"
                                         defaultValue={displayValue}
                                         inputMode={getFieldInputMode(setting.input)}
                                         name={setting.key}
@@ -1094,7 +1054,10 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                         </>
                       ) : (
                         <input
+                          autoComplete={setting.input === "password" ? "new-password" : "off"}
                           className="textInput"
+                          data-form-type="other"
+                          data-lpignore="true"
                           defaultValue={setting.value}
                           inputMode={getFieldInputMode(setting.input)}
                           name={setting.key}
