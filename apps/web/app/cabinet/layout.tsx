@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { logoutClientAction } from "../../lib/client-actions";
+import { createRouterOrderAction, logoutClientAction } from "../../lib/client-actions";
 import { fetchClientApi } from "../../lib/client-auth";
 import type { ClientOverview } from "../../lib/portal-types";
 import { PortalHeader } from "../../components/portal-header";
@@ -121,9 +121,11 @@ export default async function CabinetLayout({ children }: { children: ReactNode 
           ]}
           rightSlot={
             <>
-              <Link className="primaryButton portalActionButton portalOrderButton" href="/cabinet/routers" prefetch scroll={false}>
-                Заказать роутер
-              </Link>
+              <form action={createRouterOrderAction}>
+                <button className="primaryButton portalActionButton portalOrderButton" type="submit">
+                  Заказать роутер
+                </button>
+              </form>
               {overview ? (
                 <details className="portalNotifications">
                   <summary

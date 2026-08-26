@@ -179,7 +179,7 @@ export async function createRouterOrderAction(formData: FormData) {
   const returnTo = getReturnToPath(formData, "/cabinet/routers");
   const provider = String(formData.get("provider") ?? "").trim();
   try {
-    const payload = await fetchClientApi<{ paymentUrl: string; totalPriceLabel: string }>("/api/orders", {
+    const payload = await fetchClientApi<{ paymentUrl: string }>("/api/orders", {
       method: "POST",
       headers: {
         "content-type": "application/json"
@@ -189,11 +189,7 @@ export async function createRouterOrderAction(formData: FormData) {
       })
     });
 
-    redirect(
-      `${returnTo}?success=${encodeMessage(
-        `Заказ создан. Сумма ${payload.totalPriceLabel}.`
-      )}&payment=${encodeURIComponent(payload.paymentUrl)}`
-    );
+    redirect(payload.paymentUrl);
   } catch (error) {
     rethrowRedirectError(error);
     redirect(`${returnTo}?error=${encodeMessage(error instanceof Error ? error.message : "Не удалось оформить заказ.")}`);
