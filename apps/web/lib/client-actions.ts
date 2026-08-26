@@ -1,5 +1,6 @@
 "use server";
 
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { redirect } from "next/navigation";
 import { getApiBaseUrl } from "./api";
 import {
@@ -26,6 +27,12 @@ function getReturnToPath(formData: FormData, fallback: string): string {
 async function parseApiError(response: Response, fallback: string): Promise<string> {
   const payload = (await response.json().catch(() => null)) as { error?: string } | null;
   return payload?.error ?? fallback;
+}
+
+function rethrowRedirectError(error: unknown): void {
+  if (isRedirectError(error)) {
+    throw error;
+  }
 }
 
 export async function loginWithEmailAction(formData: FormData) {
@@ -116,6 +123,7 @@ export async function revokeClientSessionAction(formData: FormData) {
       method: "POST"
     });
   } catch (error) {
+    rethrowRedirectError(error);
     redirect(`${returnTo}?error=${encodeMessage(error instanceof Error ? error.message : "Не удалось завершить сессию.")}`);
   }
 
@@ -145,6 +153,7 @@ export async function revokeAllClientSessionsAction(formData: FormData) {
       });
     }
   } catch (error) {
+    rethrowRedirectError(error);
     redirect(
       `${returnTo}?error=${encodeMessage(error instanceof Error ? error.message : "Не удалось завершить все сессии.")}`
     );
@@ -186,6 +195,7 @@ export async function createRouterOrderAction(formData: FormData) {
       )}&payment=${encodeURIComponent(payload.paymentUrl)}`
     );
   } catch (error) {
+    rethrowRedirectError(error);
     redirect(`${returnTo}?error=${encodeMessage(error instanceof Error ? error.message : "Не удалось оформить заказ.")}`);
   }
 }
@@ -217,6 +227,7 @@ export async function createSupportTicketAction(formData: FormData) {
       })
     });
   } catch (error) {
+    rethrowRedirectError(error);
     redirect(`${returnTo}?error=${encodeMessage(error instanceof Error ? error.message : "Не удалось создать заявку.")}`);
   }
 
@@ -238,6 +249,7 @@ export async function attachProfileEmailAction(formData: FormData) {
       })
     });
   } catch (error) {
+    rethrowRedirectError(error);
     redirect(`${returnTo}?error=${encodeMessage(error instanceof Error ? error.message : "Не удалось привязать email.")}`);
   }
 
@@ -261,6 +273,7 @@ export async function saveProfileCredentialsAction(formData: FormData) {
       })
     });
   } catch (error) {
+    rethrowRedirectError(error);
     redirect(
       `${returnTo}?error=${encodeMessage(error instanceof Error ? error.message : "Не удалось сохранить логин и пароль.")}`
     );
@@ -287,6 +300,7 @@ export async function requestTwoFactorSetupAction(formData: FormData) {
       redirect(`${returnTo}?success=Запрос%20на%202FA%20уже%20открыт.`);
     }
   } catch (error) {
+    rethrowRedirectError(error);
     redirect(`${returnTo}?error=${encodeMessage(error instanceof Error ? error.message : "Не удалось отправить запрос на 2FA.")}`);
   }
 
@@ -311,6 +325,7 @@ export async function requestAccountDeletionAction(formData: FormData) {
       redirect(`${returnTo}?success=Запрос%20на%20удаление%20уже%20создан.`);
     }
   } catch (error) {
+    rethrowRedirectError(error);
     redirect(
       `${returnTo}?error=${encodeMessage(error instanceof Error ? error.message : "Не удалось отправить запрос на удаление.")}`
     );
@@ -337,6 +352,7 @@ export async function saveRouterTemplateAction(formData: FormData) {
       })
     });
   } catch (error) {
+    rethrowRedirectError(error);
     redirect(`${returnTo}?error=${encodeMessage(error instanceof Error ? error.message : "Не удалось сохранить пакет.")}`);
   }
 
@@ -372,6 +388,7 @@ export async function renewRouterAction(formData: FormData) {
       )}&payment=${encodeURIComponent(payload.paymentUrl)}`
     );
   } catch (error) {
+    rethrowRedirectError(error);
     redirect(`${returnTo}?error=${encodeMessage(error instanceof Error ? error.message : "Не удалось продлить пакет.")}`);
   }
 }
