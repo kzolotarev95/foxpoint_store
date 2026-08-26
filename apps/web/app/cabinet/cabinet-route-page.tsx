@@ -605,15 +605,65 @@ function getOrderStatusLabel(status: string): string {
     return "Ожидает оплаты";
   }
 
+  if (normalized === "CONFIGURING") {
+    return "Настраивается";
+  }
+
+  if (normalized === "READY_TO_SHIP") {
+    return "Готов к отправке";
+  }
+
   if (normalized === "SHIPPED") {
     return "Отправлен";
+  }
+
+  if (normalized === "RECEIVED") {
+    return "Получен";
   }
 
   if (normalized === "CANCELED") {
     return "Отменен";
   }
 
+  if (normalized === "REFUND" || normalized === "REFUNDED") {
+    return "Возврат";
+  }
+
   return "Обновлен";
+}
+
+function getOrderStatusDescription(status: string): string {
+  const normalized = String(status ?? "").toUpperCase();
+
+  if (normalized === "PAID") {
+    return "Оплата получена. Теперь заказ перейдет к настройке и после этого роутер появится в кабинете.";
+  }
+
+  if (normalized === "CONFIGURING") {
+    return "Мы готовим и настраиваем устройство. После завершения оно появится в вашем кабинете.";
+  }
+
+  if (normalized === "READY_TO_SHIP") {
+    return "Роутер уже подготовлен и скоро будет передан в доставку.";
+  }
+
+  if (normalized === "SHIPPED") {
+    return "Заказ отправлен. После получения роутер останется в кабинете, а трек-номер поможет отслеживать доставку.";
+  }
+
+  if (normalized === "RECEIVED") {
+    return "Заказ отмечен как полученный. Если роутер еще не появился в кабинете, напишите в поддержку.";
+  }
+
+  if (normalized === "WAITING_PAYMENT" || normalized === "CREATED") {
+    return "Заказ создан, но оплата еще не подтверждена. После успешной оплаты он перейдет в обработку.";
+  }
+
+  if (normalized === "CANCELED" || normalized === "REFUND" || normalized === "REFUNDED") {
+    return "Заказ больше не активен. Если это ошибка, напишите в поддержку и мы поможем.";
+  }
+
+  return "Статус заказа обновится здесь автоматически.";
 }
 
 function getNotificationTypeMeta(type: string): Pick<NotificationFeedItem, "detail" | "href" | "icon" | "title"> {
@@ -1387,6 +1437,10 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
   const hasSingleEnabledPaymentMethod = enabledPaymentMethods.length === 1;
   const previewPayments = overview.payments.slice(0, 3);
   const remainingPayments = overview.payments.slice(3);
+  const latestPendingOrder =
+    overview.orders.find((order) => !["RECEIVED", "CANCELED", "REFUND", "REFUNDED"].includes(order.status.toUpperCase())) ??
+    overview.orders[0] ??
+    null;
 
   return (
     <main className="shell portalPage clientDashboardPage clientRoutersExperience">
@@ -1451,19 +1505,53 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
           <div id="routers" className="clientRoutersColumn">
             {!overview.routers.length ? (
               <section className="clientEmptyRouters panel">
-                <span className="pill">Пустой кабинет</span>
-                <h2>К вашему аккаунту пока не добавлены роутеры.</h2>
+                <span className="pill">{latestPendingOrder ? "Заказ в работе" : "Пустой кабинет"}</span>
+                <h2>
+                  {latestPendingOrder
+                    ? "Оплата прошла, теперь готовим роутер к выдаче."
+                    : "К вашему аккаунту пока не добавлены роутеры."}
+                </h2>
                 <p>
-                  Если устройство уже у вас, напишите в поддержку и мы проверим привязку. Если
-                  роутеров пока нет, можно сразу оформить заказ.
+                  {latestPendingOrder
+                    ? "После настройки и назначения устройство автоматически появится в этом разделе."
+                    : "Если устройство уже у вас, напишите в поддержку и мы проверим привязку. Если роутеров пока нет, можно сразу оформить заказ."}
                 </p>
+                {latestPendingOrder ? (
+                  <div className="clientEmptyRoutersOrderCard">
+                    <div className="clientEmptyRoutersOrderGrid">
+                      <div className="clientEmptyRoutersOrderItem">
+                        <span>Статус заказа</span>
+                        <strong>{getOrderStatusLabel(latestPendingOrder.status)}</strong>
+                      </div>
+                      <div className="clientEmptyRoutersOrderItem">
+                        <span>Сумма</span>
+                        <strong>{latestPendingOrder.totalPriceLabel}</strong>
+                      </div>
+                      <div className="clientEmptyRoutersOrderItem">
+                        <span>Создан</span>
+                        <strong>{formatDate(latestPendingOrder.createdAt)}</strong>
+                      </div>
+                      <div className="clientEmptyRoutersOrderItem">
+                        <span>Трек-номер</span>
+                        <strong>{latestPendingOrder.trackingNumber ?? "Появится после отправки"}</strong>
+                      </div>
+                    </div>
+                    <p className="clientEmptyRoutersOrderHint">{getOrderStatusDescription(latestPendingOrder.status)}</p>
+                  </div>
+                ) : null}
                 <div className="ctaRow">
-                  <form action={createRouterOrderAction}>
-                    <input name="returnTo" type="hidden" value="/cabinet/routers" />
-                    <button className="primaryButton portalActionButton" type="submit">
-                      Заказать роутер
-                    </button>
-                  </form>
+                  {latestPendingOrder ? (
+                    <Link className="primaryButton portalActionButton" href={getCabinetTabHref("payments")}>
+                      Открыть платежи
+                    </Link>
+                  ) : (
+                    <form action={createRouterOrderAction}>
+                      <input name="returnTo" type="hidden" value="/cabinet/routers" />
+                      <button className="primaryButton portalActionButton" type="submit">
+                        Заказать роутер
+                      </button>
+                    </form>
+                  )}
                   <Link className="secondaryButton portalGhostButton" href={getCabinetTabHref("support")}>
                     Написать в поддержку
                   </Link>
