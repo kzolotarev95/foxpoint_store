@@ -228,6 +228,67 @@ function getPaymentMethodMonogram(label: string): string {
   return parts[0].slice(0, 2).toUpperCase();
 }
 
+function TBankMark() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="2.75" y="2.75" width="18.5" height="18.5" rx="5.2" fill="#FFD54A" />
+      <path d="M8.1 7.25h7.8v2.05h-2.82v7.45h-2.16V9.3H8.1z" fill="#141414" />
+    </svg>
+  );
+}
+
+function SberMark() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <circle cx="12" cy="12" r="9.25" fill="#1DB954" />
+      <path d="m7.4 12.25 2.55 2.55 6.7-6.75" fill="none" stroke="#fff" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.15" />
+    </svg>
+  );
+}
+
+function VtbMark() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <defs>
+        <linearGradient id="vtbMarkGradient" x1="4" x2="20" y1="5" y2="19" gradientUnits="userSpaceOnUse">
+          <stop stopColor="#4FB4FF" />
+          <stop offset="1" stopColor="#165BFF" />
+        </linearGradient>
+      </defs>
+      <path d="M5.25 7.3h3.4l2.25 4.1 2.3-4.1h5.55l-5.95 9.4h-3.55l1.95-3.2z" fill="url(#vtbMarkGradient)" />
+    </svg>
+  );
+}
+
+function AlfaMark() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <rect x="3" y="3" width="18" height="18" rx="5.2" fill="#EF3124" />
+      <path d="M12 6.8 7.85 17.2h2.4l.7-1.95h2.1l.7 1.95h2.42zm-.28 6.45.29-.82.28.82z" fill="#fff" />
+    </svg>
+  );
+}
+
+const bankPaymentMarks = [
+  { id: "tbank", label: "Т-Банк", icon: <TBankMark /> },
+  { id: "sber", label: "Сбер", icon: <SberMark /> },
+  { id: "vtb", label: "ВТБ", icon: <VtbMark /> },
+  { id: "alfa", label: "Альфа", icon: <AlfaMark /> }
+] as const;
+
+function PaymentBankMarks() {
+  return (
+    <span className="clientPaymentsBankMarks" aria-label="Поддерживаются популярные банки">
+      {bankPaymentMarks.map((bank) => (
+        <span key={bank.id} className="clientPaymentsBankMark" aria-hidden="true">
+          <span className="clientPaymentsBankMarkIcon">{bank.icon}</span>
+          <span className="clientPaymentsBankMarkLabel">{bank.label}</span>
+        </span>
+      ))}
+    </span>
+  );
+}
+
 function formatSupportTicketCreatedAt(value: string): string {
   const parsed = parseDateValue(value);
 
@@ -1335,6 +1396,7 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
     primaryPaymentRouter?.savedTemplate.nextPriceLabel ??
     overview.catalog.recommendedPriceLabel;
   const enabledPaymentMethods = overview.paymentMethods.filter((method) => method.enabled);
+  const hasSingleEnabledPaymentMethod = enabledPaymentMethods.length === 1;
 
   return (
     <main className="shell portalPage clientDashboardPage clientRoutersExperience">
@@ -2180,12 +2242,12 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
               </div>
             </div>
 
-            <div className="clientPaymentsMethodGrid">
+            <div className={`clientPaymentsMethodGrid${hasSingleEnabledPaymentMethod ? " isSingle" : ""}`}>
               {enabledPaymentMethods.length ? (
                 enabledPaymentMethods.map((method, index) => {
                   const isPrimary = index === 0;
                   const buttonClassName = isPrimary
-                    ? "clientPaymentsMethodButton isPrimary"
+                    ? `clientPaymentsMethodButton isPrimary${hasSingleEnabledPaymentMethod ? " isSingle" : ""}`
                     : "clientPaymentsMethodButton isSecondary";
 
                   return primaryPaymentRouter ? (
@@ -2198,7 +2260,15 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                           {getPaymentMethodMonogram(method.label)}
                         </span>
                         <span className="clientPaymentsMethodBody">
-                          <span className="clientPaymentsMethodText">{`Продлить через ${method.label}`}</span>
+                          <span className="clientPaymentsMethodText">
+                            {hasSingleEnabledPaymentMethod ? "Оплатить без комиссии" : `Продлить через ${method.label}`}
+                          </span>
+                          {hasSingleEnabledPaymentMethod ? (
+                            <>
+                              <span className="clientPaymentsMethodMeta">{method.label}</span>
+                              <PaymentBankMarks />
+                            </>
+                          ) : null}
                         </span>
                       </button>
                     </form>
@@ -2211,7 +2281,15 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                           {getPaymentMethodMonogram(method.label)}
                         </span>
                         <span className="clientPaymentsMethodBody">
-                          <span className="clientPaymentsMethodText">{`Заказать роутер через ${method.label}`}</span>
+                          <span className="clientPaymentsMethodText">
+                            {hasSingleEnabledPaymentMethod ? "Оплатить без комиссии" : `Заказать роутер через ${method.label}`}
+                          </span>
+                          {hasSingleEnabledPaymentMethod ? (
+                            <>
+                              <span className="clientPaymentsMethodMeta">{method.label}</span>
+                              <PaymentBankMarks />
+                            </>
+                          ) : null}
                         </span>
                       </button>
                     </form>

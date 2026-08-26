@@ -4854,9 +4854,18 @@ select.textInput option {
   margin-top: 0.1rem;
 }
 
+.clientPaymentsMethodGrid.isSingle {
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+}
+
 .clientPaymentsMethodGrid form {
   margin: 0;
   width: 100%;
+}
+
+.clientPaymentsMethodGrid.isSingle form {
+  max-width: 30rem;
 }
 
 .clientPaymentsMethodButton {
@@ -4911,6 +4920,14 @@ select.textInput option {
   background: transparent;
 }
 
+.clientPaymentsMethodButton.isSingle {
+  justify-content: center;
+  gap: 0.95rem;
+  min-height: 5.25rem;
+  padding: 1rem 1.15rem;
+  text-align: center;
+}
+
 .clientPaymentsMethodLogo {
   display: inline-grid;
   place-items: center;
@@ -4939,11 +4956,61 @@ select.textInput option {
   min-width: 0;
 }
 
+.clientPaymentsMethodButton.isSingle .clientPaymentsMethodBody {
+  justify-items: center;
+  gap: 0.42rem;
+}
+
+.clientPaymentsMethodButton.isSingle .clientPaymentsMethodText {
+  text-align: center;
+  font-size: 1.02rem;
+  font-weight: 800;
+}
+
 .clientPaymentsMethodMeta {
-  color: rgba(221, 211, 238, 0.68);
-  font-size: 0.8rem;
-  font-weight: 500;
-  text-align: left;
+  font-size: 0.79rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 246, 236, 0.84);
+}
+
+.clientPaymentsBankMarks {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.42rem;
+}
+
+.clientPaymentsBankMark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+  padding: 0.22rem 0.46rem 0.22rem 0.3rem;
+  border: 1px solid rgba(255, 250, 243, 0.22);
+  border-radius: 999px;
+  background: rgba(77, 31, 0, 0.14);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.clientPaymentsBankMarkIcon {
+  display: inline-flex;
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+}
+
+.clientPaymentsBankMarkIcon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.clientPaymentsBankMarkLabel {
+  font-size: 0.71rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: rgba(255, 248, 239, 0.94);
 }
 
 .clientPaymentsTariffCard {
