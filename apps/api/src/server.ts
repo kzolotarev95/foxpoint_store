@@ -24,6 +24,7 @@ import {
   addAdminSupportTicketMessage,
   addClientSupportTicketMessageForUser,
   clearClientNotificationFeed,
+  deleteAdminOrder,
   deleteAdminTicket,
   createProfileRequestForUser,
   createAdminRouterAssignment,
@@ -929,6 +930,28 @@ app.post("/api/admin/orders/:orderId", async (request, reply) => {
     reply.code(400);
     return {
       error: error instanceof Error ? error.message : "Не удалось обновить заказ."
+    };
+  }
+});
+
+app.post("/api/admin/orders/:orderId/delete", async (request, reply) => {
+  if (!isAuthorizedAdminRequest(request)) {
+    reply.code(401);
+    return {
+      error: "unauthorized"
+    };
+  }
+
+  const params = z.object({ orderId: z.string().trim().min(1) }).parse(request.params);
+
+  try {
+    return await deleteAdminOrder({
+      orderId: params.orderId
+    });
+  } catch (error) {
+    reply.code(400);
+    return {
+      error: error instanceof Error ? error.message : "Не удалось удалить заказ."
     };
   }
 });

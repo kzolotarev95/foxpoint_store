@@ -2740,6 +2740,41 @@ export async function updateAdminOrder(input: {
   };
 }
 
+export async function deleteAdminOrder(input: { orderId: string }) {
+  const order = await prisma.routerOrder.findUnique({
+    where: {
+      id: input.orderId
+    }
+  });
+
+  if (!order) {
+    throw new Error("Заказ не найден.");
+  }
+
+  await prisma.routerOrder.delete({
+    where: {
+      id: input.orderId
+    }
+  });
+
+  await recordAdminAction({
+    action: "order_deleted",
+    entityType: "RouterOrder",
+    entityId: order.id,
+    beforeData: {
+      status: order.status,
+      trackingNumber: order.trackingNumber,
+      receivedAt: order.receivedAt?.toISOString() ?? null,
+      totalPrice: toNumber(order.totalPrice),
+      userId: order.userId
+    }
+  });
+
+  return {
+    orderId: order.id
+  };
+}
+
 export async function updateAdminRouter(input: {
   adminNote?: string | null;
   configurationType: ConfigurationType;

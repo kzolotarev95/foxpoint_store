@@ -452,7 +452,9 @@ async function submitAdminMutation(input: {
 
   revalidatePath("/admin");
   revalidatePath("/cabinet");
+  revalidatePath("/cabinet/payments");
   revalidatePath("/cabinet/profile");
+  revalidatePath("/cabinet/routers");
   revalidatePath("/cabinet/support");
   redirect(appendMessageToPath(input.redirectTo ?? "/admin", "success", input.successMessage));
 }
@@ -559,6 +561,19 @@ function getLatestNewTicketHref(overview: AdminOverview): string {
   return latestNewTicket ? `#${getTicketAnchorId(latestNewTicket.id)}` : "#tickets";
 }
 
+function isOrderAwaitingAdminAction(order: AdminOverview["orders"][number]): boolean {
+  return order.status === "PAID";
+}
+
+function getAdminOrderBadgeCount(overview: AdminOverview): number {
+  return overview.orders.filter((order) => isOrderAwaitingAdminAction(order)).length;
+}
+
+function getLatestNewOrderHref(overview: AdminOverview): string {
+  const latestNewOrder = overview.orders.find((order) => isOrderAwaitingAdminAction(order));
+  return latestNewOrder ? `#order-${latestNewOrder.id}` : "#orders";
+}
+
 function getAdminTicketCommentMeta(ticket: AdminOverview["tickets"][number]): string | null {
   if (!ticket.adminComment) {
     return null;
@@ -571,6 +586,10 @@ function getAdminTicketCommentMeta(ticket: AdminOverview["tickets"][number]): st
 
 function getAdminTicketDeleteLabel(ticket: AdminOverview["tickets"][number]): string {
   return `Удалить обращение ${ticket.customerName} · ${ticket.category}`;
+}
+
+function getAdminOrderDeleteLabel(order: AdminOverview["orders"][number]): string {
+  return `Удалить заказ ${order.customerName} · ${order.totalPriceLabel}`;
 }
 
 function renderAdminNavLabel(item: { badge?: string | null; label: string }) {
@@ -631,6 +650,18 @@ async function updateOrderAction(formData: FormData) {
       status: String(formData.get("status") ?? "CREATED"),
       trackingNumber: String(formData.get("trackingNumber") ?? "").trim() || undefined
     }
+  });
+}
+
+async function deleteOrderAction(formData: FormData) {
+  "use server";
+
+  const orderId = String(formData.get("orderId") ?? "").trim();
+  await submitAdminMutation({
+    path: `/api/admin/orders/${orderId}/delete`,
+    fallbackError: "Не удалось удалить заказ.",
+    successMessage: "Заказ удален.",
+    body: {}
   });
 }
 
@@ -740,6 +771,8 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
   const clientReturnTo = overview.clientQuery ? `/admin?q=${encodeURIComponent(overview.clientQuery)}#clients` : "/admin#clients";
   const newTicketCount = getAdminTicketBadgeCount(overview);
   const latestNewTicketHref = getLatestNewTicketHref(overview);
+  const newOrderCount = getAdminOrderBadgeCount(overview);
+  const latestNewOrderHref = getLatestNewOrderHref(overview);
   const dashboardCards = [
     {
       description: "Открыть базу клиентов",
@@ -772,7 +805,7 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
     { href: "#clients", label: "Клиенты", icon: <UsersIcon /> },
     { href: "#routers", label: "Роутеры", icon: <RouterRackIcon /> },
     { href: "#subscriptions", label: "Подписки", icon: <CalendarIcon /> },
-    { href: "#orders", label: "Заказы", icon: <CartIcon /> },
+    { href: latestNewOrderHref, label: "Заказы", icon: <CartIcon />, badge: newOrderCount ? `+${newOrderCount}` : null },
     { href: latestNewTicketHref, label: "Обращения", icon: <MessageIcon />, badge: newTicketCount ? `+${newTicketCount}` : null },
     { href: "#rewards", label: "Рефералки", icon: <GiftIcon /> },
     { href: "#audit", label: "Аудит", icon: <AuditIcon /> }
@@ -1330,11 +1363,14 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
         </section>
 
         <section id="orders" className="panel sectionPanel adminSectionPanel">
-          <span className="pill">Заказы</span>
+          <span className="pill">
+            Заказы
+            {newOrderCount ? <span className="adminTicketNewBadge">+{newOrderCount}</span> : null}
+          </span>
           <h2 className="adminSectionTitle">Магазин и доставка</h2>
           <div className="contentStack">
             {overview.orders.map((order) => (
-              <form key={order.id} action={updateOrderAction} className="panel adminRecordCard">
+              <form key={order.id} id={`order-${order.id}`} action={updateOrderAction} className="panel adminRecordCard">
                 <input name="orderId" type="hidden" value={order.id} />
                 <div className="sectionHeader">
                   <div>
@@ -1377,6 +1413,14 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                 <div className="ctaRow" style={{ marginTop: "16px" }}>
                   <button className="primaryButton" type="submit">
                     Сохранить заказ
+                  </button>
+                  <button
+                    aria-label={getAdminOrderDeleteLabel(order)}
+                    className="secondaryButton adminDangerButton"
+                    formAction={deleteOrderAction}
+                    type="submit"
+                  >
+                    Удалить
                   </button>
                 </div>
               </form>
