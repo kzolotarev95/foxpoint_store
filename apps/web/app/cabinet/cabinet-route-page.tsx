@@ -1531,9 +1531,46 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                         <span>Создан</span>
                         <strong>{formatDate(latestPendingOrder.createdAt)}</strong>
                       </div>
-                      <div className="clientEmptyRoutersOrderItem">
+                      <div
+                        className={
+                          latestPendingOrder.trackingNumber
+                            ? "clientEmptyRoutersOrderItem isTracking"
+                            : "clientEmptyRoutersOrderItem"
+                        }
+                      >
                         <span>Трек-номер</span>
-                        <strong>{latestPendingOrder.trackingNumber ?? "Появится после отправки"}</strong>
+                        {latestPendingOrder.trackingNumber ? (
+                          <strong className="clientEmptyRoutersTrackingNumber">
+                            <span className="clientEmptyRoutersTrackingIcon" aria-hidden="true">
+                              <svg viewBox="0 0 24 24" fill="none">
+                                <path
+                                  d="M3.75 7.25h10.5v7.5h-10.5z"
+                                  stroke="currentColor"
+                                  strokeWidth="1.6"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                                <path
+                                  d="M14.25 9.5h3.3l2.7 2.75v2.5h-6z"
+                                  stroke="currentColor"
+                                  strokeWidth="1.6"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                                <path
+                                  d="M8 17.5a1.25 1.25 0 1 1-2.5 0a1.25 1.25 0 0 1 2.5 0Zm10.5 0a1.25 1.25 0 1 1-2.5 0a1.25 1.25 0 0 1 2.5 0Z"
+                                  stroke="currentColor"
+                                  strokeWidth="1.6"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                />
+                              </svg>
+                            </span>
+                            <span>{latestPendingOrder.trackingNumber}</span>
+                          </strong>
+                        ) : (
+                          <strong>Появится после отправки</strong>
+                        )}
                       </div>
                     </div>
                     <p className="clientEmptyRoutersOrderHint">{getOrderStatusDescription(latestPendingOrder.status)}</p>
