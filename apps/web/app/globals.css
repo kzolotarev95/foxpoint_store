@@ -5603,42 +5603,60 @@ select.textInput option {
   color: #ff9c9c;
 }
 
-.clientEmptyRoutersOrderItem.isTracking span {
-  color: rgba(255, 210, 210, 0.86);
-}
-
 .clientEmptyRoutersTrackingNumber {
   display: inline-flex;
   align-items: center;
-  gap: 0.48rem;
+  gap: 0.42rem;
   width: fit-content;
-  margin-top: 0.28rem;
-  padding: 0.5rem 0.82rem;
+  margin-top: 0.25rem;
+  padding: 0.42rem 0.72rem;
   border-radius: 999px;
-  background:
-    linear-gradient(135deg, rgba(255, 93, 93, 0.28), rgba(255, 132, 82, 0.18));
-  border: 1px solid rgba(255, 146, 120, 0.38);
-  color: #fff0f0;
+  background: rgba(255, 82, 82, 0.16);
+  border: 1px solid rgba(255, 117, 117, 0.32);
+  color: #ffb3b3;
   font-size: 0.94rem;
   letter-spacing: 0.03em;
   font-variant-numeric: tabular-nums;
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    0 10px 24px rgba(255, 82, 82, 0.16);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.03) inset;
 }
 
-.clientEmptyRoutersTrackingIcon {
+.clientEmptyRoutersTrackingValue {
+  color: inherit;
+}
+
+.clientEmptyRoutersTrackingCopyButton {
   display: inline-flex;
-  width: 1rem;
-  height: 1rem;
-  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 1.65rem;
+  height: 1.65rem;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: inherit;
+  cursor: pointer;
+  transition:
+    transform 160ms ease,
+    background-color 160ms ease,
+    color 160ms ease;
+}
+
+.clientEmptyRoutersTrackingCopyButton:hover {
+  transform: translateY(-1px);
+  background: rgba(255, 255, 255, 0.14);
   color: #ffd4d4;
 }
 
-.clientEmptyRoutersTrackingIcon svg {
-  width: 100%;
-  height: 100%;
-  display: block;
+.clientEmptyRoutersTrackingCopyButton.isCopied {
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff0f0;
+}
+
+.clientEmptyRoutersTrackingCopyButton svg {
+  display: inline-flex;
+  width: 0.95rem;
+  height: 0.95rem;
 }
 
 .clientPaymentsEmptyState {
