@@ -2263,11 +2263,10 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                         ) : null}
                         <span className="clientPaymentsMethodBody">
                           <span className="clientPaymentsMethodText">
-                            {hasSingleEnabledPaymentMethod ? "Оплатить без комиссии" : `Продлить через ${method.label}`}
+                            {hasSingleEnabledPaymentMethod ? "Продлить без комиссии" : `Продлить через ${method.label}`}
                           </span>
                           {hasSingleEnabledPaymentMethod ? (
                             <>
-                              <span className="clientPaymentsMethodMeta">{method.label}</span>
                               <PaymentBankMarks />
                             </>
                           ) : null}
@@ -2286,11 +2285,10 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                         ) : null}
                         <span className="clientPaymentsMethodBody">
                           <span className="clientPaymentsMethodText">
-                            {hasSingleEnabledPaymentMethod ? "Оплатить без комиссии" : `Заказать роутер через ${method.label}`}
+                            {hasSingleEnabledPaymentMethod ? "Продлить без комиссии" : `Заказать роутер через ${method.label}`}
                           </span>
                           {hasSingleEnabledPaymentMethod ? (
                             <>
-                              <span className="clientPaymentsMethodMeta">{method.label}</span>
                               <PaymentBankMarks />
                             </>
                           ) : null}
