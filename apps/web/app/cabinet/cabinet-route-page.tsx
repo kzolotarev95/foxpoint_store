@@ -667,6 +667,10 @@ function getOrderStatusDescription(status: string): string {
   return "Статус заказа обновится здесь автоматически.";
 }
 
+function shouldShowOrderSupportTicketHint(status: string): boolean {
+  return String(status ?? "").toUpperCase() === "PAID";
+}
+
 function getNotificationTypeMeta(type: string): Pick<NotificationFeedItem, "detail" | "href" | "icon" | "title"> {
   const normalized = String(type ?? "").trim().toUpperCase();
 
@@ -1542,6 +1546,15 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                       </div>
                     </div>
                     <p className="clientEmptyRoutersOrderHint">{getOrderStatusDescription(latestPendingOrder.status)}</p>
+                    {shouldShowOrderSupportTicketHint(latestPendingOrder.status) ? (
+                      <p className="clientEmptyRoutersOrderHint">
+                        После получения роутера напишите тикет в{" "}
+                        <Link className="clientEmptyRoutersOrderHintLink" href={getCabinetTabHref("support")}>
+                          поддержку
+                        </Link>
+                        , чтобы мы завершили привязку устройства к кабинету.
+                      </p>
+                    ) : null}
                   </div>
                 ) : null}
                 <div className="ctaRow">

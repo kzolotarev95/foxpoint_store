@@ -3981,6 +3981,18 @@ select.textInput option {
   font-size: 0.95rem;
 }
 
+.clientEmptyRoutersOrderHintLink {
+  color: #ffd08a;
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-color: rgba(255, 208, 138, 0.55);
+  text-underline-offset: 0.16em;
+}
+
+.clientEmptyRoutersOrderHintLink:hover {
+  color: #ffe4b7;
+}
+
 .clientEmptyRouters .ctaRow {
   justify-content: center;
   width: 100%;
