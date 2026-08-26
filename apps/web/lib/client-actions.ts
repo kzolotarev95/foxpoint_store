@@ -378,15 +378,8 @@ export async function renewRouterAction(formData: FormData) {
         provider: provider || undefined
       })
     });
-    const activationMessage = payload.requiresActivation
-      ? " После оплаты заявка уйдет на ручную перенастройку."
-      : "";
 
-    redirect(
-      `${returnTo}?success=${encodeMessage(
-        `Продление создано на ${payload.amountLabel}.${activationMessage}`
-      )}&payment=${encodeURIComponent(payload.paymentUrl)}`
-    );
+    redirect(payload.paymentUrl);
   } catch (error) {
     rethrowRedirectError(error);
     redirect(`${returnTo}?error=${encodeMessage(error instanceof Error ? error.message : "Не удалось продлить пакет.")}`);
