@@ -5330,11 +5330,16 @@ select.textInput option {
 }
 
 .clientPaymentsHistorySummary {
+  display: grid;
+  gap: 0.9rem;
+  cursor: pointer;
+}
+
+.clientPaymentsHistorySummaryTop {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  cursor: pointer;
 }
 
 .clientPaymentsHistorySummaryCopy {
@@ -5361,6 +5366,7 @@ select.textInput option {
   color: #fff3e6;
   font-size: 0.88rem;
   font-weight: 700;
+  white-space: nowrap;
   transition:
     transform 160ms ease,
     border-color 160ms ease,
@@ -5380,6 +5386,62 @@ select.textInput option {
 
 .clientPaymentsHistoryDisclosure[open] .clientPaymentsHistorySummaryAction .isOpen {
   display: inline;
+}
+
+.clientPaymentsHistorySummaryStatic {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.62rem 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  color: rgba(232, 223, 246, 0.7);
+  font-size: 0.84rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.clientPaymentsHistoryPreviewList {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.clientPaymentsHistoryPreviewItem {
+  display: grid;
+  grid-template-columns: minmax(140px, 0.88fr) minmax(0, 1.2fr) auto;
+  gap: 0.8rem;
+  align-items: center;
+  padding: 0.88rem 0.95rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 1.02rem;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.032), rgba(255, 255, 255, 0.018));
+}
+
+.clientPaymentsHistoryPreviewMeta,
+.clientPaymentsHistoryPreviewCopy {
+  display: grid;
+  gap: 0.18rem;
+  min-width: 0;
+}
+
+.clientPaymentsHistoryPreviewMeta strong {
+  color: #fff8ef;
+  font-size: 0.98rem;
+}
+
+.clientPaymentsHistoryPreviewMeta span,
+.clientPaymentsHistoryPreviewCopy span,
+.clientPaymentsHistoryPreviewCopy small {
+  color: rgba(220, 212, 236, 0.72);
+}
+
+.clientPaymentsHistoryPreviewCopy small {
+  font-size: 0.82rem;
+}
+
+.clientPaymentsEmptyState.isCompact {
+  margin-top: 0;
+  padding: 0.95rem 1rem;
 }
 
 .clientPaymentsCardHeader h2,

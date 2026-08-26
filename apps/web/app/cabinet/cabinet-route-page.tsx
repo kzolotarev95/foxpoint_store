@@ -1397,6 +1397,8 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
     overview.catalog.recommendedPriceLabel;
   const enabledPaymentMethods = overview.paymentMethods.filter((method) => method.enabled);
   const hasSingleEnabledPaymentMethod = enabledPaymentMethods.length === 1;
+  const previewPayments = overview.payments.slice(0, 3);
+  const remainingPayments = overview.payments.slice(3);
 
   return (
     <main className="shell portalPage clientDashboardPage clientRoutersExperience">
@@ -2320,17 +2322,49 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
 
               <details className="panel clientPaymentsHistoryCard isEmbedded clientPaymentsHistoryDisclosure">
                 <summary className="clientPaymentsHistorySummary">
-                  <div className="clientPaymentsHistorySummaryCopy">
-                    <span className="pill">История платежей</span>
-                    <strong>Последние оплаты</strong>
+                  <div className="clientPaymentsHistorySummaryTop">
+                    <div className="clientPaymentsHistorySummaryCopy">
+                      <span className="pill">История платежей</span>
+                      <strong>Последние оплаты</strong>
+                    </div>
+                    {remainingPayments.length ? (
+                      <span className="clientPaymentsHistorySummaryAction">
+                        <span className="isClosed">{`Открыть еще ${remainingPayments.length}`}</span>
+                        <span className="isOpen">Закрыть</span>
+                      </span>
+                    ) : (
+                      <span className="clientPaymentsHistorySummaryStatic">Все показано</span>
+                    )}
                   </div>
-                  <span className="clientPaymentsHistorySummaryAction">
-                    <span className="isClosed">Открыть</span>
-                    <span className="isOpen">Закрыть</span>
-                  </span>
+
+                  {previewPayments.length ? (
+                    <div className="clientPaymentsHistoryPreviewList">
+                      {previewPayments.map((payment) => {
+                        const statusMeta = getPaymentStatusMeta(payment.status);
+
+                        return (
+                          <div key={`preview-${payment.id}`} className="clientPaymentsHistoryPreviewItem">
+                            <div className="clientPaymentsHistoryPreviewMeta">
+                              <strong>{payment.amountLabel}</strong>
+                              <span>{payment.providerLabel}</span>
+                            </div>
+                            <div className="clientPaymentsHistoryPreviewCopy">
+                              <span>{payment.routerName ?? "Заказ роутера"}</span>
+                              <small>{formatDate(payment.paidAt ?? payment.createdAt)}</small>
+                            </div>
+                            <span className={`clientPaymentsStatusBadge is-${statusMeta.tone}`}>{statusMeta.label}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="clientPaymentsEmptyState isCompact">
+                      Оплат пока нет.
+                    </div>
+                  )}
                 </summary>
 
-                {overview.payments.length ? (
+                {remainingPayments.length ? (
                   <div className="clientPaymentsHistoryTable">
                     <div className="clientPaymentsHistoryHead">
                       <span>Дата</span>
@@ -2339,7 +2373,7 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                       <span>Сумма</span>
                       <span>Статус</span>
                     </div>
-                    {overview.payments.map((payment) => {
+                    {remainingPayments.map((payment) => {
                       const statusMeta = getPaymentStatusMeta(payment.status);
 
                       return (
@@ -2353,11 +2387,7 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                       );
                     })}
                   </div>
-                ) : (
-                  <div className="clientPaymentsEmptyState">
-                    Оплат пока нет. Как только вы оплатите продление или заказ, история появится здесь.
-                  </div>
-                )}
+                ) : null}
               </details>
             </div>
           </article>
