@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { getApiBaseUrl } from "../../lib/api";
 import { getAdminCookieName, readAdminSession } from "../../lib/admin-auth";
 import type { AdminOverview } from "../../lib/portal-types";
@@ -513,7 +514,11 @@ async function saveSettingsAction(formData: FormData) {
     revalidatePath("/cabinet/payments");
     revalidatePath("/cabinet/routers");
     redirect("/admin?success=Настройки%20сохранены.");
-  } catch {
+  } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
+
     redirect("/admin?error=Не удалось%20сохранить%20настройки.");
   }
 }
