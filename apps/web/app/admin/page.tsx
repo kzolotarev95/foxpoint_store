@@ -483,35 +483,39 @@ async function submitAdminMutation(input: {
 async function saveSettingsAction(formData: FormData) {
   "use server";
 
-  const settings = Object.fromEntries(
-    Array.from(formData.entries()).map(([key, value]) => [key, typeof value === "string" ? value : ""])
-  );
-  const response = await fetch(`${getApiBaseUrl()}/api/admin/settings`, {
-    method: "PUT",
-    headers: {
-      ...(Object.fromEntries((await getAdminRequestHeadersOrRedirect()).entries()) ?? {}),
-      "content-type": "application/json"
-    },
-    body: JSON.stringify({ settings }),
-    cache: "no-store"
-  });
+  try {
+    const settings = Object.fromEntries(
+      Array.from(formData.entries()).map(([key, value]) => [key, typeof value === "string" ? value : ""])
+    );
+    const response = await fetch(`${getApiBaseUrl()}/api/admin/settings`, {
+      method: "PUT",
+      headers: {
+        ...(Object.fromEntries((await getAdminRequestHeadersOrRedirect()).entries()) ?? {}),
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({ settings }),
+      cache: "no-store"
+    });
 
-  if (response.status === 401) {
-    redirect("/admin/login?error=Сессия%20истекла.%20Войдите%20снова.");
+    if (response.status === 401) {
+      redirect("/admin/login?error=Сессия%20истекла.%20Войдите%20снова.");
+    }
+
+    if (!response.ok) {
+      const errorMessage = await parseAdminError(response, "Не удалось сохранить настройки.");
+      redirect(`/admin?error=${encodeMessage(errorMessage)}`);
+    }
+
+    revalidatePath("/");
+    revalidatePath("/admin");
+    revalidatePath("/login");
+    revalidatePath("/cabinet");
+    revalidatePath("/cabinet/payments");
+    revalidatePath("/cabinet/routers");
+    redirect("/admin?success=Настройки%20сохранены.");
+  } catch {
+    redirect("/admin?error=Не удалось%20сохранить%20настройки.");
   }
-
-  if (!response.ok) {
-    const errorMessage = await parseAdminError(response, "Не удалось сохранить настройки.");
-    redirect(`/admin?error=${encodeMessage(errorMessage)}`);
-  }
-
-  revalidatePath("/");
-  revalidatePath("/admin");
-  revalidatePath("/login");
-  revalidatePath("/cabinet");
-  revalidatePath("/cabinet/payments");
-  revalidatePath("/cabinet/routers");
-  redirect("/admin?success=Настройки%20сохранены.");
 }
 
 async function createRouterAction(formData: FormData) {
@@ -987,9 +991,6 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                   <h2 className="adminSectionTitle">{groupName}</h2>
                   {groupName === "Платежи" ? (
                     <>
-                      <p className="sectionLead" style={{ marginTop: "10px" }}>
-                        Каждый провайдер вынесен в отдельный блок, чтобы настройки было проще читать и заполнять.
-                      </p>
                       <div className="adminSettingsBlocks">
                         {paymentSettingsBlocks.map((block) => (
                           <section key={block.title} className="panel adminSettingsBlock">
@@ -1014,12 +1015,12 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                                         <input name={setting.key} type="hidden" value="false" />
                                         <label className="checkboxRow">
                                           <input
-                                            defaultChecked={false}
+                                            defaultChecked={setting.value === "true"}
                                             name={setting.key}
                                             type="checkbox"
                                             value="true"
                                           />
-                                          <span>Выключено</span>
+                                          <span>{setting.value === "true" ? "Включено" : "Выключено"}</span>
                                         </label>
                                       </>
                                     ) : (
