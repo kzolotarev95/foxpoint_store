@@ -80,11 +80,10 @@ function formatNotificationDate(value: string): string {
 
 export function CabinetNotificationsBell({ notifications }: { notifications: CabinetNotificationItem[] }) {
   const pathname = usePathname();
-  const notificationFeed = [...notifications].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 10);
+  const notificationFeed = [...notifications].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 5);
   const notificationFeedCount = notificationFeed.length;
   const unreadNotificationCount = notificationFeed.filter((notification) => !notification.readAt).length;
   const notificationBellBadge = unreadNotificationCount > 99 ? "+99" : `+${unreadNotificationCount}`;
-  const notificationHeaderCount = unreadNotificationCount > 0 ? unreadNotificationCount : notificationFeedCount;
   const returnTo = pathname.startsWith("/cabinet") ? pathname : "/cabinet/profile";
 
   return (
@@ -99,10 +98,12 @@ export function CabinetNotificationsBell({ notifications }: { notifications: Cab
       <div className="portalNotificationPopover">
         <div className="portalNotificationHeader">
           <div className="portalNotificationHeading">
-            <strong>Уведомления и входы</strong>
-            <span>Последние события по аккаунту, платежам, поддержке и сессиям.</span>
+            <strong>Уведомления</strong>
+            <span>{notificationFeedCount ? `Показано ${notificationFeedCount}` : "Пока нет уведомлений"}</span>
           </div>
-          <span className="portalNotificationCount">{notificationHeaderCount}</span>
+          {unreadNotificationCount || notificationFeedCount ? (
+            <span className="portalNotificationCount">{unreadNotificationCount || notificationFeedCount}</span>
+          ) : null}
         </div>
         <div className="portalNotificationList">
           {notificationFeed.length ? (
@@ -129,17 +130,17 @@ export function CabinetNotificationsBell({ notifications }: { notifications: Cab
               );
             })
           ) : (
-            <div className="portalNotificationEmpty">Последние события по аккаунту будут появляться здесь.</div>
+            <div className="portalNotificationEmpty">Новых уведомлений нет.</div>
           )}
         </div>
-        <div className="portalNotificationFooter">
-          {unreadNotificationCount || notificationFeedCount ? (
+        {unreadNotificationCount || notificationFeedCount ? (
+          <div className="portalNotificationFooter">
             <div className="portalNotificationFooterActions">
               {unreadNotificationCount ? (
                 <form action="/cabinet/notifications/read" method="post">
                   <input name="returnTo" type="hidden" value={returnTo} />
                   <button className="secondaryButton portalGhostButton portalNotificationRead" type="submit">
-                    Прочитать оповещения
+                    Прочитать
                   </button>
                 </form>
               ) : null}
@@ -147,17 +148,13 @@ export function CabinetNotificationsBell({ notifications }: { notifications: Cab
                 <form action="/cabinet/notifications/clear" method="post">
                   <input name="returnTo" type="hidden" value={returnTo} />
                   <button className="secondaryButton portalGhostButton portalNotificationClear" type="submit">
-                    Очистить список
+                    Очистить
                   </button>
                 </form>
               ) : null}
             </div>
-          ) : (
-            <span className="portalNotificationFooterNote">
-              Новых уведомлений нет. Когда появятся новые события, они будут показаны здесь.
-            </span>
-          )}
-        </div>
+          </div>
+        ) : null}
       </div>
     </details>
   );
