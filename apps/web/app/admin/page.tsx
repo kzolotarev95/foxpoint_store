@@ -3,7 +3,6 @@ import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
-import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { getApiBaseUrl } from "../../lib/api";
 import { getAdminCookieName, readAdminSession } from "../../lib/admin-auth";
 import type { AdminOverview } from "../../lib/portal-types";
@@ -484,11 +483,13 @@ async function submitAdminMutation(input: {
 async function saveSettingsAction(formData: FormData) {
   "use server";
 
+  const settings = Object.fromEntries(
+    Array.from(formData.entries()).map(([key, value]) => [key, typeof value === "string" ? value : ""])
+  );
+
+  let response: Response;
   try {
-    const settings = Object.fromEntries(
-      Array.from(formData.entries()).map(([key, value]) => [key, typeof value === "string" ? value : ""])
-    );
-    const response = await fetch(`${getApiBaseUrl()}/api/admin/settings`, {
+    response = await fetch(`${getApiBaseUrl()}/api/admin/settings`, {
       method: "PUT",
       headers: {
         ...(Object.fromEntries((await getAdminRequestHeadersOrRedirect()).entries()) ?? {}),
@@ -497,30 +498,26 @@ async function saveSettingsAction(formData: FormData) {
       body: JSON.stringify({ settings }),
       cache: "no-store"
     });
-
-    if (response.status === 401) {
-      redirect("/admin/login?error=Сессия%20истекла.%20Войдите%20снова.");
-    }
-
-    if (!response.ok) {
-      const errorMessage = await parseAdminError(response, "Не удалось сохранить настройки.");
-      redirect(`/admin?error=${encodeMessage(errorMessage)}`);
-    }
-
-    revalidatePath("/");
-    revalidatePath("/admin");
-    revalidatePath("/login");
-    revalidatePath("/cabinet");
-    revalidatePath("/cabinet/payments");
-    revalidatePath("/cabinet/routers");
-    redirect("/admin?success=Настройки%20сохранены.");
-  } catch (error) {
-    if (isRedirectError(error)) {
-      throw error;
-    }
-
+  } catch {
     redirect("/admin?error=Не удалось%20сохранить%20настройки.");
   }
+
+  if (response.status === 401) {
+    redirect("/admin/login?error=Сессия%20истекла.%20Войдите%20снова.");
+  }
+
+  if (!response.ok) {
+    const errorMessage = await parseAdminError(response, "Не удалось сохранить настройки.");
+    redirect(`/admin?error=${encodeMessage(errorMessage)}`);
+  }
+
+  revalidatePath("/");
+  revalidatePath("/admin");
+  revalidatePath("/login");
+  revalidatePath("/cabinet");
+  revalidatePath("/cabinet/payments");
+  revalidatePath("/cabinet/routers");
+  redirect("/admin?success=Настройки%20сохранены.");
 }
 
 async function createRouterAction(formData: FormData) {
