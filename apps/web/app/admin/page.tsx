@@ -968,7 +968,7 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                                         data-form-type="other"
                                         data-lpignore="true"
                                         defaultValue={setting.value}
-                                        inputMode={getFieldInputMode(setting.input)}
+                                        inputMode={setting.key === "api_public_url" ? "url" : getFieldInputMode(setting.input)}
                                         name={setting.key}
                                         type={
                                           setting.input === "number"
@@ -1038,7 +1038,7 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                           data-form-type="other"
                           data-lpignore="true"
                           defaultValue={setting.value}
-                          inputMode={getFieldInputMode(setting.input)}
+                          inputMode={setting.key === "api_public_url" ? "url" : getFieldInputMode(setting.input)}
                           name={setting.key}
                           type={
                             setting.input === "number"

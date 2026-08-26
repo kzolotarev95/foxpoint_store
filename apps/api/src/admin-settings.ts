@@ -82,7 +82,7 @@ const adminSettingDefinitions: AdminSettingDefinition[] = [
     label: "Публичный URL API",
     description: "Публичный адрес backend. Используется для checkout-страниц и callback URL платежных систем.",
     group: "Платежи",
-    input: "url",
+    input: "text",
     defaultValue: "",
     public: false
   },
@@ -363,6 +363,10 @@ function normalizeValue(definition: AdminSettingDefinition, rawValue: string | u
     return String(parsed);
   }
 
+  if (definition.key === "api_public_url") {
+    return normalizeBaseUrl(nextValue, definition.defaultValue);
+  }
+
   if (definition.input === "url") {
     if (definition.key === "app_url") {
       return normalizeBaseUrl(nextValue, definition.defaultValue);
@@ -424,7 +428,10 @@ export async function getAdminSettings(): Promise<AdminSettingRecord[]> {
 
   return adminSettingDefinitions.map((definition) => ({
     ...definition,
-    value: valueByKey.get(definition.key) ?? definition.defaultValue
+    value:
+      definition.key === "api_public_url"
+        ? normalizeBaseUrl(valueByKey.get(definition.key) ?? "", definition.defaultValue)
+        : valueByKey.get(definition.key) ?? definition.defaultValue
   }));
 }
 
