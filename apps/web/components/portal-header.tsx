@@ -12,14 +12,12 @@ type PortalNavItem = {
 type PortalHeaderProps = {
   brandHref?: string;
   navItems?: PortalNavItem[];
-  reloadBrandOnClick?: boolean;
   rightSlot?: ReactNode;
 };
 
 export function PortalHeader({
   brandHref = "/",
   navItems = [],
-  reloadBrandOnClick = false,
   rightSlot
 }: PortalHeaderProps) {
   const brandContent = (
@@ -33,15 +31,9 @@ export function PortalHeader({
 
   return (
     <header className="portalTopBar panel">
-      {reloadBrandOnClick ? (
-        <a className="brandMark" href={brandHref}>
-          {brandContent}
-        </a>
-      ) : (
-        <Link className="brandMark" href={brandHref}>
-          {brandContent}
-        </Link>
-      )}
+      <Link className="brandMark" href={brandHref} prefetch scroll={false}>
+        {brandContent}
+      </Link>
 
       {navItems.length ? (
         <nav aria-label="Основная навигация" className="portalNav">
@@ -50,6 +42,8 @@ export function PortalHeader({
               key={item.href}
               className={item.active ? "portalNavLink isActive" : "portalNavLink"}
               href={item.href}
+              prefetch
+              scroll={false}
             >
               {item.icon ? <span className="portalNavIcon">{item.icon}</span> : null}
               {item.label}

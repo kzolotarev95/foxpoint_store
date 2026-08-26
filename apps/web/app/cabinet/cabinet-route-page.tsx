@@ -792,7 +792,6 @@ function renderCabinetUnavailablePage(activeTab: CabinetTab) {
           { href: getCabinetTabHref("payments"), label: "Платежи", icon: <PaymentIcon />, active: activeTab === "payments" },
           { href: getCabinetTabHref("profile"), label: "Профиль", icon: <ProfileIcon />, active: activeTab === "profile" }
         ]}
-        reloadBrandOnClick
       />
 
       <section className="panel clientSupportHeroCard" style={{ marginTop: "1rem" }}>
@@ -1411,7 +1410,6 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
           { href: getCabinetTabHref("payments"), label: "Платежи", icon: <PaymentIcon />, active: isPaymentsTab },
           { href: getCabinetTabHref("profile"), label: "Профиль", icon: <ProfileIcon />, active: isProfileTab }
         ]}
-        reloadBrandOnClick
         rightSlot={
           <>
             <Link className="primaryButton portalActionButton portalOrderButton" href="/cabinet/routers">
