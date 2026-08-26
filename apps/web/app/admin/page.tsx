@@ -69,6 +69,48 @@ function getFieldInputMode(input: AdminSettingRecord["input"]) {
   return "text";
 }
 
+const paymentSettingKeys = new Set([
+  "api_public_url",
+  "platega_enabled",
+  "platega_api_base_url",
+  "platega_merchant_id",
+  "platega_secret",
+  "yoomoney_enabled",
+  "yoomoney_receiver",
+  "yoomoney_payment_type",
+  "yoomoney_notification_secret",
+  "yookassa_enabled",
+  "yookassa_shop_id",
+  "yookassa_secret_key"
+]);
+
+const paymentSettingsBlocks = [
+  {
+    title: "Общие",
+    description: "Публичный адрес API для checkout и callback URL.",
+    keys: ["api_public_url"]
+  },
+  {
+    title: "Platega",
+    description: "Настройки подключения Platega для оплаты и продлений.",
+    keys: ["platega_enabled", "platega_api_base_url", "platega_merchant_id", "platega_secret"]
+  },
+  {
+    title: "ЮMoney",
+    description: "Настройки кошелька, типа оплаты и уведомлений ЮMoney.",
+    keys: ["yoomoney_enabled", "yoomoney_receiver", "yoomoney_payment_type", "yoomoney_notification_secret"]
+  },
+  {
+    title: "ЮKassa",
+    description: "Настройки магазина и секретного ключа ЮKassa.",
+    keys: ["yookassa_enabled", "yookassa_shop_id", "yookassa_secret_key"]
+  }
+] as const;
+
+function getAdminSettingDisplayValue(setting: AdminSettingRecord): string {
+  return paymentSettingKeys.has(setting.key) ? "" : setting.value;
+}
+
 function formatDate(value: string | null | undefined): string {
   if (!value) {
     return "—";
@@ -745,6 +787,8 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
   }, {});
 
   const groupNames = Object.keys(settingsByGroup);
+  const paymentSettings = settingsByGroup["Платежи"] ?? [];
+  const paymentSettingsByKey = new Map(paymentSettings.map((setting) => [setting.key, setting]));
   const communicationSettings = settingsByGroup["Коммуникации"] ?? [];
   const appUrlSetting = communicationSettings.find((setting) => setting.key === "app_url") ?? null;
   const appLoginUrl = appUrlSetting ? `${appUrlSetting.value.replace(/\/+$/, "")}/login` : null;
@@ -941,7 +985,73 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
               <div className="sectionHeader">
                 <div>
                   <h2 className="adminSectionTitle">{groupName}</h2>
-                  {groupName === "Коммуникации" ? (
+                  {groupName === "Платежи" ? (
+                    <>
+                      <p className="sectionLead" style={{ marginTop: "10px" }}>
+                        Каждый провайдер вынесен в отдельный блок, чтобы настройки было проще читать и заполнять.
+                      </p>
+                      <div className="adminSettingsBlocks">
+                        {paymentSettingsBlocks.map((block) => (
+                          <section key={block.title} className="panel adminSettingsBlock">
+                            <div className="adminSettingsBlockHeader">
+                              <h3 className="adminSettingsBlockTitle">{block.title}</h3>
+                              <p className="helperText">{block.description}</p>
+                            </div>
+                            <div className="settingsGrid adminSettingsBlockGrid">
+                              {block.keys.map((key) => {
+                                const setting = paymentSettingsByKey.get(key);
+                                if (!setting) {
+                                  return null;
+                                }
+
+                                const displayValue = getAdminSettingDisplayValue(setting);
+
+                                return (
+                                  <label key={setting.key} className="fieldStack">
+                                    <span className="fieldLabel">{setting.label}</span>
+                                    {setting.input === "boolean" ? (
+                                      <>
+                                        <input name={setting.key} type="hidden" value="false" />
+                                        <label className="checkboxRow">
+                                          <input
+                                            defaultChecked={false}
+                                            name={setting.key}
+                                            type="checkbox"
+                                            value="true"
+                                          />
+                                          <span>Выключено</span>
+                                        </label>
+                                      </>
+                                    ) : (
+                                      <input
+                                        className="textInput"
+                                        defaultValue={displayValue}
+                                        inputMode={getFieldInputMode(setting.input)}
+                                        name={setting.key}
+                                        type={
+                                          setting.input === "number"
+                                            ? "number"
+                                            : setting.input === "url"
+                                              ? "url"
+                                              : setting.input === "password"
+                                                ? "password"
+                                                : "text"
+                                        }
+                                      />
+                                    )}
+                                    <span className="helperText">
+                                      {setting.description}
+                                      {setting.public ? " Это значение используется на публичных страницах." : ""}
+                                    </span>
+                                  </label>
+                                );
+                              })}
+                            </div>
+                          </section>
+                        ))}
+                      </div>
+                    </>
+                  ) : groupName === "Коммуникации" ? (
                     <>
                       <p className="sectionLead" style={{ marginTop: "10px" }}>
                         Эти значения уже можно показывать на публичной части сайта.
@@ -966,42 +1076,44 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                 </div>
               </div>
 
-              <div className="settingsGrid">
-                {settingsByGroup[groupName].map((setting) => (
-                  <label key={setting.key} className="fieldStack">
-                    <span className="fieldLabel">{setting.label}</span>
-                    {setting.input === "boolean" ? (
-                      <>
-                        <input name={setting.key} type="hidden" value="false" />
-                        <label className="checkboxRow">
-                          <input defaultChecked={setting.value === "true"} name={setting.key} type="checkbox" value="true" />
-                          <span>{setting.value === "true" ? "Включено" : "Выключено"}</span>
-                        </label>
-                      </>
-                    ) : (
-                      <input
-                        className="textInput"
-                        defaultValue={setting.value}
-                        inputMode={getFieldInputMode(setting.input)}
-                        name={setting.key}
-                        type={
-                          setting.input === "number"
-                            ? "number"
-                            : setting.input === "url"
-                              ? "url"
-                              : setting.input === "password"
-                                ? "password"
-                                : "text"
-                        }
-                      />
-                    )}
-                    <span className="helperText">
-                      {setting.description}
-                      {setting.public ? " Это значение используется на публичных страницах." : ""}
-                    </span>
-                  </label>
-                ))}
-              </div>
+              {groupName === "Платежи" ? null : (
+                <div className="settingsGrid">
+                  {settingsByGroup[groupName].map((setting) => (
+                    <label key={setting.key} className="fieldStack">
+                      <span className="fieldLabel">{setting.label}</span>
+                      {setting.input === "boolean" ? (
+                        <>
+                          <input name={setting.key} type="hidden" value="false" />
+                          <label className="checkboxRow">
+                            <input defaultChecked={setting.value === "true"} name={setting.key} type="checkbox" value="true" />
+                            <span>{setting.value === "true" ? "Включено" : "Выключено"}</span>
+                          </label>
+                        </>
+                      ) : (
+                        <input
+                          className="textInput"
+                          defaultValue={setting.value}
+                          inputMode={getFieldInputMode(setting.input)}
+                          name={setting.key}
+                          type={
+                            setting.input === "number"
+                              ? "number"
+                              : setting.input === "url"
+                                ? "url"
+                                : setting.input === "password"
+                                  ? "password"
+                                  : "text"
+                          }
+                        />
+                      )}
+                      <span className="helperText">
+                        {setting.description}
+                        {setting.public ? " Это значение используется на публичных страницах." : ""}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              )}
             </section>
           ))}
 

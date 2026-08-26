@@ -64,6 +64,18 @@ function normalizeBaseUrl(value: string, fallback: string): string {
   return normalizeUrl(value, fallback).replace(/\/+$/, "");
 }
 
+const emptyableSettingKeys = new Set([
+  "api_public_url",
+  "platega_api_base_url",
+  "platega_merchant_id",
+  "platega_secret",
+  "yoomoney_receiver",
+  "yoomoney_payment_type",
+  "yoomoney_notification_secret",
+  "yookassa_shop_id",
+  "yookassa_secret_key"
+]);
+
 const adminSettingDefinitions: AdminSettingDefinition[] = [
   {
     key: "api_public_url",
@@ -71,7 +83,7 @@ const adminSettingDefinitions: AdminSettingDefinition[] = [
     description: "Публичный адрес backend. Используется для checkout-страниц и callback URL платежных систем.",
     group: "Платежи",
     input: "url",
-    defaultValue: config.API_PUBLIC_URL,
+    defaultValue: "",
     public: false
   },
   {
@@ -80,7 +92,7 @@ const adminSettingDefinitions: AdminSettingDefinition[] = [
     description: "Показывать оплату через Platega в личном кабинете и при заказе роутера.",
     group: "Платежи",
     input: "boolean",
-    defaultValue: "true",
+    defaultValue: "false",
     public: false
   },
   {
@@ -89,7 +101,7 @@ const adminSettingDefinitions: AdminSettingDefinition[] = [
     description: "Базовый URL Platega API. По документации обычно используется https://app.platega.io",
     group: "Платежи",
     input: "url",
-    defaultValue: "https://app.platega.io",
+    defaultValue: "",
     public: false
   },
   {
@@ -98,7 +110,7 @@ const adminSettingDefinitions: AdminSettingDefinition[] = [
     description: "Идентификатор магазина из кабинета Platega.",
     group: "Платежи",
     input: "text",
-    defaultValue: "merchant-id-change-me",
+    defaultValue: "",
     public: false
   },
   {
@@ -107,7 +119,7 @@ const adminSettingDefinitions: AdminSettingDefinition[] = [
     description: "Секретный ключ Platega для создания платежей и проверки callback.",
     group: "Платежи",
     input: "password",
-    defaultValue: "platega-secret-change-me",
+    defaultValue: "",
     public: false
   },
   {
@@ -116,7 +128,7 @@ const adminSettingDefinitions: AdminSettingDefinition[] = [
     description: "Показывать оплату через ЮMoney в личном кабинете и при заказе роутера.",
     group: "Платежи",
     input: "boolean",
-    defaultValue: "true",
+    defaultValue: "false",
     public: false
   },
   {
@@ -125,7 +137,7 @@ const adminSettingDefinitions: AdminSettingDefinition[] = [
     description: "Номер кошелька ЮMoney, на который будут приходить оплаты.",
     group: "Платежи",
     input: "text",
-    defaultValue: "41001xxxxxxxxxxxx",
+    defaultValue: "",
     public: false
   },
   {
@@ -134,7 +146,7 @@ const adminSettingDefinitions: AdminSettingDefinition[] = [
     description: "AC - оплата банковской картой, PC - из кошелька ЮMoney.",
     group: "Платежи",
     input: "text",
-    defaultValue: "AC",
+    defaultValue: "",
     public: false
   },
   {
@@ -143,7 +155,7 @@ const adminSettingDefinitions: AdminSettingDefinition[] = [
     description: "Секретный ключ из настроек HTTP-уведомлений ЮMoney.",
     group: "Платежи",
     input: "password",
-    defaultValue: "yoomoney-secret-change-me",
+    defaultValue: "",
     public: false
   },
   {
@@ -152,7 +164,7 @@ const adminSettingDefinitions: AdminSettingDefinition[] = [
     description: "Показывать оплату через ЮKassa в личном кабинете и при заказе роутера.",
     group: "Платежи",
     input: "boolean",
-    defaultValue: "true",
+    defaultValue: "false",
     public: false
   },
   {
@@ -161,7 +173,7 @@ const adminSettingDefinitions: AdminSettingDefinition[] = [
     description: "Идентификатор магазина из кабинета ЮKassa.",
     group: "Платежи",
     input: "text",
-    defaultValue: "shop-id-change-me",
+    defaultValue: "",
     public: false
   },
   {
@@ -170,7 +182,7 @@ const adminSettingDefinitions: AdminSettingDefinition[] = [
     description: "Секретный ключ магазина ЮKassa для создания платежей и проверки уведомлений.",
     group: "Платежи",
     input: "password",
-    defaultValue: "yookassa-secret-change-me",
+    defaultValue: "",
     public: false
   },
   {
@@ -335,6 +347,10 @@ function normalizeValue(definition: AdminSettingDefinition, rawValue: string | u
   }
 
   if (!nextValue) {
+    if (emptyableSettingKeys.has(definition.key)) {
+      return "";
+    }
+
     throw new Error(`Setting "${definition.label}" is required.`);
   }
 
