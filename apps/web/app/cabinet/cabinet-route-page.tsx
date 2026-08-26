@@ -4,7 +4,6 @@ import type { ReactNode } from "react";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import { redirect } from "next/navigation";
 import { CabinetAutoRefresh } from "../../components/cabinet-auto-refresh";
-import { PortalHeader } from "../../components/portal-header";
 import { TicketConversation } from "../../components/ticket-conversation";
 import { TicketStatusBadge } from "../../components/ticket-status-badge";
 import { TelegramLoginWidget } from "../../components/telegram-login-widget";
@@ -784,16 +783,6 @@ function renderCabinetUnavailablePage(activeTab: CabinetTab) {
 
   return (
     <main className="shell portalPage clientDashboardPage clientRoutersExperience">
-      <PortalHeader
-        brandHref={getCabinetTabHref(activeTab)}
-        navItems={[
-          { href: getCabinetTabHref("routers"), label: "Мои роутеры", icon: <RouterIcon />, active: activeTab === "routers" },
-          { href: getCabinetTabHref("support"), label: "Поддержка", icon: <SupportIcon />, active: activeTab === "support" },
-          { href: getCabinetTabHref("payments"), label: "Платежи", icon: <PaymentIcon />, active: activeTab === "payments" },
-          { href: getCabinetTabHref("profile"), label: "Профиль", icon: <ProfileIcon />, active: activeTab === "profile" }
-        ]}
-      />
-
       <section className="panel clientSupportHeroCard" style={{ marginTop: "1rem" }}>
         <div className="clientSupportHeroOrb">
           <SupportIcon />
@@ -1402,101 +1391,6 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
   return (
     <main className="shell portalPage clientDashboardPage clientRoutersExperience">
       {shouldRunLiveChecks ? <CabinetAutoRefresh intervalMs={60_000} /> : null}
-      <PortalHeader
-        brandHref={getCabinetTabHref(props.activeTab)}
-        navItems={[
-          { href: getCabinetTabHref("routers"), label: "Мои роутеры", icon: <RouterIcon />, active: isRoutersTab },
-          { href: getCabinetTabHref("support"), label: "Поддержка", icon: <SupportIcon />, active: isSupportTab },
-          { href: getCabinetTabHref("payments"), label: "Платежи", icon: <PaymentIcon />, active: isPaymentsTab },
-          { href: getCabinetTabHref("profile"), label: "Профиль", icon: <ProfileIcon />, active: isProfileTab }
-        ]}
-        rightSlot={
-          <>
-            <Link className="primaryButton portalActionButton portalOrderButton" href="/cabinet/routers">
-              Заказать роутер
-              <CartIcon />
-            </Link>
-            <details className="portalNotifications">
-              <summary
-                className={newNotificationFeedCount ? "portalBellButton hasAlert" : "portalBellButton"}
-                aria-label="Открыть уведомления"
-              >
-                <BellIcon />
-                {newNotificationFeedCount ? <span className="portalBellBadge">{notificationBellBadge}</span> : null}
-              </summary>
-              <div className="portalNotificationPopover">
-                <div className="portalNotificationHeader">
-                  <div className="portalNotificationHeading">
-                    <strong>Уведомления и входы</strong>
-                    <span>Новые уведомления и последние события по аккаунту.</span>
-                  </div>
-                  <span className="portalNotificationCount">{notificationHeaderCount}</span>
-                </div>
-                <div className="portalNotificationList">
-                  {notificationFeed.length ? (
-                    notificationFeed.map((item) => (
-                      <Link
-                        key={item.id}
-                        className={item.isUnread ? "portalNotificationItem isUnread" : "portalNotificationItem"}
-                        href={item.href}
-                      >
-                        <span className="portalNotificationIcon">{item.icon}</span>
-                        <span className="portalNotificationBody">
-                          <strong>{item.title}</strong>
-                          <span>{item.detail}</span>
-                          <span className="portalNotificationMeta">{item.meta}</span>
-                        </span>
-                      </Link>
-                    ))
-                  ) : (
-                    <div className="portalNotificationEmpty">
-                      Список очищен. Новые события по аккаунту будут появляться здесь.
-                    </div>
-                  )}
-                </div>
-                <div className="portalNotificationFooter">
-                  {newNotificationFeedCount || notificationFeedCount ? (
-                    <div className="portalNotificationFooterActions">
-                      {newNotificationFeedCount ? (
-                        <form action="/cabinet/notifications/read" method="post">
-                          <input name="returnTo" type="hidden" value={getCabinetTabHref(props.activeTab)} />
-                          <button className="secondaryButton portalGhostButton portalNotificationRead" type="submit">
-                            Прочитать оповещения
-                          </button>
-                        </form>
-                      ) : null}
-                      {notificationFeedCount ? (
-                        <form action="/cabinet/notifications/clear" method="post">
-                          <input name="returnTo" type="hidden" value={getCabinetTabHref(props.activeTab)} />
-                          <button className="secondaryButton portalGhostButton portalNotificationClear" type="submit">
-                            Очистить список
-                          </button>
-                        </form>
-                      ) : null}
-                    </div>
-                  ) : (
-                    <span className="portalNotificationFooterNote">Новых уведомлений нет. Когда появятся новые события, они будут показаны здесь.</span>
-                  )}
-                </div>
-              </div>
-            </details>
-            <span className="portalUserChip portalUserChipRich">
-              <span className="portalUserAvatar">{userInitials}</span>
-              {overview.profile.name}
-              <span className="portalChipChevron">
-                <ChevronIcon />
-              </span>
-            </span>
-            <form action={logoutClientAction}>
-              <button className="portalGhostButton secondaryButton portalLogoutButton" type="submit">
-                <LogoutIcon />
-                Выйти
-              </button>
-            </form>
-          </>
-        }
-      />
-
       {welcomeMessage ? <div className="banner successBanner">{welcomeMessage}</div> : null}
       {successMessage ? <div className="banner successBanner">{successMessage}</div> : null}
       {errorMessage ? <div className="banner errorBanner">{errorMessage}</div> : null}
@@ -2214,21 +2108,44 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
         <div className="clientPaymentsHeroGrid">
           <article className="panel clientPaymentsServiceCard">
             <div className="clientPaymentsServiceHeader">
-              <div className="clientPaymentsServiceBadge">
-                <ShieldIcon />
+              <div className="clientPaymentsServiceIntro">
+                <div className="clientPaymentsServiceBadge">
+                  <ShieldIcon />
+                </div>
+                <div className="clientPaymentsServiceBody">
+                  <span className="pill">Текущее обслуживание</span>
+                  <h2>
+                    {primaryPaymentRouter
+                      ? `${primaryPaymentRouter.displayName}${primaryPaymentRouter.model ? ` - ${primaryPaymentRouter.model}` : ""}`
+                      : "Роутер еще не подключен"}
+                  </h2>
+                  <p className="clientPaymentsStatusLine">
+                    {paymentDeadline ? `Активно до ${formatDate(paymentDeadline)}` : "Платный пакет пока не активирован"}
+                  </p>
+                  <p className="clientPaymentsMuted">{formatRemainingDays(paymentDaysRemaining)}</p>
+                </div>
               </div>
-              <div className="clientPaymentsServiceBody">
-                <span className="pill">Текущее обслуживание</span>
-                <h2>
-                  {primaryPaymentRouter
-                    ? `${primaryPaymentRouter.displayName}${primaryPaymentRouter.model ? ` - ${primaryPaymentRouter.model}` : ""}`
-                    : "Роутер еще не подключен"}
-                </h2>
-                <p className="clientPaymentsStatusLine">
-                  {paymentDeadline ? `Активно до ${formatDate(paymentDeadline)}` : "Платный пакет пока не активирован"}
-                </p>
-                <p className="clientPaymentsMuted">{formatRemainingDays(paymentDaysRemaining)}</p>
-              </div>
+
+              <article className="panel clientPaymentsTariffCard isEmbedded isInline">
+                <div className="clientPaymentsTariffIcon">
+                  <PaymentIcon />
+                </div>
+                <span className="clientPaymentsLabel">Тариф обслуживания</span>
+                <strong>{paymentCurrentPriceLabel}</strong>
+                <span className="clientPaymentsTariffPeriod">за {overview.catalog.periodDays} дней</span>
+                <div className="clientPaymentsTariffDivider" />
+                <div className="clientPaymentsTariffFeature">
+                  <CheckCircleIcon />
+                  <div>
+                    <b>{primaryPaymentRouter?.currentPackage ?? overview.catalog.recommendedPackage}</b>
+                    <p>
+                      {primaryPaymentRouter
+                        ? "Продление привязано к выбранному роутеру и обновляет его текущий пакет."
+                        : "После заказа роутера оплата и продление будут доступны здесь автоматически."}
+                    </p>
+                  </div>
+                </div>
+              </article>
             </div>
 
             <div className="clientPaymentsServiceHighlights">
@@ -2296,29 +2213,7 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
               )}
             </div>
 
-            <div className="clientPaymentsServiceDetailsGrid">
-              <article className="panel clientPaymentsTariffCard isEmbedded">
-                <div className="clientPaymentsTariffIcon">
-                  <PaymentIcon />
-                </div>
-                <span className="clientPaymentsLabel">Тариф обслуживания</span>
-                <strong>{paymentCurrentPriceLabel}</strong>
-                <span className="clientPaymentsTariffPeriod">за {overview.catalog.periodDays} дней</span>
-                <div className="clientPaymentsTariffDivider" />
-                <div className="clientPaymentsTariffFeature">
-                  <CheckCircleIcon />
-                  <div>
-                    <b>{primaryPaymentRouter?.currentPackage ?? overview.catalog.recommendedPackage}</b>
-                    <p>
-                      {primaryPaymentRouter
-                        ? "Продление привязано к выбранному роутеру и обновляет его текущий пакет."
-                        : "После заказа роутера оплата и продление будут доступны здесь автоматически."}
-                    </p>
-                  </div>
-                </div>
-              </article>
-
-              <details className="panel clientPaymentsHistoryCard isEmbedded clientPaymentsHistoryDisclosure">
+            <details className="panel clientPaymentsHistoryCard isEmbedded clientPaymentsHistoryDisclosure">
                 <summary className="clientPaymentsHistorySummary">
                   <div className="clientPaymentsHistorySummaryTop">
                     <div className="clientPaymentsHistorySummaryCopy">
@@ -2386,8 +2281,7 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                     })}
                   </div>
                 ) : null}
-              </details>
-            </div>
+            </details>
           </article>
         </div>
       </section>

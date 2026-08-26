@@ -4764,7 +4764,14 @@ select.textInput option {
 
 .clientPaymentsServiceHeader {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1.18fr) minmax(300px, 0.9fr);
+  gap: 1.15rem;
+  align-items: center;
+  justify-items: stretch;
+}
+
+.clientPaymentsServiceIntro {
+  display: grid;
   gap: 1.15rem;
   align-items: center;
   justify-items: center;
@@ -5050,14 +5057,6 @@ select.textInput option {
   background: rgba(110, 51, 10, 0.2);
 }
 
-.clientPaymentsServiceDetailsGrid {
-  display: grid;
-  gap: 1rem;
-  width: 100%;
-  grid-template-columns: minmax(280px, 0.92fr) minmax(0, 1.45fr);
-  align-items: start;
-}
-
 .clientPaymentsBankMarkIcon {
   display: inline-flex;
   width: 1rem;
@@ -5213,6 +5212,11 @@ select.textInput option {
   align-self: stretch;
   gap: 0.52rem;
   padding: 1rem 1rem 1.08rem;
+}
+
+.clientPaymentsTariffCard.isEmbedded.isInline {
+  justify-self: stretch;
+  align-self: stretch;
 }
 
 .clientPaymentsTariffCard.isEmbedded .clientPaymentsTariffIcon {
