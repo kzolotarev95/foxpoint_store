@@ -1960,7 +1960,7 @@ textarea {
 .adminDashboardShell::before {
   content: "";
   position: absolute;
-  inset: -2rem -4vw auto;
+  inset: -2rem 0 auto;
   height: 18rem;
   background:
     radial-gradient(circle at 20% 20%, rgba(146, 96, 255, 0.16), transparent 32%),
@@ -2116,6 +2116,68 @@ textarea {
 
 .adminSidebarActions {
   gap: 0.65rem;
+}
+
+.adminDashboardShell .sideNav a[aria-current="page"] {
+  border-color: rgba(255, 181, 119, 0.38);
+  background: linear-gradient(135deg, rgba(255, 168, 95, 0.16), rgba(181, 103, 255, 0.14));
+  color: #ffe3c3;
+}
+
+.adminDatabaseHeader {
+  display: grid;
+  gap: 1.2rem;
+  padding: 1.2rem;
+}
+
+.adminDatabaseHeader h1 {
+  font-size: clamp(1.8rem, 3vw, 2.8rem);
+  line-height: 1.1;
+}
+
+.adminDatabaseHeader p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.adminDatabaseTabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.adminDatabaseTab {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.8rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 0.95rem;
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--muted);
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.adminDatabaseTab:hover,
+.adminDatabaseTab[aria-current="page"] {
+  border-color: rgba(255, 181, 119, 0.4);
+  background: linear-gradient(135deg, rgba(255, 168, 95, 0.14), rgba(181, 103, 255, 0.12));
+  color: #ffe3c3;
+}
+
+.adminDatabaseTab:focus-visible,
+.adminDashboardShell .adminSideNavLink:focus-visible {
+  outline: 2px solid #ffc891;
+  outline-offset: 3px;
+}
+
+.adminDatabaseTabCount {
+  margin-left: auto;
+  padding: 0.2rem 0.45rem;
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.07);
+  font-size: 0.8rem;
 }
 
 .adminSidebarActions .secondaryButton,
@@ -2767,6 +2829,27 @@ textarea {
 select.textInput option {
   background: var(--surface-strong);
   color: var(--text);
+}
+
+.publicSupportShell { max-width: 720px; padding-top: 48px; padding-bottom: 48px; }
+.publicSupportCard h1 { margin: 24px 0 16px; }
+.publicSupportCard .banner { margin: 20px 0; }
+.publicSupportCard .sectionLead { margin-bottom: 24px; }
+.publicSupportCard .helperText { font-size: 0.8rem; line-height: 1.6; }
+.supportHoneypot { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
+.routerLabelShell { max-width: 740px; padding: 40px 20px; }
+.routerLabelControls { margin-bottom: 24px; }
+.routerLabelSheet { background: white; color: #172027; padding: 36px; text-align: center; border-radius: 20px; }
+.routerLabelSheet h1 { font-size: clamp(28px, 5vw, 40px); }
+.routerLabelSheet img { display: block; margin: 0 auto; max-width: 100%; height: auto; }
+.routerLabelSheet .pill { color: #8b4500; background: #fff0dc; }
+.routerLabelCode { font-size: clamp(28px, 5vw, 40px); font-weight: 800; margin: 24px 0 0; }
+.routerLabelSheet .helperText { color: #48525a; overflow-wrap: anywhere; }
+@media print {
+  body:has(.routerLabelSheet) { background: white; }
+  .routerLabelControls { display: none; }
+  .routerLabelShell { max-width: none; padding: 0; }
+  .routerLabelSheet { border: 2px solid #172027; border-radius: 0; break-inside: avoid; }
 }
 
 .sectionHeader {
@@ -6094,6 +6177,26 @@ select.textInput option {
   .adminDashboardShell .sideNav {
     position: static;
     max-height: none;
+  }
+
+  .adminDatabaseDashboard .sideNav ul {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .adminDatabaseDashboard .adminSidebarActions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .adminDatabaseTab {
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    padding: 0.65rem;
+    font-size: 0.85rem;
+  }
+
+  .adminDatabaseTab .adminSideNavIcon {
+    display: none;
   }
 
   .adminDashboardShell .adminHeroHeader {

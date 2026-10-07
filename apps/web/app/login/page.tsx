@@ -187,6 +187,7 @@ export default async function LoginPage(props: { searchParams: PageSearchParams 
                 : "Если пароль забыли, используйте Telegram-бота для восстановления доступа."}
             </p>
           </form>
+          <p className="authHint"><Link href="/support">Помощь с роутером без регистрации</Link></p>
         </div>
       </section>
     </main>

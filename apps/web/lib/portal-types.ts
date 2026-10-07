@@ -2,6 +2,7 @@ export type ClientOverview = {
   product: string;
   profile: {
     id: string;
+    clientCode: string | null;
     name: string;
     email: string | null;
     telegram: string | null;
@@ -65,6 +66,7 @@ export type ClientOverview = {
   };
   routers: Array<{
     id: string;
+    routerCode: string | null;
     displayName: string;
     model: string | null;
     serialNumber: string | null;
@@ -142,6 +144,7 @@ export type ClientOverview = {
   }>;
   payments: Array<{
     id: string;
+    daysAdded: number | null;
     amount: number;
     amountLabel: string;
     provider: string;
@@ -204,6 +207,9 @@ export type AdminOverview = {
   }>;
   users: Array<{
     id: string;
+    clientCode: string | null;
+    phone: string | null;
+    city: string | null;
     name: string | null;
     email: string | null;
     telegram: string | null;
@@ -219,6 +225,9 @@ export type AdminOverview = {
   }>;
   clients: Array<{
     id: string;
+    clientCode: string | null;
+    phone: string | null;
+    city: string | null;
     name: string | null;
     email: string | null;
     telegram: string | null;
@@ -234,6 +243,9 @@ export type AdminOverview = {
   }>;
   routers: Array<{
     id: string;
+    routerCode: string | null;
+    clientCode: string | null;
+    serviceTariff: string | null;
     displayName: string;
     model: string | null;
     serialNumber: string | null;
@@ -249,6 +261,9 @@ export type AdminOverview = {
     id: string;
     routerId: string;
     routerName: string;
+    routerCode: string | null;
+    daysRemaining: number | null;
+    payments: Array<{ id: string; amountLabel: string; daysAdded: number | null; paidAt: string | null; provider: string }>;
     bundleLabel: string;
     status: string;
     startAt: string | null;
@@ -276,6 +291,9 @@ export type AdminOverview = {
     userId: string;
     routerId: string | null;
     customerName: string;
+    clientCode: string | null;
+    routerCode: string | null;
+    guestContact: string | null;
     routerName: string;
     category: string;
     description: string;

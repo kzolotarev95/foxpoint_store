@@ -1019,6 +1019,7 @@ function extractIpAddress(value: string | null | undefined): string | null {
 }
 
 function getRouterIdentity(router: RouterOverviewItem): { label: string; value: string } {
+  if (router.routerCode) return { label: "Код роутера", value: router.routerCode };
   const ipAddress = extractIpAddress(router.adminNote);
 
   if (ipAddress) {
@@ -1581,14 +1582,16 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                   const routerIdentity = getRouterIdentity(router);
                   const routerStatusLabel = getRouterStatusLabel(router);
                   const routerStatusTone = getRouterStatusTone(router);
+                  const supportEnabled = (router.currentSubscription?.supportType ?? "NONE") !== "NONE" || Boolean(router.trial?.endAt);
+                  const serverEnabled = router.currentSubscription?.accessEnabled ?? Boolean(router.trial?.endAt);
                   const supportTone = getRouterFactTone({
                     daysRemaining: router.currentSubscription?.daysRemaining ?? router.trial?.daysRemaining,
-                    enabled: (router.currentSubscription?.supportType ?? "NONE") !== "NONE" || Boolean(router.trial?.endAt),
+                    enabled: supportEnabled,
                     endAt: router.currentSubscription?.endAt ?? router.trial?.endAt
                   });
                   const serverTone = getRouterFactTone({
                     daysRemaining: router.currentSubscription?.daysRemaining ?? router.trial?.daysRemaining,
-                    enabled: router.currentSubscription?.accessEnabled ?? Boolean(router.trial?.endAt),
+                    enabled: serverEnabled,
                     endAt: router.currentSubscription?.endAt ?? router.trial?.endAt
                   });
 
@@ -1619,7 +1622,8 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                                 {serverTone === "ok" ? <FactStatusCheckIcon /> : <FactStatusAlertIcon />}
                               </span>
                             </div>
-                            <strong>{formatDate(router.currentSubscription?.endAt ?? router.trial?.endAt)}</strong>
+                            <strong>{serverEnabled ? formatDate(router.currentSubscription?.endAt ?? router.trial?.endAt) : "Не подключён"}</strong>
+                            {serverEnabled ? <span className="helperText">Осталось {router.currentSubscription?.daysRemaining ?? router.trial?.daysRemaining ?? 0} дней</span> : null}
                           </div>
                           <div className="clientRouterFact">
                             <div className="clientRouterFactTop">
@@ -1631,7 +1635,8 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                                 {supportTone === "ok" ? <FactStatusCheckIcon /> : <FactStatusAlertIcon />}
                               </span>
                             </div>
-                            <strong>{formatDate(router.currentSubscription?.endAt ?? router.trial?.endAt)}</strong>
+                            <strong>{supportEnabled ? formatDate(router.currentSubscription?.endAt ?? router.trial?.endAt) : "Не подключена"}</strong>
+                            {supportEnabled ? <span className="helperText">Осталось {router.currentSubscription?.daysRemaining ?? router.trial?.daysRemaining ?? 0} дней</span> : null}
                           </div>
                           <div className="clientRouterFact">
                             <span className="clientRouterFactLabel">
@@ -1780,6 +1785,7 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
               <br />
               Если удобнее, можно сразу открыть поддержку в Telegram.
             </p>
+            <small className="helperText">Большинство случаев можем решить удалённо, но в редких случаях может потребоваться подключение к вашему компьютеру.</small>
           </div>
           <div className="clientSupportHeroActions">
             <a className="clientSupportHeroButton isPrimary" href="#support-form">
@@ -2346,6 +2352,7 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                             <div className="clientPaymentsHistoryPreviewMeta">
                               <strong>{payment.amountLabel}</strong>
                               <span>{payment.providerLabel}</span>
+                              {payment.daysAdded != null ? <small>+{payment.daysAdded} дней</small> : null}
                             </div>
                             <div className="clientPaymentsHistoryPreviewCopy">
                               <span>{payment.routerName ?? "Заказ роутера"}</span>
@@ -2378,7 +2385,7 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                       return (
                         <div key={payment.id} className="clientPaymentsHistoryRow">
                           <span>{formatDate(payment.paidAt ?? payment.createdAt)}</span>
-                          <span>{payment.routerName ?? "Заказ роутера"}</span>
+                          <span>{payment.routerName ?? "Заказ роутера"}{payment.daysAdded != null ? ` · +${payment.daysAdded} дней` : ""}</span>
                           <span>{payment.providerLabel}</span>
                           <strong>{payment.amountLabel}</strong>
                           <span className={`clientPaymentsStatusBadge is-${statusMeta.tone}`}>{statusMeta.label}</span>

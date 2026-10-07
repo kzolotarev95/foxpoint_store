@@ -11,7 +11,8 @@ import {
   registerClientFromCredentials,
   revokeClientSessionForUser,
   revokeCurrentClientSession,
-  upsertClientFromEmail
+  upsertClientFromEmail,
+  upsertLocalCredentialsForUser
 } from "./client-auth.js";
 import { getAdminSettings, saveAdminSettings } from "./admin-settings.js";
 import { config } from "./config.js";
@@ -31,6 +32,8 @@ import {
   createRenewalPaymentForUser,
   createRouterOrderForUser,
   createSupportTicketForUser,
+  createPublicSupportTicket,
+  addAdminSubscriptionPayment,
   handlePlategaCallback,
   handleYooKassaCallback,
   handleYooMoneyCallback,
@@ -529,6 +532,33 @@ app.post("/api/support", async (request, reply) => {
   }
 });
 
+app.post("/api/public/support", async (request, reply) => {
+  const payload = z.object({
+    routerCode: z.string().trim().toUpperCase().regex(/^CLI-\d{4,}(\/\d{2,})?$/, "Укажите код вида CLI-0001 или CLI-0001/02."),
+    description: z.string().trim().min(10, "Опишите проблему: минимум 10 символов.").max(3000),
+    contact: z.string().trim().min(3, "Укажите телефон или Telegram для ответа.").max(200),
+    website: z.string().max(0).optional()
+  }).safeParse(request.body);
+  if (!payload.success) {
+    reply.code(400);
+    return { error: payload.error.issues[0]?.message ?? "Проверьте данные обращения." };
+  }
+  try {
+    const recentCount = await prisma.supportTicket.count({ where: {
+      guestContact: payload.data.contact,
+      createdAt: { gte: new Date(Date.now() - 60 * 60 * 1000) }
+    } });
+    if (recentCount >= 5) {
+      reply.code(429);
+      return { error: "Обращения уже отправлены. Дождитесь ответа поддержки." };
+    }
+    return await createPublicSupportTicket(payload.data);
+  } catch (error) {
+    reply.code(400);
+    return { error: error instanceof Error ? error.message : "Не удалось создать обращение." };
+  }
+});
+
 app.post("/api/support/:ticketId/messages", async (request, reply) => {
   const userId = await getAuthorizedUserId(request);
   if (!userId) {
@@ -1009,6 +1039,8 @@ app.post("/api/admin/users/:userId", async (request, reply) => {
   const body = z
     .object({
       name: z.string().trim().max(120).optional(),
+      phone: z.string().trim().max(120).optional(),
+      city: z.string().trim().max(120).optional(),
       email: z.union([z.string().trim().email().max(320), z.literal("")]).optional(),
       telegramUsername: z
         .union([z.string().trim().regex(/^@?[A-Za-z0-9_]{2,64}$/).max(64), z.literal("")])
@@ -1021,6 +1053,8 @@ app.post("/api/admin/users/:userId", async (request, reply) => {
     return await updateAdminUser({
       userId: params.userId,
       name: body.name,
+      phone: body.phone,
+      city: body.city,
       email: body.email,
       telegramUsername: body.telegramUsername,
       status: body.status
@@ -1030,6 +1064,26 @@ app.post("/api/admin/users/:userId", async (request, reply) => {
     return {
       error: error instanceof Error ? error.message : "Не удалось обновить клиента."
     };
+  }
+});
+
+app.post("/api/admin/users/:userId/credentials", async (request, reply) => {
+  if (!isAuthorizedAdminRequest(request)) {
+    reply.code(401);
+    return { error: "unauthorized" };
+  }
+  const params = z.object({ userId: z.string().min(1) }).parse(request.params);
+  const payload = z.object({
+    login: z.string().trim().min(3).max(32).regex(/^[a-zA-Z0-9._-]+$/),
+    password: z.string().min(6).max(128)
+  }).safeParse(request.body);
+  if (!payload.success) { reply.code(400); return { error: "Логин: 3–32 латинских символа; пароль: минимум 6 символов." }; }
+  try {
+    await upsertLocalCredentialsForUser({ ...payload.data, userId: params.userId });
+    return { userId: params.userId };
+  } catch (error) {
+    reply.code(400);
+    return { error: error instanceof Error ? error.message : "Не удалось сохранить доступ." };
   }
 });
 
@@ -1086,6 +1140,29 @@ app.post("/api/admin/subscriptions/:subscriptionId", async (request, reply) => {
     return {
       error: error instanceof Error ? error.message : "Не удалось обновить подписку."
     };
+  }
+});
+
+app.post("/api/admin/subscriptions/:subscriptionId/payments", async (request, reply) => {
+  if (!isAuthorizedAdminRequest(request)) {
+    reply.code(401);
+    return { error: "unauthorized" };
+  }
+  const params = z.object({ subscriptionId: z.string().trim().min(1) }).parse(request.params);
+  const payload = z.object({
+    amount: z.coerce.number().positive().max(1000000),
+    days: z.coerce.number().int().min(1).max(3650),
+    requestKey: z.string().uuid()
+  }).safeParse(request.body);
+  if (!payload.success) {
+    reply.code(400);
+    return { error: "Укажите положительную сумму и от 1 до 3650 дней." };
+  }
+  try {
+    return await addAdminSubscriptionPayment({ ...payload.data, subscriptionId: params.subscriptionId });
+  } catch (error) {
+    reply.code(400);
+    return { error: error instanceof Error ? error.message : "Не удалось записать пополнение." };
   }
 });
 

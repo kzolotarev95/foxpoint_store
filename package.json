@@ -13,6 +13,8 @@
     "dev:web": "npm run dev --workspace @foxpoint/web",
     "db:generate": "npx prisma generate --schema packages/db/prisma/schema.prisma",
     "db:push": "npx prisma db push --schema packages/db/prisma/schema.prisma",
+    "db:import-clients": "npm run build --workspace @foxpoint/api && node scripts/import-client-database.mjs",
+    "test:subscriptions": "npm run build --workspace @foxpoint/api && node scripts/test-subscription-period.mjs",
     "lint": "npm run lint --workspace @foxpoint/api && npm run lint --workspace @foxpoint/web",
     "start:api": "npm run start --workspace @foxpoint/api",
     "start:web": "npm run start --workspace @foxpoint/web -- --hostname 127.0.0.1 --port 3000"

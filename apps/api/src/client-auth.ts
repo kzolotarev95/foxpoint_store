@@ -3,6 +3,7 @@ import type { FastifyRequest } from "fastify";
 import { getAdminSettingValue } from "./admin-settings.js";
 import { config } from "./config.js";
 import { prisma } from "./prisma.js";
+import { ensureClientAndRouterCodes } from "./client-codes.js";
 
 const CLIENT_COOKIE_NAME = "foxpoint_client_session";
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 30;
@@ -302,6 +303,7 @@ async function createPersistedClientSession(input: { request: FastifyRequest; us
 }
 
 async function createSessionResult(input: { isNew: boolean; request: FastifyRequest; userId: string }) {
+  await ensureClientAndRouterCodes();
   const session = await createPersistedClientSession({
     request: input.request,
     userId: input.userId

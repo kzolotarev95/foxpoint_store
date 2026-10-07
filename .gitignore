@@ -8,3 +8,5 @@ coverage/
 prisma/dev.db
 npm-debug.log*
 *.tsbuildinfo
+.codex-temp/
+scripts/data/

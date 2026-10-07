@@ -206,7 +206,7 @@ const adminSettingDefinitions: AdminSettingDefinition[] = [
   {
     key: "subscription_period_days",
     label: "Длительность периода, дней",
-    description: "Базовый период продления подписки для быстрого продления.",
+    description: "Один месяц всегда равен 30 дням. Для ручной оплаты число дней задаётся в разделе подписок.",
     group: "Подписки",
     input: "number",
     defaultValue: "30",
@@ -341,6 +341,7 @@ const adminSettingDefinitions: AdminSettingDefinition[] = [
 ];
 
 function normalizeValue(definition: AdminSettingDefinition, rawValue: string | undefined): string {
+  if (definition.key === "subscription_period_days") return "30";
   const nextValue = (rawValue ?? "").trim();
   if (definition.input === "boolean") {
     return nextValue === "true" || nextValue === "1" || nextValue === "on" ? "true" : "false";
@@ -431,7 +432,7 @@ export async function getAdminSettings(): Promise<AdminSettingRecord[]> {
     value:
       definition.key === "api_public_url"
         ? normalizeBaseUrl(valueByKey.get(definition.key) ?? "", definition.defaultValue)
-        : valueByKey.get(definition.key) ?? definition.defaultValue
+        : definition.key === "subscription_period_days" ? "30" : valueByKey.get(definition.key) ?? definition.defaultValue
   }));
 }
 

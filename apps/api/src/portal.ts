@@ -23,6 +23,8 @@ import {
 import { getAdminSettings, getPublicSettingLinks } from "./admin-settings.js";
 import { config } from "./config.js";
 import { prisma } from "./prisma.js";
+import { assignMissingCodes, CLIENT_USER_WHERE, ensureClientAndRouterCodes } from "./client-codes.js";
+import { extendSubscriptionEnd, SUBSCRIPTION_MONTH_DAYS } from "./subscription-period.js";
 
 type SettingMap = Map<string, string>;
 type PublicLinks = Awaited<ReturnType<typeof getPublicSettingLinks>>;
@@ -433,6 +435,8 @@ function isYooKassaConfigured(settings: SettingMap): boolean {
 }
 
 function getPaymentProviderLabel(provider: string): string {
+  if (provider === "client_register_import") return "Перенесено из базы клиентов";
+  if (provider === "admin_manual") return "Оплата записана администратором";
   if (provider === "platega") {
     return "Platega";
   }
@@ -669,8 +673,6 @@ async function applyPaymentSuccess(input: {
   providerPaymentId?: string | null;
   providerStatus?: string | null;
 }) {
-  const settings = await getSettingMap();
-
   const payment = await prisma.payment.findUnique({
     where: {
       id: input.paymentId
@@ -695,10 +697,12 @@ async function applyPaymentSuccess(input: {
     type?: string;
   };
 
+  let applied = false;
   await prisma.$transaction(async (tx) => {
-    await tx.payment.update({
+    const claimed = await tx.payment.updateMany({
       where: {
-        id: payment.id
+        id: payment.id,
+        status: { not: "PAID" }
       },
       data: {
         paidAt: input.paidAt ?? payment.paidAt ?? new Date(),
@@ -710,6 +714,11 @@ async function applyPaymentSuccess(input: {
         status: "PAID"
       }
     });
+    if (!claimed.count) return;
+    applied = true;
+    if (payment.routerId) {
+      await tx.$queryRaw`SELECT "id" FROM "Router" WHERE "id" = ${payment.routerId} FOR UPDATE`;
+    }
 
     if (payment.orderId) {
       await tx.routerOrder.update({
@@ -750,13 +759,11 @@ async function applyPaymentSuccess(input: {
     const requiresActivation =
       snapshot.requiresActivation ??
       (router.configurationType === "BASIC" && (accessEnabled || supportType === "EXTENDED"));
-    const periodDays = getNumericSetting(settings, "subscription_period_days", 30);
-    const now = new Date();
+    const periodDays = payment.daysAdded ?? SUBSCRIPTION_MONTH_DAYS;
+    const now = input.paidAt ?? new Date();
     const activeEndAt = currentSubscription?.endAt ?? null;
-    const nextEndAt = new Date(
-      (activeEndAt && activeEndAt.getTime() > now.getTime() ? activeEndAt : now).getTime() +
-        periodDays * 24 * 60 * 60 * 1000
-    );
+    const nextEndAt = extendSubscriptionEnd(activeEndAt, periodDays, now);
+    await tx.payment.update({ where: { id: payment.id }, data: { daysAdded: periodDays } });
 
     if (currentSubscription) {
       await tx.subscription.update({
@@ -793,7 +800,7 @@ async function applyPaymentSuccess(input: {
     });
   });
 
-  await recordAdminAction({
+  if (applied) await recordAdminAction({
     action: "payment_paid",
     entityType: "Payment",
     entityId: payment.id,
@@ -1003,6 +1010,10 @@ function getLocalIdentity(
 }
 
 type AdminUserWithRelations = {
+  clientCode: string | null;
+  city: string | null;
+  phone: string | null;
+  contactTelegram: string | null;
   id: string;
   name: string | null;
   status: UserStatus;
@@ -1022,10 +1033,13 @@ function mapAdminUserRecord(user: AdminUserWithRelations) {
 
   return {
     id: user.id,
+    clientCode: user.clientCode,
     name: user.name,
+    phone: user.phone,
+    city: user.city,
     email: getPrimaryEmail(user.identities),
-    telegram: getTelegramIdentity(user.identities),
-    telegramUsername: telegramIdentity?.email?.replace(/^@+/, "") ?? null,
+    telegram: getTelegramIdentity(user.identities) ?? user.contactTelegram,
+    telegramUsername: telegramIdentity?.email?.replace(/^@+/, "") ?? user.contactTelegram,
     hasTelegramIdentity: Boolean(telegramIdentity),
     status: user.status,
     balance: toNumber(user.balance),
@@ -1050,6 +1064,19 @@ function buildAdminClientSearchWhere(query: string): Prisma.UserWhereInput | und
 
   return {
     OR: [
+      { phone: { contains: normalized, mode: "insensitive" } },
+      { city: { contains: normalized, mode: "insensitive" } },
+      { contactTelegram: { contains: normalized, mode: "insensitive" } },
+      { routers: { some: { OR: [
+        { routerCode: { contains: normalized, mode: "insensitive" } },
+        { displayName: { contains: normalized, mode: "insensitive" } }
+      ] } } },
+      {
+        clientCode: {
+          contains: normalized,
+          mode: "insensitive"
+        }
+      },
       {
         id: {
           contains: normalized,
@@ -1110,7 +1137,7 @@ export async function buildSiteSnapshot() {
       totalPriceLabel: formatMoney(routerPrice + setupPrice)
     },
     subscriptionOffer: {
-      periodDays: getNumericSetting(settings, "subscription_period_days", 30),
+      periodDays: SUBSCRIPTION_MONTH_DAYS,
       extendedAccessPrice: getNumericSetting(settings, "extended_access_price", 999),
       basicSupportPrice: getNumericSetting(settings, "basic_support_price", 999),
       extendedSupportPrice: getNumericSetting(settings, "extended_support_price", 999),
@@ -1137,6 +1164,7 @@ export async function buildSiteSnapshot() {
 }
 
 export async function buildClientOverview(input: { currentSessionId?: string; liveCheck?: boolean; userId: string }) {
+  await ensureClientAndRouterCodes();
   const [links, settings, user, openTwoFactorRequest, openDeletionRequest, clientSessions] = await Promise.all([
     getPublicSettingLinks(),
     getSettingMap(),
@@ -1304,7 +1332,8 @@ export async function buildClientOverview(input: { currentSessionId?: string; li
       accessEnabled: false,
       supportType: "NONE" as const
     };
-    const nextPrice = calculateBundlePrice(settings, savedTemplate);
+    const nextPrice = router.template?.priceOverride != null
+      ? toNumber(router.template.priceOverride) : calculateBundlePrice(settings, savedTemplate);
     const liveCheck = liveCheckByRouterId.get(router.id) ?? {
       checkedAt: null,
       reachable: null
@@ -1312,13 +1341,15 @@ export async function buildClientOverview(input: { currentSessionId?: string; li
 
     return {
       id: router.id,
+      routerCode: router.routerCode,
       displayName: router.displayName,
       model: router.model,
       serialNumber: router.serialNumber,
       configurationType: router.configurationType,
       status: router.status,
-      adminNote: router.adminNote,
-      currentPackage: describeBundle(savedTemplate),
+      // Imported register notes are private; the cabinet only needs the monitor IP.
+      adminNote: router.importKey ? extractRouterMonitorTarget(router.adminNote)?.host ?? null : router.adminNote,
+      currentPackage: router.serviceTariff ?? describeBundle(savedTemplate),
       lastCheckAt: liveCheck.checkedAt,
       lastCheckReachable: liveCheck.reachable,
       currentSubscription: currentSubscription
@@ -1337,7 +1368,7 @@ export async function buildClientOverview(input: { currentSessionId?: string; li
       savedTemplate: {
         accessEnabled: savedTemplate.accessEnabled,
         supportType: savedTemplate.supportType,
-        label: describeBundle(savedTemplate),
+        label: router.serviceTariff ?? describeBundle(savedTemplate),
         nextPrice,
         nextPriceLabel: formatMoney(nextPrice)
       },
@@ -1377,6 +1408,7 @@ export async function buildClientOverview(input: { currentSessionId?: string; li
     product: "Интернет, как раньше",
     profile: {
       id: user.id,
+      clientCode: user.clientCode,
       name: user.name ?? "Клиент FoxPoint",
       email: getPrimaryEmail(user.identities),
       telegram: getTelegramIdentity(user.identities),
@@ -1409,7 +1441,7 @@ export async function buildClientOverview(input: { currentSessionId?: string; li
       unreadNotificationCount: user.notifications.filter((notification) => !notification.readAt).length
     },
     catalog: {
-      periodDays: getNumericSetting(settings, "subscription_period_days", 30),
+      periodDays: SUBSCRIPTION_MONTH_DAYS,
       extendedAccessPrice: getNumericSetting(settings, "extended_access_price", 999),
       basicSupportPrice: getNumericSetting(settings, "basic_support_price", 999),
       extendedSupportPrice: getNumericSetting(settings, "extended_support_price", 999),
@@ -1460,6 +1492,7 @@ export async function buildClientOverview(input: { currentSessionId?: string; li
     })),
     payments: user.payments.map((payment) => ({
       id: payment.id,
+      daysAdded: payment.daysAdded,
       amount: toNumber(payment.amount),
       amountLabel: formatMoney(toNumber(payment.amount)),
       provider: payment.provider,
@@ -1728,6 +1761,48 @@ export async function createSupportTicketForUser(input: {
   };
 }
 
+export async function createPublicSupportTicket(input: { routerCode: string; description: string; contact: string }) {
+  const router = await prisma.router.findUnique({ where: { routerCode: input.routerCode.trim().toUpperCase() } });
+  if (!router || router.status === "DISABLED") throw new Error("Проверьте код роутера на табличке.");
+  const description = input.description.trim();
+  const ticket = await prisma.supportTicket.create({ data: {
+    userId: router.ownerUserId, routerId: router.id, category: "Поддержка по QR", description,
+    guestContact: input.contact.trim(), status: "OPEN",
+    messages: { create: { authorRole: "CLIENT", body: description } }
+  } });
+  return { number: ticket.number };
+}
+
+export async function addAdminSubscriptionPayment(input: {
+  subscriptionId: string; amount: number; days: number; requestKey: string;
+}) {
+  const result = await prisma.$transaction(async (tx) => {
+    const initial = await tx.subscription.findUnique({ where: { id: input.subscriptionId } });
+    if (!initial) throw new Error("Подписка не найдена.");
+    await tx.$queryRaw`SELECT "id" FROM "Router" WHERE "id" = ${initial.routerId} FOR UPDATE`;
+    const importKey = `admin-renewal:${input.requestKey}`;
+    const existing = await tx.payment.findUnique({ where: { importKey } });
+    if (existing) return { paymentId: existing.id, repeated: true };
+    const subscription = await tx.subscription.findUniqueOrThrow({ where: { id: input.subscriptionId } });
+    const router = await tx.router.findUniqueOrThrow({ where: { id: subscription.routerId } });
+    const paidAt = new Date();
+    const endAt = extendSubscriptionEnd(subscription.endAt, input.days, paidAt);
+    const payment = await tx.payment.create({ data: {
+      importKey, userId: router.ownerUserId, routerId: router.id, amount: input.amount,
+      daysAdded: input.days, provider: "admin_manual", status: "PAID", paidAt,
+      payloadSnapshot: { type: "subscription_renewal", subscriptionId: subscription.id }
+    } });
+    await tx.subscription.update({ where: { id: subscription.id }, data: {
+      startAt: subscription.startAt ?? paidAt, endAt, lastPaymentId: payment.id,
+      status: subscription.pendingActivation ? "PENDING_ACTIVATION" : "ACTIVE"
+    } });
+    return { paymentId: payment.id, repeated: false };
+  });
+  if (!result.repeated) await recordAdminAction({ action: "subscription_payment_added", entityType: "Payment",
+    entityId: result.paymentId, afterData: { amount: input.amount, daysAdded: input.days, subscriptionId: input.subscriptionId } });
+  return result;
+}
+
 export async function addClientSupportTicketMessageForUser(input: {
   body: string;
   ticketId: string;
@@ -1887,14 +1962,17 @@ export async function updateRouterTemplateForUser(input: {
     where: {
       id: input.routerId,
       ownerUserId: input.userId
-    }
+    },
+    include: { template: true }
   });
 
   if (!router) {
     throw new Error("Роутер не найден.");
   }
 
-  const nextPrice = calculateBundlePrice(settings, input);
+  const samePackage = router.template?.accessEnabled === input.accessEnabled && router.template?.supportType === input.supportType;
+  const priceOverride = samePackage ? router.template?.priceOverride ?? null : null;
+  const nextPrice = priceOverride != null ? toNumber(priceOverride) : calculateBundlePrice(settings, input);
   await prisma.subscriptionTemplate.upsert({
     where: {
       routerId: input.routerId
@@ -1902,17 +1980,20 @@ export async function updateRouterTemplateForUser(input: {
     update: {
       accessEnabled: input.accessEnabled,
       supportType: input.supportType,
-      periodDays: getNumericSetting(settings, "subscription_period_days", 30),
-      currentPrice: nextPrice
+      periodDays: SUBSCRIPTION_MONTH_DAYS,
+      currentPrice: nextPrice,
+      priceOverride
     },
     create: {
       routerId: input.routerId,
       accessEnabled: input.accessEnabled,
       supportType: input.supportType,
-      periodDays: getNumericSetting(settings, "subscription_period_days", 30),
+      periodDays: SUBSCRIPTION_MONTH_DAYS,
       currentPrice: nextPrice
     }
   });
+
+  if (!samePackage) await prisma.router.update({ where: { id: input.routerId }, data: { serviceTariff: null } });
 
   return {
     routerId: input.routerId,
@@ -1956,7 +2037,8 @@ export async function createRenewalPaymentForUser(input: {
       accessEnabled: false,
       supportType: "NONE" as const
     };
-  const amount = calculateBundlePrice(settings, activeTemplate);
+  const amount = router.template?.priceOverride != null
+    ? toNumber(router.template.priceOverride) : calculateBundlePrice(settings, activeTemplate);
   const provider = resolveRequestedPaymentProvider(settings, input.provider);
   const description = `Продление обслуживания: ${router.displayName}`;
 
@@ -1974,6 +2056,7 @@ export async function createRenewalPaymentForUser(input: {
       routerId: input.routerId,
       provider,
       amount,
+      daysAdded: SUBSCRIPTION_MONTH_DAYS,
       status: "CREATED",
       payloadSnapshot: {
         description,
@@ -2351,8 +2434,11 @@ export async function handleYooKassaCallback(payload: Record<string, unknown>) {
 }
 
 export async function buildAdminOverview(input: { clientQuery?: string | null } = {}) {
+  await ensureClientAndRouterCodes();
   const clientQuery = normalizeAdminClientQuery(input.clientQuery);
-  const clientSearchWhere = buildAdminClientSearchWhere(clientQuery);
+  const clientSearchWhere: Prisma.UserWhereInput = {
+    AND: [CLIENT_USER_WHERE, buildAdminClientSearchWhere(clientQuery) ?? {}]
+  };
   const userRelationInclude = {
     identities: true,
     routers: {
@@ -2364,6 +2450,7 @@ export async function buildAdminOverview(input: { clientQuery?: string | null } 
   const [settings, users, clients, clientCount, routers, subscriptions, orders, tickets, rewards, logs] = await Promise.all([
     getAdminSettings(),
     prisma.user.findMany({
+      where: CLIENT_USER_WHERE,
       include: userRelationInclude,
       orderBy: {
         createdAt: "desc"
@@ -2376,7 +2463,7 @@ export async function buildAdminOverview(input: { clientQuery?: string | null } 
       orderBy: {
         createdAt: "desc"
       },
-      take: clientQuery ? 50 : 12
+      take: 200
     }),
     prisma.user.count({
       where: clientSearchWhere
@@ -2386,7 +2473,8 @@ export async function buildAdminOverview(input: { clientQuery?: string | null } 
         owner: {
           select: {
             id: true,
-            name: true
+            name: true,
+            clientCode: true
           }
         },
         template: true
@@ -2394,20 +2482,18 @@ export async function buildAdminOverview(input: { clientQuery?: string | null } 
       orderBy: {
         createdAt: "desc"
       },
-      take: 12
+      take: 200
     }),
     prisma.subscription.findMany({
       include: {
         router: {
-          select: {
-            displayName: true
-          }
+          include: { payments: { where: { status: "PAID" }, orderBy: { paidAt: "desc" }, take: 20 } }
         }
       },
       orderBy: {
         endAt: "asc"
       },
-      take: 12
+      take: 200
     }),
     prisma.routerOrder.findMany({
       include: {
@@ -2431,6 +2517,7 @@ export async function buildAdminOverview(input: { clientQuery?: string | null } 
         routerId: true,
         category: true,
         description: true,
+        guestContact: true,
         status: true,
         assigneeId: true,
         adminComment: true,
@@ -2450,12 +2537,14 @@ export async function buildAdminOverview(input: { clientQuery?: string | null } 
         },
         user: {
           select: {
-            name: true
+            name: true,
+            clientCode: true
           }
         },
         router: {
           select: {
-            displayName: true
+            displayName: true,
+            routerCode: true
           }
         }
       },
@@ -2482,7 +2571,7 @@ export async function buildAdminOverview(input: { clientQuery?: string | null } 
     clientCount,
     clientQuery,
     stats: {
-      users: await prisma.user.count(),
+      users: await prisma.user.count({ where: CLIENT_USER_WHERE }),
       routers: await prisma.router.count(),
       activeSubscriptions: await prisma.subscription.count({
         where: {
@@ -2502,6 +2591,9 @@ export async function buildAdminOverview(input: { clientQuery?: string | null } 
     clients: clients.map(mapAdminUserRecord),
     routers: routers.map((router) => ({
       id: router.id,
+      routerCode: router.routerCode,
+      clientCode: router.owner.clientCode,
+      serviceTariff: router.serviceTariff,
       displayName: router.displayName,
       model: router.model,
       serialNumber: router.serialNumber,
@@ -2517,7 +2609,13 @@ export async function buildAdminOverview(input: { clientQuery?: string | null } 
       id: subscription.id,
       routerId: subscription.routerId,
       routerName: subscription.router.displayName,
-      bundleLabel: describeBundle(subscription),
+      routerCode: subscription.router.routerCode,
+      bundleLabel: subscription.router.serviceTariff ?? describeBundle(subscription),
+      daysRemaining: getDaysRemaining(subscription.endAt),
+      payments: subscription.router.payments.map((payment) => ({
+        id: payment.id, amountLabel: formatMoney(toNumber(payment.amount)), daysAdded: payment.daysAdded,
+        paidAt: payment.paidAt?.toISOString() ?? null, provider: payment.provider
+      })),
       status: getEffectiveSubscriptionStatus(subscription) ?? subscription.status,
       startAt: subscription.startAt?.toISOString() ?? null,
       endAt: subscription.endAt?.toISOString() ?? null,
@@ -2544,6 +2642,9 @@ export async function buildAdminOverview(input: { clientQuery?: string | null } 
       userId: ticket.userId,
       routerId: ticket.routerId,
       customerName: ticket.user.name ?? "Клиент",
+      clientCode: ticket.user.clientCode,
+      routerCode: ticket.router?.routerCode ?? null,
+      guestContact: ticket.guestContact,
       routerName: ticket.router?.displayName ?? "Без роутера",
       category: ticket.category,
       description: ticket.description,
@@ -2996,6 +3097,8 @@ export async function updateAdminReward(input: {
 export async function updateAdminUser(input: {
   email?: string | null;
   name?: string | null;
+  phone?: string | null;
+  city?: string | null;
   status: UserStatus;
   telegramUsername?: string | null;
   userId: string;
@@ -3021,10 +3124,6 @@ export async function updateAdminUser(input: {
   const nextTelegramUsername = input.telegramUsername?.trim()
     ? input.telegramUsername.trim().replace(/^@+/, "")
     : null;
-
-  if (nextTelegramUsername && !existingTelegramIdentity) {
-    throw new Error("Нельзя указать Telegram без уже привязанного Telegram-аккаунта клиента.");
-  }
 
   if (nextEmail) {
     const conflictingIdentity = await prisma.authIdentity.findFirst({
@@ -3092,6 +3191,9 @@ export async function updateAdminUser(input: {
       },
       data: {
         name: nextName,
+        phone: input.phone?.trim() || null,
+        city: input.city?.trim() || null,
+        contactTelegram: existingTelegramIdentity ? user.contactTelegram : nextTelegramUsername,
         status: input.status
       }
     });
@@ -3149,7 +3251,7 @@ export async function createAdminRouterAssignment(input: {
   }
 
   const now = new Date();
-  const periodDays = getNumericSetting(settings, "subscription_period_days", 30);
+  const periodDays = SUBSCRIPTION_MONTH_DAYS;
   const trialDays = getNumericSetting(settings, "trial_period_days", 14);
   const templatePrice = calculateBundlePrice(settings, input);
   const price = input.startTrial ? 0 : templatePrice;
@@ -3166,6 +3268,8 @@ export async function createAdminRouterAssignment(input: {
         adminNote: input.adminNote?.trim() || null
       }
     });
+
+    await assignMissingCodes(tx);
 
     await tx.subscriptionTemplate.create({
       data: {
