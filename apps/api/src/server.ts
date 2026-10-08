@@ -50,6 +50,7 @@ import {
   updateRouterTemplateForUser
 } from "./portal.js";
 import { prisma } from "./prisma.js";
+import { registerBackupRoutes } from "./backup-routes.js";
 
 const app = Fastify({
   logger: true
@@ -93,6 +94,7 @@ await app.register(cors, {
 });
 
 await app.register(sensible);
+await registerBackupRoutes(app);
 
 app.addContentTypeParser(
   /^application\/x-www-form-urlencoded(?:\s*;.*)?$/i,

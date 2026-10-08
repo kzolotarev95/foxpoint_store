@@ -9,11 +9,18 @@ if [ "$(id -u)" -ne 0 ]; then echo "Run with sudo." >&2; exit 1; fi
 if [ ! -d "$APP_DIR/.git" ] || [ ! -f "$APP_DIR/.env" ] || [ -L "$APP_DIR" ]; then
   echo "Expected an existing installation at $APP_DIR." >&2; exit 1
 fi
-for command in node npm pg_dump pg_restore curl systemctl flock; do
+for command in node npm python3 pg_dump pg_restore psql curl systemctl flock; do
   command -v "$command" >/dev/null || { echo "Required command is missing: $command" >&2; exit 1; }
+done
+PG_MAJOR="$(runuser -u postgres -- psql -XAt -c 'SHOW server_version_num;' | awk '{print int($1/10000)}')"
+for tool in pg_dump pg_restore; do
+  [ -x "/usr/lib/postgresql/$PG_MAJOR/bin/$tool" ] || { echo "Missing PostgreSQL $PG_MAJOR client: $tool" >&2; exit 1; }
 done
 exec 9>/var/lock/foxpoint-local-fix.lock
 flock -n 9 || { echo "Another FoxPoint deployment is running." >&2; exit 1; }
+if [ -f /opt/foxpoint-panel-backups/operation.lock ]; then
+  node -e 'const fs=require("node:fs");const p="/opt/foxpoint-panel-backups/operation.lock";const l=JSON.parse(fs.readFileSync(p,"utf8"));try{process.kill(l.pid,0);console.error("A panel backup or restore is running. Finish it before deployment.");process.exit(1)}catch(e){if(e.code!=="ESRCH")throw e;fs.unlinkSync(p)}'
+fi
 for service in foxpoint-api foxpoint-web; do
   [ "$(systemctl show "$service" --property=WorkingDirectory --value)" = "$APP_DIR" ] || {
     echo "$service uses a different working directory. Deployment cancelled." >&2; exit 1;
@@ -77,6 +84,8 @@ node scripts/run-with-env.mjs .env npm run db:push
 node scripts/run-with-env.mjs .env node scripts/import-client-database.mjs
 mv "$APP_DIR" "$BACKUP_DIR/app-before"
 mv "$CANDIDATE_DIR" "$APP_DIR"
+# Extend only the FoxPoint backup location; preserve existing domains and TLS settings.
+node scripts/run-with-env.mjs .env node scripts/configure-backup-nginx.mjs
 systemctl start foxpoint-api foxpoint-web
 
 ready=0

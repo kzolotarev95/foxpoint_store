@@ -6,13 +6,25 @@ $previewSocket = Join-Path $previewState 'local-db-runtime/node_modules/@electri
 $previewApi = Join-Path $previewRoot 'apps/api/dist/server.js'
 $previewNext = Join-Path $previewRoot 'node_modules/next/dist/bin/next'
 
-foreach ($previewPath in @($previewSocket, $previewApi, $previewNext)) {
+foreach ($previewPath in @($previewApi, $previewNext)) {
     if (!(Test-Path -LiteralPath $previewPath)) { throw "Не найден $previewPath. Подготовьте локальную сборку по docs/CLIENT_DATABASE_LOCAL.md." }
 }
 New-Item -ItemType Directory -Path $previewState -Force | Out-Null
 
 # These values belong only to the processes launched by this script.
 $env:DATABASE_URL = 'postgresql://postgres:postgres@127.0.0.1:55432/postgres?schema=public&connection_limit=1&pgbouncer=true'
+$previewPostgresConfig = Join-Path $previewState 'preview-postgres.json'
+if (Test-Path -LiteralPath $previewPostgresConfig) {
+    $previewPostgres = Get-Content -LiteralPath $previewPostgresConfig -Raw | ConvertFrom-Json
+    $previewPgDirectory = [IO.Path]::GetFullPath((Join-Path $previewRoot $previewPostgres.binaryDirectory))
+    if (!$previewPgDirectory.StartsWith($previewRoot + [IO.Path]::DirectorySeparatorChar) -or ([uri]$previewPostgres.databaseUrl).Host -ne '127.0.0.1') { throw 'Invalid local PostgreSQL configuration.' }
+    $env:DATABASE_URL = $previewPostgres.databaseUrl
+    $env:FOXPOINT_PG_BIN = $previewPgDirectory
+    if (!(Get-NetTCPConnection -State Listen -LocalPort $previewPostgres.port -ErrorAction SilentlyContinue)) {
+        & (Join-Path $previewPgDirectory 'pg_ctl.exe') start -D (Join-Path $previewRoot $previewPostgres.dataDirectory) -l (Join-Path $previewState 'postgres-runtime/server.log') -o "-h 127.0.0.1 -p $($previewPostgres.port)" -w
+        if ($LASTEXITCODE -ne 0) { throw 'Local PostgreSQL did not start.' }
+    }
+}
 $env:API_HOST = '127.0.0.1'
 $env:API_PORT = '4000'
 $env:API_BASE_URL = 'http://127.0.0.1:4000'
@@ -35,7 +47,10 @@ function Start-PreviewProcess([int]$Port, [string]$Name, [string[]]$Arguments, [
     throw "$Name не открыл порт $Port. Проверьте .codex-temp/$Name.log"
 }
 
-Start-PreviewProcess 55432 'preview-db' @("`"$previewSocket`"", "--db=`"$(Join-Path $previewState 'local-postgres')`"", '--port=55432', '--host=127.0.0.1', '--max-connections=1') $previewRoot
+if (!(Test-Path -LiteralPath $previewPostgresConfig)) {
+    if (!(Test-Path -LiteralPath $previewSocket)) { throw 'Локальная БД preview не подготовлена.' }
+    Start-PreviewProcess 55432 'preview-db' @("`"$previewSocket`"", "--db=`"$(Join-Path $previewState 'local-postgres')`"", '--port=55432', '--host=127.0.0.1', '--max-connections=1') $previewRoot
+}
 Start-PreviewProcess 4000 'preview-api' @("`"$previewApi`"") $previewRoot
 Start-PreviewProcess 3000 'preview-web' @("`"$previewNext`"", 'start', '--hostname', '127.0.0.1', '--port', '3000') (Join-Path $previewRoot 'apps/web')
 Write-Host 'Локальная админка: http://127.0.0.1:3000/admin (admin / admin)'

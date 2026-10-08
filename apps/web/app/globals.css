@@ -2180,6 +2180,32 @@ textarea {
   font-size: 0.8rem;
 }
 
+.adminBackupRecord .helperText {
+  margin: 0;
+}
+
+.adminBackupRestoreConfirmation {
+  display: grid;
+  gap: 0.9rem;
+  padding: 1.1rem;
+  border: 1px solid rgba(255, 181, 119, 0.35);
+  border-radius: 1rem;
+  background: rgba(255, 168, 95, 0.05);
+}
+
+.adminBackupRestoreConfirmation h3 {
+  margin: 0;
+}
+
+.adminBackupCommand {
+  max-width: 100%;
+  overflow: auto;
+  padding: 1rem;
+  border-radius: 0.8rem;
+  background: rgba(0, 0, 0, 0.35);
+  font-size: 0.85rem;
+}
+
 .adminSidebarActions .secondaryButton,
 .adminSidebarActions .fullWidthButton {
   width: 100%;

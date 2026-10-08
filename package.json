@@ -15,6 +15,8 @@
     "db:push": "npx prisma db push --schema packages/db/prisma/schema.prisma",
     "db:import-clients": "npm run build --workspace @foxpoint/api && node scripts/import-client-database.mjs",
     "test:subscriptions": "npm run build --workspace @foxpoint/api && node scripts/test-subscription-period.mjs",
+    "test:backups": "npm run build --workspace @foxpoint/api && python scripts/test-backup-archive.py && node scripts/test-backup-routes.mjs && node scripts/test-full-backup.mjs",
+    "test:backup-nginx": "node scripts/test-backup-nginx.mjs",
     "lint": "npm run lint --workspace @foxpoint/api && npm run lint --workspace @foxpoint/web",
     "start:api": "npm run start --workspace @foxpoint/api",
     "start:web": "npm run start --workspace @foxpoint/web -- --hostname 127.0.0.1 --port 3000"

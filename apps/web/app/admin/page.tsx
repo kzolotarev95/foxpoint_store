@@ -871,6 +871,7 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
   const adminNavItems = [
     { href: "/admin#overview", label: "Сводка", icon: <DashboardIcon /> },
     { href: getDatabaseHref(), label: "База данных", icon: <DatabaseIcon />, active: isDatabaseView },
+    { href: "/admin/backups", label: "Бэкап", icon: <DatabaseIcon /> },
     { href: "/admin#assign", label: "Привязать роутер", icon: <PlugIcon /> },
     { href: `/admin${latestNewOrderHref}`, label: "Заказы", icon: <CartIcon />, badge: newOrderCount ? `+${newOrderCount}` : null },
     { href: `/admin${latestNewTicketHref}`, label: "Обращения", icon: <MessageIcon />, badge: newTicketCount ? `+${newTicketCount}` : null },
