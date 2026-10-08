@@ -518,6 +518,14 @@ textarea {
   gap: 0.8rem;
 }
 
+.portalNotificationFeedback { margin: 0; color: #bce7cd; font-size: 0.82rem; line-height: 1.4; }
+.portalNotificationFeedback.errorText { color: #ffaaa0; }
+.portalNotificationBody a { text-decoration: none; }
+.portalNotificationBody a:hover strong { color: #ffbd82; }
+.portalNotificationText { white-space: pre-wrap; max-height: 10rem; overflow: auto; }
+.portalNotificationMarkRead { justify-self: start; padding: 0.2rem 0; border: 0; background: transparent; color: #ffc58b; font-size: 0.78rem; cursor: pointer; }
+.portalNotificationMarkRead:disabled { opacity: 0.5; cursor: default; }
+
 .portalNotificationHeading {
   display: grid;
   gap: 0.2rem;
@@ -2224,8 +2232,9 @@ textarea {
 }
 
 .adminHeroHeader {
-  display: flex;
-  align-items: flex-end;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(350px, 0.95fr);
+  align-items: start;
   justify-content: space-between;
   gap: 1rem;
 }
@@ -2252,8 +2261,67 @@ textarea {
 }
 
 .adminHeroActions {
-  justify-content: flex-end;
+  justify-content: flex-start;
 }
+
+.adminHeroMain {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.adminServerMetrics {
+  display: grid;
+  gap: 0.7rem;
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid rgba(255, 176, 111, 0.16);
+  border-radius: 1.25rem;
+  background: rgba(8, 7, 13, 0.35);
+}
+
+.adminServerMetricsHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  color: #f5e9ff;
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+
+.adminServerMetricsStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 400;
+}
+
+.adminServerMetricsStatus i {
+  width: 0.4rem;
+  height: 0.4rem;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #938797;
+}
+
+.adminServerMetricsStatus[data-status="live"] i { background: #62d8a0; box-shadow: 0 0 8px rgba(98, 216, 160, 0.35); }
+.adminServerMetricsStatus[data-status="error"] i { background: #ff8b78; }
+.adminServerMetricsGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.6rem; }
+.adminServerMetric { display: grid; gap: 0.6rem; min-width: 0; padding: 0.75rem; border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 0.85rem; background: rgba(255, 255, 255, 0.025); }
+.adminServerMetricLabel { display: flex; align-items: center; gap: 0.4rem; color: var(--muted); font-size: 0.78rem; }
+.adminServerMetricLabel svg { width: 1rem; height: 1rem; flex-shrink: 0; color: #ffbf82; }
+.adminServerMetricValue { font-family: var(--font-heading, sans-serif); font-size: clamp(1.05rem, 1.6vw, 1.65rem); line-height: 1.2; font-variant-numeric: tabular-nums; letter-spacing: -0.04em; white-space: nowrap; }
+.adminServerMetricMeter { height: 0.25rem; overflow: hidden; border-radius: 1rem; background: rgba(255, 255, 255, 0.08); }
+.adminServerMetricMeter span { display: block; height: 100%; border-radius: inherit; background: #a888fa; transition: width 0.35s ease; }
+.adminServerMetric[data-tone="warning"] .adminServerMetricMeter span { background: #ffb36c; }
+.adminServerMetric[data-tone="critical"] .adminServerMetricMeter span { background: #ff796e; }
+.adminServerMetric[data-stale="true"] .adminServerMetricValue { opacity: 0.55; }
+.adminServerMetricDetail, .adminServerMetricsTime { color: var(--muted); font-size: 0.68rem; line-height: 1.4; }
+.adminServerMetricsTime { text-align: right; font-variant-numeric: tabular-nums; }
 
 .adminInfoCard,
 .adminRecordCard {
@@ -6226,6 +6294,7 @@ select.textInput option {
   }
 
   .adminDashboardShell .adminHeroHeader {
+    grid-template-columns: 1fr;
     flex-direction: column;
     align-items: flex-start;
   }
@@ -6315,6 +6384,31 @@ select.textInput option {
   .portalActions {
     width: 100%;
     justify-content: flex-start;
+    position: relative;
+  }
+
+  .portalNotifications {
+    position: static;
+  }
+
+  .portalNotificationPopover {
+    left: 0;
+    right: auto;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100dvh - 13rem);
+    overflow: hidden;
+  }
+
+  .portalNotificationList {
+    min-height: 0;
+    flex: 1;
+  }
+
+  .portalNotificationHeader,
+  .portalNotificationFooter,
+  .portalNotificationFeedback {
+    flex-shrink: 0;
   }
 
   .heroContent {

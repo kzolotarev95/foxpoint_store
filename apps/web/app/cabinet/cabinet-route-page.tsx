@@ -32,17 +32,6 @@ type RouterOverviewItem = ClientOverview["routers"][number];
 type ClientSessionItem = ClientOverview["sessions"][number];
 type SupportTicketItem = ClientOverview["tickets"][number];
 type ProfileSessionViewItem = ClientSessionItem & Awaited<ReturnType<typeof getProfileSessionMeta>>;
-type NotificationFeedItem = {
-  createdAt: string;
-  detail: string;
-  href: string;
-  icon: ReactNode;
-  id: string;
-  isUnread: boolean;
-  meta: string;
-  title: string;
-};
-
 const SESSION_GEO_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 const SESSION_GEO_REQUEST_TIMEOUT_MS = 800;
 const sessionGeoCache = new Map<string, { expiresAt: number; value: string }>();
@@ -671,168 +660,6 @@ function shouldShowOrderSupportTicketHint(status: string): boolean {
   return String(status ?? "").toUpperCase() === "PAID";
 }
 
-function getNotificationTypeMeta(type: string): Pick<NotificationFeedItem, "detail" | "href" | "icon" | "title"> {
-  const normalized = String(type ?? "").trim().toUpperCase();
-
-  if (normalized.includes("PAYMENT")) {
-    return {
-      detail: normalized.includes("PAID") ? "Оплата подтверждена и учтена в кабинете." : "Есть обновление по оплате.",
-      href: "/cabinet/payments",
-      icon: <PaymentIcon />,
-      title: "Платежи"
-    };
-  }
-
-  if (normalized.includes("TICKET") || normalized.includes("SUPPORT")) {
-    return {
-      detail: "Обновился статус обращения в поддержку.",
-      href: "/cabinet/support",
-      icon: <SupportIcon />,
-      title: "Поддержка"
-    };
-  }
-
-  if (normalized.includes("SESSION") || normalized.includes("LOGIN") || normalized.includes("AUTH")) {
-    return {
-      detail: "Зафиксирован вход или изменение по сессии аккаунта.",
-      href: "/cabinet/profile",
-      icon: <BellIcon />,
-      title: "Безопасность"
-    };
-  }
-
-  if (normalized.includes("ORDER") || normalized.includes("ROUTER")) {
-    return {
-      detail: "Есть обновление по заказу роутера.",
-      href: "/cabinet/routers",
-      icon: <CartIcon />,
-      title: "Заказ роутера"
-    };
-  }
-
-  if (normalized.includes("REFERRAL") || normalized.includes("REWARD")) {
-    return {
-      detail: "Обновилась реферальная статистика или награда.",
-      href: "/cabinet/profile",
-      icon: <GiftIcon />,
-      title: "Реферальная программа"
-    };
-  }
-
-  return {
-    detail: "Новое событие по вашему аккаунту.",
-    href: "/cabinet/profile",
-    icon: <BellIcon />,
-    title: "Уведомление"
-  };
-}
-
-function buildNotificationFeed(
-  overview: ClientOverview,
-  sessions: ClientSessionItem[],
-  clearedAt: string | null,
-  seenAt: string | null
-): NotificationFeedItem[] {
-  const clearedAtDate = parseDateValue(clearedAt);
-  const seenAtDate = parseDateValue(seenAt);
-  const seenThreshold = seenAtDate && clearedAtDate
-    ? new Date(Math.max(seenAtDate.getTime(), clearedAtDate.getTime()))
-    : seenAtDate ?? clearedAtDate;
-  const systemNotifications = overview.notifications.map((notification) => {
-    const meta = getNotificationTypeMeta(notification.type);
-    const createdAt = parseDateValue(notification.createdAt);
-
-    return {
-      createdAt: notification.createdAt,
-      detail: meta.detail,
-      href: meta.href,
-      icon: meta.icon,
-      id: `notification-${notification.id}`,
-      isUnread: createdAt ? (seenThreshold ? createdAt.getTime() > seenThreshold.getTime() : true) : false,
-      meta: formatRelativeDateTime(notification.createdAt),
-      title: meta.title
-    };
-  });
-
-  const sessionNotifications = sessions.slice(0, 6).map((session) => {
-    const sessionMeta = getSessionBaseMeta(session);
-    const createdAt = parseDateValue(session.lastSeenAt);
-
-    return {
-      createdAt: session.lastSeenAt,
-      detail: `${sessionMeta.deviceLabel} · ${sessionMeta.ipLabel}`,
-      href: "/cabinet/profile",
-      icon: sessionMeta.icon,
-      id: `session-${session.id}`,
-      isUnread: createdAt ? (seenThreshold ? createdAt.getTime() > seenThreshold.getTime() : true) : false,
-      meta: `Активность ${sessionMeta.activityLabel}`,
-      title: session.isCurrent ? "Текущее устройство в сети" : "Вход в кабинет"
-    };
-  });
-
-  const paymentNotifications = overview.payments.slice(0, 4).map((payment) => {
-    const paymentMeta = getPaymentStatusMeta(payment.status);
-    const paymentDate = payment.paidAt ?? payment.createdAt;
-    const createdAt = parseDateValue(paymentDate);
-
-    return {
-      createdAt: paymentDate,
-      detail: `${payment.amountLabel} · ${payment.providerLabel}${payment.routerName ? ` · ${payment.routerName}` : ""}`,
-      href: "/cabinet/payments",
-      icon: <PaymentIcon />,
-      id: `payment-${payment.id}`,
-      isUnread: createdAt ? (seenThreshold ? createdAt.getTime() > seenThreshold.getTime() : true) : false,
-      meta: formatRelativeDateTime(paymentDate),
-      title: `Платеж: ${paymentMeta.label}`
-    };
-  });
-
-  const supportNotifications = overview.tickets.slice(0, 4).map((ticket) => {
-    const ticketMeta = getSupportTicketStatusMeta(ticket.status);
-    const createdAt = parseDateValue(ticket.updatedAt);
-
-    return {
-      createdAt: ticket.updatedAt,
-      detail: `${getSupportTicketTitle(ticket)} · ${ticketMeta.label}`,
-      href: "/cabinet/support",
-      icon: <SupportIcon />,
-      id: `ticket-${ticket.id}`,
-      isUnread: createdAt ? (seenThreshold ? createdAt.getTime() > seenThreshold.getTime() : true) : false,
-      meta: formatRelativeDateTime(ticket.updatedAt),
-      title: `Поддержка #${getSupportTicketDisplayCode(ticket.number)}`
-    };
-  });
-
-  const orderNotifications = overview.orders.slice(0, 3).map((order) => {
-    const orderDate = order.receivedAt ?? order.createdAt;
-    const createdAt = parseDateValue(orderDate);
-
-    return {
-      createdAt: orderDate,
-      detail: `${order.totalPriceLabel} · ${getOrderStatusLabel(order.status)}`,
-      href: "/cabinet/routers",
-      icon: <CartIcon />,
-      id: `order-${order.id}`,
-      isUnread: createdAt ? (seenThreshold ? createdAt.getTime() > seenThreshold.getTime() : true) : false,
-      meta: formatRelativeDateTime(orderDate),
-      title: "Заказ роутера"
-    };
-  });
-
-  return [...systemNotifications, ...sessionNotifications, ...paymentNotifications, ...supportNotifications, ...orderNotifications]
-    .filter((item) => {
-      const createdAt = parseDateValue(item.createdAt);
-
-      if (!createdAt) {
-        return false;
-      }
-
-      return clearedAtDate ? createdAt.getTime() > clearedAtDate.getTime() : true;
-    })
-    .sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime())
-    .slice(0, 10);
-}
-
 function renderCabinetUnavailablePage(activeTab: CabinetTab) {
   const retryHref = `${getCabinetTabHref(activeTab)}?retry=${Date.now()}`;
 
@@ -1391,15 +1218,26 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
   }
 
   const successMessage = getSingleParam(searchParams.success);
-  const errorMessage = getSingleParam(searchParams.error);
+  let errorMessage = getSingleParam(searchParams.error);
   const paymentUrl = getSingleParam(searchParams.payment);
   const welcomeMessage = getSingleParam(searchParams.welcome)
     ? "Профиль создан. Теперь кабинет готов к работе."
     : null;
   const nearestDeadline = getNearestSubscriptionEnd(overview.routers);
   const userInitials = buildUserInitials(overview.profile.name);
-  const supportTickets = overview.tickets;
-  const defaultOpenSupportTicketId = successMessage === "Обращение создано." ? supportTickets[0]?.id ?? null : null;
+  const supportTickets = [...overview.tickets];
+  const requestedTicketId = props.activeTab === "support" ? getSingleParam(searchParams.ticket) : null;
+  if (requestedTicketId && !supportTickets.some(ticket => ticket.id === requestedTicketId)) {
+    try {
+      const requestedTicket = await fetchClientApi<SupportTicketItem>(`/api/me/tickets/${encodeURIComponent(requestedTicketId)}`);
+      supportTickets.unshift(requestedTicket);
+    } catch (error) {
+      if (isRedirectError(error)) throw error;
+      errorMessage = "Не удалось открыть обращение. Оно могло быть удалено.";
+    }
+  }
+  const defaultOpenSupportTicketId = requestedTicketId && supportTickets.some(ticket => ticket.id === requestedTicketId)
+    ? requestedTicketId : successMessage === "Обращение создано." ? supportTickets[0]?.id ?? null : null;
   const isOverviewTab = props.activeTab === "overview";
   const isRoutersTab = props.activeTab === "routers";
   const isSupportTab = props.activeTab === "support";
@@ -1421,16 +1259,6 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
           }))
         )
       : [];
-  const notificationFeed = buildNotificationFeed(
-    overview,
-    overview.sessions,
-    overview.profile.notificationFeedClearedAt,
-    overview.profile.notificationFeedSeenAt
-  );
-  const notificationFeedCount = notificationFeed.length;
-  const newNotificationFeedCount = notificationFeed.filter((item) => item.isUnread).length;
-  const notificationBellBadge = newNotificationFeedCount > 99 ? "+99" : `+${newNotificationFeedCount}`;
-  const notificationHeaderCount = newNotificationFeedCount > 0 ? newNotificationFeedCount : notificationFeedCount;
   const primaryPaymentRouter = getPrimaryPaymentRouter(overview.routers);
   const paymentDeadline = primaryPaymentRouter?.currentSubscription?.endAt ?? primaryPaymentRouter?.trial?.endAt ?? null;
   const paymentDaysRemaining =

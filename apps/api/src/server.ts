@@ -24,7 +24,6 @@ import {
   buildYooMoneyCheckoutHtml,
   addAdminSupportTicketMessage,
   addClientSupportTicketMessageForUser,
-  clearClientNotificationFeed,
   deleteAdminOrder,
   deleteAdminTicket,
   createProfileRequestForUser,
@@ -37,7 +36,6 @@ import {
   handlePlategaCallback,
   handleYooKassaCallback,
   handleYooMoneyCallback,
-  markClientNotificationsRead,
   attachEmailForUser,
   saveLocalCredentialsForUser,
   updateAdminOrder,
@@ -51,6 +49,9 @@ import {
 } from "./portal.js";
 import { prisma } from "./prisma.js";
 import { registerBackupRoutes } from "./backup-routes.js";
+import { registerServerMetricsRoutes } from "./server-metrics-routes.js";
+import { registerNotificationRoutes } from "./notification-routes.js";
+import { registerClientSupportRoutes } from "./client-support-routes.js";
 
 const app = Fastify({
   logger: true
@@ -95,6 +96,9 @@ await app.register(cors, {
 
 await app.register(sensible);
 await registerBackupRoutes(app);
+await registerServerMetricsRoutes(app);
+await registerNotificationRoutes(app);
+await registerClientSupportRoutes(app);
 
 app.addContentTypeParser(
   /^application\/x-www-form-urlencoded(?:\s*;.*)?$/i,
@@ -449,48 +453,6 @@ app.post("/api/me/sessions/:sessionId/revoke", async (request, reply) => {
     reply.code(400);
     return {
       error: error instanceof Error ? error.message : "Не удалось завершить сессию."
-    };
-  }
-});
-
-app.post("/api/me/notifications/read", async (request, reply) => {
-  const userId = await getAuthorizedUserId(request);
-  if (!userId) {
-    reply.code(401);
-    return {
-      error: "unauthorized"
-    };
-  }
-
-  try {
-    return await markClientNotificationsRead({
-      userId
-    });
-  } catch (error) {
-    reply.code(400);
-    return {
-      error: error instanceof Error ? error.message : "Не удалось отметить уведомления прочитанными."
-    };
-  }
-});
-
-app.post("/api/me/notifications/clear", async (request, reply) => {
-  const userId = await getAuthorizedUserId(request);
-  if (!userId) {
-    reply.code(401);
-    return {
-      error: "unauthorized"
-    };
-  }
-
-  try {
-    return await clearClientNotificationFeed({
-      userId
-    });
-  } catch (error) {
-    reply.code(400);
-    return {
-      error: error instanceof Error ? error.message : "Не удалось очистить уведомления."
     };
   }
 });

@@ -25,6 +25,7 @@ import { config } from "./config.js";
 import { prisma } from "./prisma.js";
 import { assignMissingCodes, CLIENT_USER_WHERE, ensureClientAndRouterCodes } from "./client-codes.js";
 import { extendSubscriptionEnd, SUBSCRIPTION_MONTH_DAYS } from "./subscription-period.js";
+import { createClientNotification, getClientNotificationFeed } from "./notifications.js";
 
 type SettingMap = Map<string, string>;
 type PublicLinks = Awaited<ReturnType<typeof getPublicSettingLinks>>;
@@ -161,6 +162,8 @@ async function appendSupportTicketMessage(input: {
       }
     });
 
+    if (input.authorRole === "ADMIN") await createClientNotification(tx, { userId: ticket.userId, type: "SUPPORT_REPLY", relatedType: "SupportTicketMessage", relatedId: createdMessage.id,
+      title: `Ответ поддержки · #${ticket.number}`, detail: cleanedBody, href: `/cabinet/support?ticket=${ticket.id}#ticket-${ticket.id}` });
     return createdMessage;
   });
 
@@ -731,6 +734,9 @@ async function applyPaymentSuccess(input: {
       });
     }
 
+    await createClientNotification(tx, { userId: payment.userId, type: "PAYMENT_PAID", relatedType: "Payment", relatedId: payment.id,
+      title: "Оплата подтверждена", detail: `${formatMoney(toNumber(payment.amount))} · оплата учтена в личном кабинете.`, href: "/cabinet/payments" });
+
     if (!payment.routerId) {
       return;
     }
@@ -1273,12 +1279,6 @@ export async function buildClientOverview(input: { currentSessionId?: string; li
           orderBy: {
             createdAt: "desc"
           }
-        },
-        notifications: {
-          orderBy: {
-            createdAt: "desc"
-          },
-          take: 8
         }
       }
     }),
@@ -1316,6 +1316,7 @@ export async function buildClientOverview(input: { currentSessionId?: string; li
     throw new Error("User not found.");
   }
 
+  const notificationFeed = await getClientNotificationFeed(input.userId);
   const recommendedTemplate = getRecommendedTemplate();
   const recommendedPrice = calculateBundlePrice(settings, recommendedTemplate);
   const localLogin = getLocalIdentity(user.identities);
@@ -1438,7 +1439,7 @@ export async function buildClientOverview(input: { currentSessionId?: string; li
       routerCount: user.routers.length,
       activeRouterCount: user.routers.filter((router) => router.status === "ACTIVE").length,
       openTicketCount: user.tickets.filter((ticket) => ticket.status !== "CLOSED").length,
-      unreadNotificationCount: user.notifications.filter((notification) => !notification.readAt).length
+      unreadNotificationCount: notificationFeed.unreadCount
     },
     catalog: {
       periodDays: SUBSCRIPTION_MONTH_DAYS,
@@ -1526,12 +1527,9 @@ export async function buildClientOverview(input: { currentSessionId?: string; li
       createdAt: reward.createdAt.toISOString(),
       availableAt: reward.availableAt?.toISOString() ?? null
     })),
-    notifications: user.notifications.map((notification) => ({
-      id: notification.id,
-      type: notification.type,
-      createdAt: notification.createdAt.toISOString(),
-      readAt: notification.readAt?.toISOString() ?? null
-    }))
+    notifications: notificationFeed.notifications,
+    notificationFeedAsOf: notificationFeed.asOf,
+    notificationFeedHasMore: notificationFeed.hasMore
   };
 }
 
@@ -1645,66 +1643,18 @@ export async function createRouterOrderForUser(input: {
   };
 }
 
-export async function markClientNotificationsRead(input: { userId: string }) {
-  const readAt = new Date();
-  const result = await prisma.$transaction(async (tx) => {
-    const notifications = await tx.notification.updateMany({
-      where: {
-        userId: input.userId,
-        readAt: null
-      },
-      data: {
-        readAt
-      }
-    });
-
-    await tx.user.update({
-      where: {
-        id: input.userId
-      },
-      data: {
-        notificationFeedSeenAt: readAt
-      }
-    });
-
-    return notifications;
+export async function getClientSupportTicketForUser(input: { userId: string; ticketId: string }) {
+  const ticket = await prisma.supportTicket.findFirst({
+    where: { id: input.ticketId, userId: input.userId },
+    include: { messages: { orderBy: { createdAt: "asc" } } }
   });
-
+  if (!ticket) return null;
   return {
-    readAt: readAt.toISOString(),
-    updatedCount: result.count
-  };
-}
-
-export async function clearClientNotificationFeed(input: { userId: string }) {
-  const clearedAt = new Date();
-  const result = await prisma.$transaction(async (tx) => {
-    const notifications = await tx.notification.updateMany({
-      where: {
-        userId: input.userId,
-        readAt: null
-      },
-      data: {
-        readAt: clearedAt
-      }
-    });
-
-    await tx.user.update({
-      where: {
-        id: input.userId
-      },
-      data: {
-        notificationFeedSeenAt: clearedAt,
-        notificationFeedClearedAt: clearedAt
-      }
-    });
-
-    return notifications;
-  });
-
-  return {
-    clearedAt: clearedAt.toISOString(),
-    updatedCount: result.count
+    id: ticket.id, number: ticket.number, category: ticket.category, description: ticket.description,
+    status: ticket.status, routerId: ticket.routerId, adminComment: ticket.adminComment,
+    adminCommentUpdatedAt: ticket.adminCommentUpdatedAt?.toISOString() ?? null,
+    createdAt: ticket.createdAt.toISOString(), updatedAt: ticket.updatedAt.toISOString(),
+    messages: mapSupportTicketMessages({ ...ticket, adminCommentUpdatedAt: ticket.adminCommentUpdatedAt ?? null })
   };
 }
 
@@ -1745,13 +1695,16 @@ export async function createSupportTicketForUser(input: {
       }
     });
 
-    await tx.supportTicketMessage.create({
+    const automaticReply = await tx.supportTicketMessage.create({
       data: {
         authorRole: "ADMIN",
         body: "Ожидайте оператора.",
         ticketId: createdTicket.id
       }
     });
+
+    await createClientNotification(tx, { userId: input.userId, type: "SUPPORT_REPLY", relatedType: "SupportTicketMessage", relatedId: automaticReply.id,
+      title: `Ответ поддержки · #${createdTicket.number}`, detail: "Ожидайте оператора.", href: `/cabinet/support?ticket=${createdTicket.id}#ticket-${createdTicket.id}` });
 
     return createdTicket;
   });
@@ -1796,6 +1749,8 @@ export async function addAdminSubscriptionPayment(input: {
       startAt: subscription.startAt ?? paidAt, endAt, lastPaymentId: payment.id,
       status: subscription.pendingActivation ? "PENDING_ACTIVATION" : "ACTIVE"
     } });
+    await createClientNotification(tx, { userId: router.ownerUserId, type: "PAYMENT_PAID", relatedType: "Payment", relatedId: payment.id,
+      title: "Оплата подтверждена", detail: `${formatMoney(input.amount)} · ${router.displayName} · продление на ${input.days} дней.`, href: "/cabinet/payments" });
     return { paymentId: payment.id, repeated: false };
   });
   if (!result.repeated) await recordAdminAction({ action: "subscription_payment_added", entityType: "Payment",
@@ -2709,14 +2664,16 @@ export async function updateAdminTicket(input: {
     input.status === "IN_PROGRESS" &&
     !ticket.messages.some((message) => message.authorRole === "ADMIN");
 
-  const updated = await prisma.supportTicket.update({
-    where: {
-      id: input.ticketId
-    },
-    data: {
-      status: input.status,
-      assigneeId: input.assigneeId?.trim() || null
+  const updated = await prisma.$transaction(async tx => {
+    await tx.$queryRaw`SELECT "id" FROM "SupportTicket" WHERE "id" = ${input.ticketId} FOR UPDATE`;
+    const previous = await tx.supportTicket.findUniqueOrThrow({ where: { id: input.ticketId } });
+    const changed = await tx.supportTicket.update({ where: { id: input.ticketId }, data: { status: input.status, assigneeId: input.assigneeId?.trim() || null } });
+    if (previous.status !== input.status) {
+      const statuses: Record<string, string> = { OPEN: "Открыто", IN_PROGRESS: "В работе", WAITING_CLIENT: "Ожидаем ваш ответ", RESOLVED: "Решено", CLOSED: "Закрыто" };
+      await createClientNotification(tx, { userId: ticket.userId, type: "SUPPORT_STATUS", relatedType: "SupportTicket", relatedId: ticket.id,
+        title: `Статус обращения · #${ticket.number}`, detail: statuses[input.status] ?? input.status, href: `/cabinet/support?ticket=${ticket.id}#ticket-${ticket.id}` });
     }
+    return changed;
   });
 
   if (shouldAddOperatorWaitMessage) {
@@ -2809,15 +2766,16 @@ export async function updateAdminOrder(input: {
 
   const nextTrackingNumber = input.trackingNumber?.trim() || null;
   const shouldMarkReceived = input.status === "RECEIVED";
-  const updated = await prisma.routerOrder.update({
-    where: {
-      id: input.orderId
-    },
-    data: {
-      status: input.status,
-      trackingNumber: nextTrackingNumber,
-      receivedAt: shouldMarkReceived ? order.receivedAt ?? new Date() : order.receivedAt
+  const updated = await prisma.$transaction(async tx => {
+    await tx.$queryRaw`SELECT "id" FROM "RouterOrder" WHERE "id" = ${input.orderId} FOR UPDATE`;
+    const previous = await tx.routerOrder.findUniqueOrThrow({ where: { id: input.orderId } });
+    const changed = await tx.routerOrder.update({ where: { id: input.orderId }, data: { status: input.status, trackingNumber: nextTrackingNumber, receivedAt: shouldMarkReceived ? previous.receivedAt ?? new Date() : previous.receivedAt } });
+    if (previous.status !== input.status || previous.trackingNumber !== nextTrackingNumber) {
+      const statuses: Record<string, string> = { CREATED: "Создан", WAITING_PAYMENT: "Ожидает оплаты", PAID: "Оплачен", CONFIGURING: "Настраивается", READY_TO_SHIP: "Готов к отправке", REFUND: "Возврат", SHIPPED: "Отправлен", RECEIVED: "Получен", CANCELED: "Отменён" };
+      await createClientNotification(tx, { userId: order.userId, type: "ORDER_UPDATED", relatedType: "RouterOrder", relatedId: order.id,
+        title: "Заказ роутера обновлён", detail: `${statuses[input.status] ?? input.status}${nextTrackingNumber ? ` · трек-номер ${nextTrackingNumber}` : ""}`, href: "/cabinet/routers" });
     }
+    return changed;
   });
 
   await recordAdminAction({

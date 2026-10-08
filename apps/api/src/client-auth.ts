@@ -4,6 +4,7 @@ import { getAdminSettingValue } from "./admin-settings.js";
 import { config } from "./config.js";
 import { prisma } from "./prisma.js";
 import { ensureClientAndRouterCodes } from "./client-codes.js";
+import { createClientNotification, loginDescription } from "./notifications.js";
 
 const CLIENT_COOKIE_NAME = "foxpoint_client_session";
 const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 30;
@@ -282,13 +283,11 @@ function getClientSessionTokenFromRequest(request: FastifyRequest): string | und
 async function createPersistedClientSession(input: { request: FastifyRequest; userId: string }) {
   const expiresAt = new Date(Date.now() + SESSION_TTL_MS);
   const requestContext = getClientRequestContext(input.request);
-  const session = await prisma.clientSession.create({
-    data: {
-      userId: input.userId,
-      expiresAt,
-      ipAddress: requestContext.ipAddress,
-      userAgent: requestContext.userAgent
-    }
+  const session = await prisma.$transaction(async tx => {
+    const created = await tx.clientSession.create({ data: { userId: input.userId, expiresAt, ipAddress: requestContext.ipAddress, userAgent: requestContext.userAgent } });
+    await createClientNotification(tx, { userId: input.userId, type: "SESSION_LOGIN", relatedType: "ClientSession", relatedId: created.id,
+      title: "Вход выполнен", detail: loginDescription(requestContext.userAgent, requestContext.ipAddress), href: "/cabinet/profile" });
+    return created;
   });
 
   return {
@@ -408,13 +407,10 @@ export async function revokeClientSessionForUser(input: { sessionId: string; use
     };
   }
 
-  await prisma.clientSession.update({
-    where: {
-      id: session.id
-    },
-    data: {
-      revokedAt: new Date()
-    }
+  await prisma.$transaction(async tx => {
+    const changed = await tx.clientSession.updateMany({ where: { id: session.id, revokedAt: null }, data: { revokedAt: new Date() } });
+    if (changed.count) await createClientNotification(tx, { userId: input.userId, type: "SESSION_REVOKED", relatedType: "ClientSession", relatedId: session.id,
+      title: "Сессия завершена", detail: `Вход на устройстве завершён${session.ipAddress ? ` · IP ${session.ipAddress}` : ""}.`, href: "/cabinet/profile" });
   });
 
   return {

@@ -344,6 +344,7 @@ model Notification {
   type        String
   relatedType String?
   relatedId   String?
+  payloadSnapshot Json?
   readAt      DateTime?
   createdAt   DateTime @default(now())
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)

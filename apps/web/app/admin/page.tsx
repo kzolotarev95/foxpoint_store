@@ -9,6 +9,7 @@ import { getAdminCookieName, readAdminSession } from "../../lib/admin-auth";
 import type { AdminOverview } from "../../lib/portal-types";
 import { getExpiredSessionCookieOptions } from "../../lib/session-cookie";
 import { TicketConversation } from "../../components/ticket-conversation";
+import { AdminServerMetrics } from "../../components/admin-server-metrics";
 
 type AdminSettingRecord = {
   defaultValue: string;
@@ -943,20 +944,23 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
         ) : (
         <article id="overview" className="panel hero adminHero">
           <div className="adminHeroHeader">
-            <div className="adminHeroCopy">
-              <span className="pill">Админ-панель</span>
-              <h1>Управление сервисом</h1>
-              <p>Управляйте сервисом и настройками. Клиенты, роутеры и подписки доступны в разделе «База данных».</p>
+            <div className="adminHeroMain">
+              <div className="adminHeroCopy">
+                <span className="pill">Админ-панель</span>
+                <h1>Управление сервисом</h1>
+                <p>Управляйте сервисом и настройками. Клиенты, роутеры и подписки доступны в разделе «База данных».</p>
+              </div>
+              <div className="ctaRow adminHeroActions">
+                <Link className="primaryButton" href={getDatabaseHref()}>Открыть базу данных</Link>
+                <Link className="secondaryButton" href="#assign">
+                  Привязать роутер
+                </Link>
+                <Link className="secondaryButton" href={latestNewTicketHref}>
+                  Открыть тикеты
+                </Link>
+              </div>
             </div>
-            <div className="ctaRow adminHeroActions">
-              <Link className="primaryButton" href={getDatabaseHref()}>Открыть базу данных</Link>
-              <Link className="secondaryButton" href="#assign">
-                Привязать роутер
-              </Link>
-              <Link className="secondaryButton" href={latestNewTicketHref}>
-                Открыть тикеты
-              </Link>
-            </div>
+            <AdminServerMetrics />
           </div>
           <div className="miniGrid adminOverviewGrid">
             {dashboardCards.map((card) => (

@@ -183,7 +183,12 @@ export type ClientOverview = {
     type: string;
     createdAt: string;
     readAt: string | null;
+    title: string;
+    detail: string;
+    href: string;
   }>;
+  notificationFeedAsOf: string;
+  notificationFeedHasMore: boolean;
 };
 
 export type AdminOverview = {

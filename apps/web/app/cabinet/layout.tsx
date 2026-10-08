@@ -50,7 +50,7 @@ export default async function CabinetLayout({ children }: { children: ReactNode 
                   Заказать роутер
                 </button>
               </form>
-              {overview ? <CabinetNotificationsBell notifications={overview.notifications} /> : null}
+              {overview ? <CabinetNotificationsBell initial={{ notifications: overview.notifications, unreadCount: overview.stats.unreadNotificationCount, asOf: overview.notificationFeedAsOf, hasMore: overview.notificationFeedHasMore }} /> : null}
               <span className="portalUserChip portalUserChipRich">
                 <span className="portalUserAvatar">{userInitials}</span>
                 {userName}

@@ -46,7 +46,7 @@ try {
   await source.referral.create({ data: { referrerUserId: user.id, referredUserId: second.id, referralCode: "backup-referral" } });
   await source.referralReward.create({ data: { beneficiaryUserId: user.id, referredUserId: second.id, sourceType: "PAYMENT", sourceId: payment.id, paymentId: payment.id, amount: "5.25" } });
   await source.balanceTransaction.create({ data: { userId: user.id, type: "MANUAL_ADJUSTMENT", amount: "-15.01", sourceType: "TEST", sourceId: "backup" } });
-  await source.notification.create({ data: { userId: user.id, type: "BACKUP_TEST" } });
+  await source.notification.create({ data: { userId: user.id, type: "BACKUP_TEST", payloadSnapshot: { title: "Ответ поддержки", detail: "Текст уведомления сохраняется в полном бэкапе", href: "/cabinet/support" } } });
   await source.appSetting.upsert({ where: { key: "backup_integration" }, create: { key: "backup_integration", value: "Все настройки: ✓" }, update: { value: "Все настройки: ✓" } });
   await source.adminAuditLog.create({ data: { adminId: user.id, action: "backup_integration", entityType: "USER", entityId: user.id, beforeData: { enabled: false }, afterData: { enabled: true } } });
   const names = (await source.$queryRawUnsafe("SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename")).map(row => row.tablename);

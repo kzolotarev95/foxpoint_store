@@ -17,6 +17,8 @@
     "test:subscriptions": "npm run build --workspace @foxpoint/api && node scripts/test-subscription-period.mjs",
     "test:backups": "npm run build --workspace @foxpoint/api && python scripts/test-backup-archive.py && node scripts/test-backup-routes.mjs && node scripts/test-full-backup.mjs",
     "test:backup-nginx": "node scripts/test-backup-nginx.mjs",
+    "test:server-metrics": "npm run build --workspace @foxpoint/api && node scripts/test-server-metrics.mjs",
+    "test:notifications": "npm run build --workspace @foxpoint/api && node scripts/test-notifications.mjs",
     "lint": "npm run lint --workspace @foxpoint/api && npm run lint --workspace @foxpoint/web",
     "start:api": "npm run start --workspace @foxpoint/api",
     "start:web": "npm run start --workspace @foxpoint/web -- --hostname 127.0.0.1 --port 3000"
