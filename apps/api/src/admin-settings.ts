@@ -295,7 +295,7 @@ const adminSettingDefinitions: AdminSettingDefinition[] = [
   },
   {
     key: "app_url",
-    label: "NEXT_PUBLIC_APP_URL",
+    label: "Публичный адрес сайта",
     description: "Базовый публичный адрес сайта. Используется для реферальных ссылок и других переходов с доменом.",
     group: "Коммуникации",
     input: "url",
@@ -342,6 +342,7 @@ const adminSettingDefinitions: AdminSettingDefinition[] = [
 
 function normalizeValue(definition: AdminSettingDefinition, rawValue: string | undefined): string {
   if (definition.key === "subscription_period_days") return "30";
+  if (definition.key === "trial_period_days") return "14";
   const nextValue = (rawValue ?? "").trim();
   if (definition.input === "boolean") {
     return nextValue === "true" || nextValue === "1" || nextValue === "on" ? "true" : "false";
@@ -352,23 +353,26 @@ function normalizeValue(definition: AdminSettingDefinition, rawValue: string | u
       return "";
     }
 
-    throw new Error(`Setting "${definition.label}" is required.`);
+      throw new Error(`Заполните «${definition.label}».`);
   }
 
   if (definition.input === "number") {
     const parsed = Number(nextValue);
     if (!Number.isFinite(parsed) || parsed < 0) {
-      throw new Error(`Setting "${definition.label}" must be a non-negative number.`);
+      throw new Error(`«${definition.label}»: укажите неотрицательное число.`);
     }
 
+    if(parsed>1000000 || definition.key==="referral_subscription_percent" && parsed>100)throw new Error(`«${definition.label}»: значение вне допустимого диапазона.`);
+    if(definition.key==="referral_review_days" && (!Number.isInteger(parsed) || parsed>3650))throw new Error("Период проверки: целое число от 0 до 3650 дней.");
     return String(parsed);
   }
 
-  if (definition.key === "api_public_url") {
-    return normalizeBaseUrl(nextValue, definition.defaultValue);
-  }
+  if(definition.key==="yoomoney_payment_type" && !["AC","PC"].includes(nextValue))throw new Error("Тип оплаты ЮMoney: выберите карту или кошелёк.");
 
-  if (definition.input === "url") {
+  if (definition.input === "url" || definition.key === "api_public_url") {
+    let url:URL;try{url=new URL(nextValue.startsWith("@")?`https://t.me/${nextValue.slice(1)}`:nextValue);}catch{throw new Error(`«${definition.label}»: неверный адрес.`);}
+    if(!["http:","https:"].includes(url.protocol)||url.username||url.password)throw new Error(`«${definition.label}»: укажите HTTP/HTTPS без логина и пароля.`);
+    if(definition.key==="tg_bot_url" && url.pathname.includes("example_bot"))throw new Error("Укажите утверждённого рабочего Telegram-бота; example_bot — заглушка.");
     if (definition.key === "app_url") {
       return normalizeBaseUrl(nextValue, definition.defaultValue);
     }
@@ -402,16 +406,7 @@ async function ensureSettingsSeeded(): Promise<void> {
     return;
   }
 
-  await prisma.$transaction(
-    missingDefinitions.map((definition) =>
-      (prisma as any).appSetting.create({
-        data: {
-          key: definition.key,
-          value: definition.defaultValue
-        }
-      })
-    )
-  );
+  await prisma.appSetting.createMany({ data: missingDefinitions.map(definition => ({ key: definition.key, value: definition.defaultValue })), skipDuplicates: true });
 }
 
 export async function getAdminSettings(): Promise<AdminSettingRecord[]> {
@@ -432,7 +427,7 @@ export async function getAdminSettings(): Promise<AdminSettingRecord[]> {
     value:
       definition.key === "api_public_url"
         ? normalizeBaseUrl(valueByKey.get(definition.key) ?? "", definition.defaultValue)
-        : definition.key === "subscription_period_days" ? "30" : valueByKey.get(definition.key) ?? definition.defaultValue
+        : definition.key === "subscription_period_days" ? "30" : definition.key === "trial_period_days" ? "14" : valueByKey.get(definition.key) ?? definition.defaultValue
   }));
 }
 
@@ -472,19 +467,28 @@ export async function getPublicSettingLinks(): Promise<{
 
 export async function saveAdminSettings(values: Record<string, string>): Promise<AdminSettingRecord[]> {
   await ensureSettingsSeeded();
-
+  const selected=adminSettingDefinitions.filter(definition=>Object.hasOwn(values,definition.key) && !(definition.input === "password" && !values[definition.key]?.trim()));
+  const previous=await prisma.appSetting.findMany();
+  const proposed=new Map(previous.map(s=>[s.key,s.value]));
+  for(const definition of selected) {
+    if (definition.input === "url" && proposed.get(definition.key) === values[definition.key]?.trim()) continue;
+    proposed.set(definition.key,normalizeValue(definition,values[definition.key]));
+  }
+  for(const [provider,keys] of [["platega",["platega_api_base_url","platega_merchant_id","platega_secret"]],["yoomoney",["yoomoney_receiver","yoomoney_payment_type","yoomoney_notification_secret"]],["yookassa",["yookassa_shop_id","yookassa_secret_key"]]] as const){
+    if(selected.some(d=>d.key.startsWith(`${provider}_`)) && proposed.get(`${provider}_enabled`)==="true" && keys.some(key=>!proposed.get(key)?.trim()))throw new Error(`Провайдер ${provider} включён: заполните все обязательные поля или отключите его.`);
+  }
   await prisma.$transaction(
-    adminSettingDefinitions.map((definition) =>
+    selected.map((definition) =>
       (prisma as any).appSetting.upsert({
         where: {
           key: definition.key
         },
         update: {
-          value: normalizeValue(definition, values[definition.key])
+          value: proposed.get(definition.key)!
         },
         create: {
           key: definition.key,
-          value: normalizeValue(definition, values[definition.key])
+          value: proposed.get(definition.key)!
         }
       })
     )

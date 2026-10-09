@@ -23,10 +23,16 @@ export const clientDatabaseSchema = z.array(z.object({
 export type ClientDatabaseRow = z.infer<typeof clientDatabaseSchema>[number];
 
 export function getImportPlan(row: ClientDatabaseRow) {
+  if (row.tariff === "Индивидуальный" && (row.monthlyPrice == null || row.monthlyPrice <= 0)) {
+    throw new Error(`Для индивидуального тарифа укажите явную стоимость: ${row.clientCode}`);
+  }
+  if (row.tariff === "Самостоятельно" && (row.paidAmount ?? 0) > 0) {
+    throw new Error(`Для тарифа «Самостоятельно» нельзя указывать оплату: ${row.clientCode}`);
+  }
   const accessEnabled = row.tariff === "Сервер" || row.tariff === "Полный";
   const supportType: SupportType = ["Техничка", "Полный", "Индивидуальный"].includes(row.tariff) ? "BASIC" : "NONE";
   const monthlyPrice = row.tariff === "Самостоятельно" ? 0
-    : row.tariff === "Индивидуальный" ? row.monthlyPrice ?? 0
+    : row.tariff === "Индивидуальный" ? row.monthlyPrice!
     : row.paidMonths && row.paidAmount != null ? row.paidAmount / row.paidMonths
     : row.tariff === "Полный" ? 2000 : 1000;
   const startAt = row.startDate ? new Date(`${row.startDate}T00:00:00+04:00`) : null;
@@ -34,7 +40,7 @@ export function getImportPlan(row: ClientDatabaseRow) {
     new Date(startAt.getTime() + 4 * 60 * 60 * 1000).toISOString().slice(0, 10) !== row.startDate)) {
     throw new Error(`Некорректная дата: ${row.clientCode}`);
   }
-  const daysAdded = row.paidMonths * SUBSCRIPTION_MONTH_DAYS;
+  const daysAdded = row.tariff === "Самостоятельно" ? 0 : row.paidMonths * SUBSCRIPTION_MONTH_DAYS;
   const endAt = startAt && daysAdded ? new Date(startAt.getTime() + daysAdded * DAY_MS) : null;
   return { accessEnabled, supportType, monthlyPrice, startAt, daysAdded, endAt };
 }
@@ -70,7 +76,7 @@ export async function importClientDatabase(input: unknown) {
         user = await tx.user.create({ data: {
           clientCode: row.clientCode, name: row.name, phone: row.phone, city: row.city,
           contactTelegram: row.telegram?.replace(/^https?:\/\/t\.me\//i, "").replace(/^@/, "") ?? null,
-          status: row.state === "Архив" ? "BLOCKED" : "ACTIVE"
+          status: "ACTIVE", archivedAt: row.state === "Архив" ? new Date() : null, isTest: row.clientCode === "CLI-0001"
         } });
         createdClients++;
       }

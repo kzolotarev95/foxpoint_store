@@ -82,6 +82,8 @@ touch "$BACKUP_DIR/schema-started"
 # Refuse schema changes that Prisma considers destructive.
 node scripts/run-with-env.mjs .env npm run db:push
 node scripts/run-with-env.mjs .env node scripts/import-client-database.mjs
+node scripts/run-with-env.mjs .env node scripts/migrate-admin-tz.mjs
+node scripts/run-with-env.mjs .env node scripts/reconcile-client-import.mjs
 mv "$APP_DIR" "$BACKUP_DIR/app-before"
 mv "$CANDIDATE_DIR" "$APP_DIR"
 # Extend only the FoxPoint backup location; preserve existing domains and TLS settings.

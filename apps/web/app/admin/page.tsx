@@ -10,6 +10,16 @@ import type { AdminOverview } from "../../lib/portal-types";
 import { getExpiredSessionCookieOptions } from "../../lib/session-cookie";
 import { TicketConversation } from "../../components/ticket-conversation";
 import { AdminServerMetrics } from "../../components/admin-server-metrics";
+import { AdminSingleDisclosure } from "../../components/admin-single-disclosure";
+import { AdminFormGuard } from "../../components/admin-form-guard";
+import { AdminRegisterNavigation, AdminQueryFilters, AdminPagination, AdminQrToggle, AdminQrTools, AdminStickySearch } from "../../components/admin-register-controls";
+import { AdminCopyContact } from "../../components/admin-copy-contact";
+import { AdminPlanChange, AdminPaymentForm } from "../../components/admin-plan-change";
+import { AdminAssignment, AdminCreateClient } from "../../components/admin-assignment";
+import { AdminAuditCard } from "../../components/admin-audit-card";
+import { AdminNavigation } from "../../components/admin-navigation";
+import { adminStatus, adminMoney } from "../../lib/admin-display";
+import { AdminPayments, type AdminPaymentList } from "../../components/admin-payments";
 
 type AdminSettingRecord = {
   defaultValue: string;
@@ -26,9 +36,12 @@ type PageSearchParams = Promise<Record<string, string | string[] | undefined>>;
 type AdminUserRecord = AdminOverview["users"][number];
 type DatabaseTab = "clients" | "routers" | "subscriptions";
 
-function getDatabaseHref(tab: DatabaseTab = "clients", query = ""): string {
+function getDatabaseHref(tab: DatabaseTab = "clients", query = "", extra: Record<string, string | number | undefined> = {}): string {
   const params = new URLSearchParams({ view: "database", tab });
   if (query) params.set("q", query);
+  for (const [key, value] of Object.entries(extra)) {
+    if (value !== undefined && value !== "") params.set(key, String(value));
+  }
   return `/admin?${params.toString()}`;
 }
 
@@ -48,6 +61,10 @@ function appendMessageToPath(path: string, key: "error" | "success", message: st
 
 function getAdminUserName(user: Pick<AdminUserRecord, "name">): string {
   return user.name?.trim() || "Без имени";
+}
+
+function getAdminPlanClass(plan: string | null | undefined): string {
+  return `adminPlanBadge adminPlan${(plan || "").replace(/[^a-zA-Zа-яА-Я0-9]+/g, "") || "Unknown"}`;
 }
 
 function getAdminUserEmail(user: Pick<AdminUserRecord, "email">): string {
@@ -103,6 +120,7 @@ function formatDate(value: string | null | undefined): string {
   }
 
   return new Intl.DateTimeFormat("ru-RU", {
+    timeZone: "Europe/Moscow",
     day: "2-digit",
     month: "2-digit",
     year: "numeric"
@@ -115,6 +133,7 @@ function formatDateTime(value: string | null | undefined): string {
   }
 
   return new Intl.DateTimeFormat("ru-RU", {
+    timeZone: "Europe/Moscow",
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
@@ -129,8 +148,7 @@ function formatDateTimeInputValue(value: string | null | undefined): string {
   }
 
   const date = new Date(value);
-  const offset = date.getTimezoneOffset();
-  const normalized = new Date(date.getTime() - offset * 60_000);
+  const normalized = new Date(date.getTime() + 3 * 60 * 60 * 1000);
   return normalized.toISOString().slice(0, 16);
 }
 
@@ -507,7 +525,7 @@ async function updateTicketAction(formData: FormData) {
     path: `/api/admin/tickets/${ticketId}`,
     fallbackError: "Не удалось обновить обращение.",
     successMessage: "Обращение обновлено.",
-    redirectTo: `/admin#ticket-${ticketId}`,
+    redirectTo: `/admin?view=tickets#ticket-${ticketId}`,
     body: {
       status: String(formData.get("status") ?? "OPEN"),
       assigneeId: String(formData.get("assigneeId") ?? "").trim() || undefined
@@ -523,7 +541,7 @@ async function deleteTicketAction(formData: FormData) {
     path: `/api/admin/tickets/${ticketId}/delete`,
     fallbackError: "Не удалось удалить обращение.",
     successMessage: "Обращение удалено.",
-    redirectTo: "/admin#tickets",
+    redirectTo: "/admin?view=tickets",
     body: {}
   });
 }
@@ -535,7 +553,7 @@ async function clearAuditAction() {
     path: "/api/admin/audit/clear",
     fallbackError: "Не удалось очистить аудит.",
     successMessage: "Аудит очищен.",
-    redirectTo: "/admin#audit",
+    redirectTo: "/admin?view=audit",
     body: {}
   });
 }
@@ -669,6 +687,7 @@ async function updateOrderAction(formData: FormData) {
     path: `/api/admin/orders/${orderId}`,
     fallbackError: "Не удалось обновить заказ.",
     successMessage: "Заказ обновлен.",
+    redirectTo: "/admin?view=orders",
     body: {
       status: String(formData.get("status") ?? "CREATED"),
       trackingNumber: String(formData.get("trackingNumber") ?? "").trim() || undefined
@@ -684,6 +703,7 @@ async function deleteOrderAction(formData: FormData) {
     path: `/api/admin/orders/${orderId}/delete`,
     fallbackError: "Не удалось удалить заказ.",
     successMessage: "Заказ удален.",
+    redirectTo: "/admin?view=orders",
     body: {}
   });
 }
@@ -704,7 +724,9 @@ async function updateRouterAction(formData: FormData) {
       ownerUserId: String(formData.get("ownerUserId") ?? "").trim(),
       configurationType: String(formData.get("configurationType") ?? "BASIC"),
       status: String(formData.get("status") ?? "ACTIVE"),
-      adminNote: String(formData.get("adminNote") ?? "").trim() || undefined
+      adminNote: String(formData.get("adminNote") ?? "").trim() || undefined,
+      archived: formData.get("archived") === "on", reason: String(formData.get("reason") ?? "").trim(),
+      ...(formData.get("applyPlan") === "on" ? { serviceTariff: String(formData.get("serviceTariff")), planPrice: String(formData.get("planPrice")), planPeriodDays: String(formData.get("planPeriodDays")), planAccessEnabled: formData.get("planAccessEnabled") === "on", planSupportType: String(formData.get("planSupportType")) } : {})
     }
   });
 }
@@ -716,7 +738,7 @@ async function deleteRouterAction(formData: FormData) {
   await submitAdminMutation({
     path: `/api/admin/routers/${routerId}/delete`,
     fallbackError: "Не удалось удалить роутер.",
-    successMessage: "Роутер удален.",
+    successMessage: "Роутер перенесён в архив. Подписки, платежи и QR сохранены.",
     redirectTo: getDatabaseHref("routers"),
     body: {}
   });
@@ -736,6 +758,7 @@ async function updateSubscriptionAction(formData: FormData) {
       startAt: String(formData.get("startAt") ?? "").trim() || undefined,
       endAt: String(formData.get("endAt") ?? "").trim() || undefined,
       pendingActivation: formData.get("pendingActivation") === "on"
+      ,reason: String(formData.get("reason") ?? "").trim()
     }
   });
 }
@@ -764,6 +787,7 @@ async function updateRewardAction(formData: FormData) {
     path: `/api/admin/rewards/${rewardId}`,
     fallbackError: "Не удалось обновить начисление.",
     successMessage: "Начисление обновлено.",
+    redirectTo: "/admin?view=rewards",
     body: {
       status: String(formData.get("status") ?? "PENDING")
     }
@@ -782,11 +806,13 @@ async function updateUserAction(formData: FormData) {
     redirectTo: returnTo,
     body: {
       name: String(formData.get("name") ?? "").trim() || undefined,
+      publicName: String(formData.get("publicName") ?? "").trim(), reason: String(formData.get("reason") ?? "").trim(),
       phone: String(formData.get("phone") ?? "").trim(),
       city: String(formData.get("city") ?? "").trim(),
       email: String(formData.get("email") ?? "").trim(),
       telegramUsername: String(formData.get("telegramUsername") ?? "").trim(),
       status: String(formData.get("status") ?? "ACTIVE")
+      ,archived: formData.get("archived") === "on", isTest: formData.get("isTest") === "on"
     }
   });
 }
@@ -815,13 +841,37 @@ async function setClientCredentialsAction(formData: FormData) {
 
 export default async function AdminPage(props: { searchParams: PageSearchParams }) {
   const searchParams = await props.searchParams;
-  const isDatabaseView = getSingleParam(searchParams.view) === "database";
+  const requestedView = getSingleParam(searchParams.view) ?? "overview";
+  const adminView = ["database", "assign", "orders", "tickets", "rewards", "audit", "settings", "payments"].includes(requestedView) ? requestedView : "overview";
+  const isDatabaseView = adminView === "database";
   const requestedTab = getSingleParam(searchParams.tab);
   const databaseTab: DatabaseTab = requestedTab === "routers" || requestedTab === "subscriptions" ? requestedTab : "clients";
-  const clientQuery = isDatabaseView && databaseTab === "clients" ? getSingleParam(searchParams.q)?.trim() ?? "" : "";
+  const clientQuery = getSingleParam(searchParams.q)?.trim() ?? "";
+  const clientPage = Number(getSingleParam(searchParams.page) ?? "1") || 1;
+  const clientPageSize = Number(getSingleParam(searchParams.pageSize) ?? "25") || 25;
+  const clientPlan = getSingleParam(searchParams.plan)?.trim() ?? "";
+  const clientStatus = getSingleParam(searchParams.status)?.trim() ?? "";
+  const clientCity = getSingleParam(searchParams.city)?.trim() ?? "";
+  const clientSort = ["name", "code", "end"].includes(getSingleParam(searchParams.sort) ?? "") ? getSingleParam(searchParams.sort) as "name" | "code" | "end" : "created";
+  const clientExpiry = getSingleParam(searchParams.expiry)?.trim() ?? "";
+  const metric = getSingleParam(searchParams.metric) ?? "";
+  const dashboardMonth = getSingleParam(searchParams.month) ?? "";
+  const overviewParams = new URLSearchParams();
+  overviewParams.set("tab", databaseTab);
+  for(const key of ["recordStatus","ticketStatus","orderStatus","rewardStatus","logAction","logAdmin","from","to"]) { const value=getSingleParam(searchParams[key]); if(value)overviewParams.set(key,value); }
+  if (clientQuery) overviewParams.set("q", clientQuery);
+  if (clientPage > 1) overviewParams.set("page", String(clientPage));
+  if ([25, 50, 100].includes(clientPageSize) && clientPageSize !== 25) overviewParams.set("pageSize", String(clientPageSize));
+  if (clientPlan) overviewParams.set("plan", clientPlan);
+  if (clientStatus) overviewParams.set("status", clientStatus);
+  if (clientCity) overviewParams.set("city", clientCity);
+  if (clientSort !== "created") overviewParams.set("sort", clientSort);
+  if (clientExpiry) overviewParams.set("expiry", clientExpiry);
+  if (metric) overviewParams.set("metric", metric);
+  if (/^\d{4}-(0[1-9]|1[0-2])$/.test(dashboardMonth)) overviewParams.set("month", dashboardMonth);
   const [settingsPayload, overview] = await Promise.all([
     fetchAdminApi<{ settings: AdminSettingRecord[] }>("/api/admin/settings"),
-    fetchAdminApi<AdminOverview>(`/api/admin/overview${clientQuery ? `?q=${encodeURIComponent(clientQuery)}` : ""}`)
+    fetchAdminApi<AdminOverview>(`/api/admin/overview${overviewParams.toString() ? `?${overviewParams.toString()}` : ""}`)
   ]);
 
   const settingsByGroup = settingsPayload.settings.reduce<Record<string, AdminSettingRecord[]>>((groups, setting) => {
@@ -838,7 +888,16 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
   const appLoginUrl = appUrlSetting ? `${appUrlSetting.value.replace(/\/+$/, "")}/login` : null;
   const successMessage = getSingleParam(searchParams.success);
   const errorMessage = getSingleParam(searchParams.error);
-  const clientReturnTo = getDatabaseHref("clients", overview.clientQuery);
+  const clientReturnTo = getDatabaseHref("clients", overview.clientQuery, {
+    page: overview.clientPage > 1 ? overview.clientPage : undefined,
+    pageSize: overview.clientPageSize !== 25 ? overview.clientPageSize : undefined,
+    plan: overview.clientPlan,
+    status: overview.clientStatus,
+    city: overview.clientCity,
+    sort: overview.clientSort,
+    expiry: overview.clientExpiry,
+    month: overview.dashboard.month
+  });
   const newTicketCount = getAdminTicketBadgeCount(overview);
   const latestNewTicketHref = getLatestNewTicketHref(overview);
   const newOrderCount = getAdminOrderBadgeCount(overview);
@@ -858,69 +917,63 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
     },
     {
       description: "Открыть подписки",
-      href: getDatabaseHref("subscriptions"),
-      label: "Активных подписок",
-      value: overview.stats.activeSubscriptions
+      href: getDatabaseHref("subscriptions","",{recordStatus:"active_paid"}),
+      label: "Активных платных подписок",
+      value: overview.dashboard.paidSubscriptions
     },
     {
-      description: "Перейти к тикетам",
-      href: "#tickets",
-      label: "Открытых тикетов",
+      description: "Новые, в работе и ожидающие ответа",
+      href: "/admin?view=tickets&ticketStatus=open",
+      label: "Открытых обращений",
       value: overview.stats.openTickets
     }
   ] as const;
   const adminNavItems = [
-    { href: "/admin#overview", label: "Сводка", icon: <DashboardIcon /> },
+    { href: "/admin", label: "Сводка", icon: <DashboardIcon />, active: adminView === "overview" },
     { href: getDatabaseHref(), label: "База данных", icon: <DatabaseIcon />, active: isDatabaseView },
     { href: "/admin/backups", label: "Бэкап", icon: <DatabaseIcon /> },
-    { href: "/admin#assign", label: "Привязать роутер", icon: <PlugIcon /> },
-    { href: `/admin${latestNewOrderHref}`, label: "Заказы", icon: <CartIcon />, badge: newOrderCount ? `+${newOrderCount}` : null },
-    { href: `/admin${latestNewTicketHref}`, label: "Обращения", icon: <MessageIcon />, badge: newTicketCount ? `+${newTicketCount}` : null },
-    { href: "/admin#rewards", label: "Рефералки", icon: <GiftIcon /> },
-    { href: "/admin#audit", label: "Аудит", icon: <AuditIcon /> },
-    ...(isDatabaseView ? [{ href: "/admin#Платежи", label: "Настройки", icon: <SettingsIcon /> }] : [])
+    { href: "/admin?view=assign", label: "Привязать роутер", icon: <PlugIcon />, active: adminView === "assign" },
+    { href: `/admin?view=orders${latestNewOrderHref}`, label: "Заказы", icon: <CartIcon />, active: adminView === "orders", badge: newOrderCount ? `+${newOrderCount}` : null },
+    { href: `/admin?view=tickets${latestNewTicketHref}`, label: "Обращения", icon: <MessageIcon />, active: adminView === "tickets", badge: newTicketCount ? `+${newTicketCount}` : null },
+    { href: "/admin?view=rewards", label: "Рефералки", icon: <GiftIcon />, active: adminView === "rewards" },
+    { href: "/admin?view=audit", label: "Аудит", icon: <AuditIcon />, active: adminView === "audit" },
+    { href: "/admin?view=settings", label: "Настройки", icon: <SettingsIcon />, active: adminView === "settings" }
   ];
   const databaseTabs = [
     { key: "clients", label: "Клиенты", icon: <UsersIcon />, count: overview.stats.users },
     { key: "routers", label: "Роутеры", icon: <RouterRackIcon />, count: overview.stats.routers },
-    { key: "subscriptions", label: "Подписки", icon: <CalendarIcon />, count: overview.subscriptions.length }
+    { key: "subscriptions", label: "Подписки", icon: <CalendarIcon />, count: overview.registerMeta.subscriptions.total }
   ] satisfies Array<{ key: DatabaseTab; label: string; icon: ReactNode; count: number }>;
+  const routersByOwner = new Map<string, AdminOverview["routers"]>();
+  for (const router of overview.routers) {
+    const ownerRouters = routersByOwner.get(router.ownerId) ?? [];
+    ownerRouters.push(router);
+    routersByOwner.set(router.ownerId, ownerRouters);
+  }
+  const subscriptionsByRouter = new Map(overview.subscriptions.map((subscription) => [subscription.routerId, subscription]));
+  const clientListHref = (extra: Record<string, string | number | undefined> = {}) => getDatabaseHref("clients", overview.clientQuery, {
+    page: extra.page ?? (overview.clientPage > 1 ? overview.clientPage : undefined),
+    pageSize: extra.pageSize ?? (overview.clientPageSize !== 25 ? overview.clientPageSize : undefined),
+    plan: extra.plan ?? overview.clientPlan,
+    status: extra.status ?? overview.clientStatus,
+    city: extra.city ?? overview.clientCity,
+    sort: extra.sort ?? (overview.clientSort !== "created" ? overview.clientSort : undefined),
+    expiry: extra.expiry ?? overview.clientExpiry,
+    month: overview.dashboard.month,
+    metric: extra.metric ?? metric
+  });
+  const pageCount = Math.max(1, Math.ceil(overview.clientCount / overview.clientPageSize));
+  const exportParams = new URLSearchParams({ q: overview.clientQuery, plan: overview.clientPlan, status: overview.clientStatus, city: overview.clientCity, sort: overview.clientSort, expiry: overview.clientExpiry, month: overview.dashboard.month, metric });
+  const exportHref = `/admin/database/export?${exportParams.toString()}`;
+  const paymentList=adminView==="payments"?await fetchAdminApi<AdminPaymentList>(`/api/admin/payments?${overviewParams}`):null;
 
   return (
-    <main className={`shell dashboardShell adminDashboardShell${isDatabaseView ? " adminDatabaseDashboard" : ""}`}>
-      <aside className="panel sideNav" aria-label="Навигация по админке">
-        <span className="pill">Навигация</span>
-        <ul>
-          {adminNavItems.map((item) => (
-            <li key={item.href}>
-              <a className="adminSideNavLink" href={item.href} aria-current={item.active ? "page" : undefined}>
-                <AdminNavIcon>{item.icon}</AdminNavIcon>
-                {renderAdminNavLabel(item)}
-              </a>
-            </li>
-          ))}
-          {(!isDatabaseView ? groupNames : []).map((groupName) => (
-            <li key={groupName}>
-              <a className="adminSideNavLink" href={`/admin#${groupName}`}>
-                <AdminNavIcon>{getGroupNavIcon(groupName)}</AdminNavIcon>
-                {renderAdminNavLabel({ label: groupName })}
-              </a>
-            </li>
-          ))}
-        </ul>
-        <div className="contentStack adminSidebarActions">
-          <Link className="secondaryButton" href="/">
-            На главную
-          </Link>
-          <form action={logoutAction}>
-            <button className="secondaryButton fullWidthButton" type="submit">
-              Выйти
-            </button>
-          </form>
-        </div>
-      </aside>
+    <AdminRegisterNavigation><main className={`shell dashboardShell adminDashboardShell${isDatabaseView ? " adminDatabaseDashboard" : ""}`}>
+      <AdminFormGuard />
+      <AdminNavigation active={isDatabaseView?"База данных":adminView === "overview"?"Сводка":({assign:"Привязать роутер",orders:"Заказы",tickets:"Обращения",rewards:"Рефералки",audit:"Аудит",settings:"Настройки",payments:"Журнал оплат"} as Record<string,string>)[adminView]} />
 
       <section className="contentStack adminContentStack">
+        {paymentList?<AdminPayments data={paymentList}/>:null}
         {isDatabaseView ? (
           <header className="panel adminDatabaseHeader">
             <div className="sectionHeader">
@@ -929,20 +982,49 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                 <h1>База данных</h1>
                 <p>Клиенты, роутеры, подписки и история пополнений.</p>
               </div>
-              <Link className="secondaryButton" href="/admin#assign">Привязать роутер</Link>
+              <div className="ctaRow"><AdminQrToggle /><Link className="secondaryButton" href={exportHref}>Экспорт XLSX</Link><Link className="secondaryButton" href={`${exportHref}&format=csv`}>CSV</Link><Link className="secondaryButton" href="/admin?view=assign">Привязать роутер</Link></div>
             </div>
             <nav className="adminDatabaseTabs" aria-label="Разделы базы данных">
               {databaseTabs.map((item) => (
-                <a key={item.key} className="adminDatabaseTab" href={getDatabaseHref(item.key)} aria-current={databaseTab === item.key ? "page" : undefined}>
+                <a key={item.key} className="adminDatabaseTab" data-admin-query-link href={getDatabaseHref(item.key, clientQuery, {month:overview.dashboard.month,plan:clientPlan,city:clientCity,sort:clientSort,pageSize:clientPageSize,expiry:clientExpiry,status:clientStatus,recordStatus:getSingleParam(searchParams.recordStatus)??undefined})} aria-current={databaseTab === item.key ? "page" : undefined}>
                   <AdminNavIcon>{item.icon}</AdminNavIcon>
                   <span>{item.label}</span>
                   <span className="adminDatabaseTabCount">{item.count}</span>
                 </a>
               ))}
             </nav>
+            <section className="adminDatabaseDashboard" aria-label="Финансовая сводка базы">
+              <div className="adminDatabaseDashboardHeader">
+                <div>
+                  <span className="pill">Вся база · ₽ · {overview.dashboard.month}</span>
+                  <p className="helperText">Обновлено {formatDateTime(overview.dashboard.asOf)} МСК. Оплачено — подтверждённые поступления по дате получения за календарный месяц Москвы; импорт и бесплатные тесты исключены, возвраты отдельно. Прогноз — ожидаемые 30-дневные продления по оплаченной дате и сохранённой цене, без авансово оплаченных сроков; это не полученные деньги.</p>
+                </div>
+                <form className="adminMonthForm" data-admin-query action="/admin">
+                  <input type="hidden" name="view" value="database" />
+                  <input type="hidden" name="tab" value={databaseTab} />
+                  {Array.from(overviewParams).filter(([key])=>!["tab","month","page"].includes(key)).map(([key,value])=><input key={key} type="hidden" name={key} value={value}/>)}
+                  <input className="textInput" type="month" name="month" defaultValue={overview.dashboard.month} aria-label="Месяц сводки" />
+                  <button className="secondaryButton" type="submit">Показать</button>
+                </form>
+              </div>
+              <div className="adminFinanceGrid">
+                <Link className="adminFinanceCard" href={getDatabaseHref("clients", "", { month: overview.dashboard.month, metric: "clients" })}><span>Рабочих клиентов</span><strong>{overview.dashboard.totalClients}</strong><small>рабочая база</small></Link>
+                <Link className="adminFinanceCard" href={getDatabaseHref("clients", "", { month: overview.dashboard.month, metric: "active" })}><span>Активные клиенты</span><strong>{overview.dashboard.activeClients}</strong><small>действующая платная услуга</small></Link>
+                <Link className="adminFinanceCard" href={clientListHref({ metric: "payments" })}><span>Оплачено за месяц</span><strong>{overview.dashboard.confirmedPaymentsLabel}</strong><small>реальные поступления · раскрыть</small></Link>
+                <Link className="adminFinanceCard" href={clientListHref({ metric: "forecast" })}><span>Прогноз продлений</span><strong>{overview.dashboard.nextMonthForecastLabel}</strong><small>{overview.dashboard.nextMonthOrders} заказов · {overview.dashboard.nextMonth}</small></Link>
+              </div>
+              <div className="adminFinanceMeta">
+                <span>Активные устройства: <strong>{overview.dashboard.activeDevices}</strong></span>
+                <span>Самостоятельно: <strong>{overview.dashboard.selfServiceClients}</strong></span>
+                <span>Бесплатные тесты: <strong>{overview.dashboard.freeTests}</strong></span>
+                <Link href={clientListHref({ metric: "refunds" })}>Возвраты: <strong>{overview.dashboard.refundsLabel}</strong></Link>
+                <span>Действующих подписок: <strong>{overview.dashboard.activeSubscriptions}</strong> · платных: <strong>{overview.dashboard.paidSubscriptions}</strong></span><span>Архив: <strong>{overview.dashboard.archivedClients}</strong> · тестовые: <strong>{overview.dashboard.testClients}</strong></span>
+                <Link href={getDatabaseHref("clients", "", { expiry: "expired" })}>Просрочены / требуют решения: {overview.dashboard.overdue}</Link>
+              </div>
+            </section>
           </header>
         ) : (
-        <article id="overview" className="panel hero adminHero">
+        <article id="overview" hidden={adminView !== "overview"} className="panel hero adminHero">
           <div className="adminHeroHeader">
             <div className="adminHeroMain">
               <div className="adminHeroCopy">
@@ -952,16 +1034,22 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
               </div>
               <div className="ctaRow adminHeroActions">
                 <Link className="primaryButton" href={getDatabaseHref()}>Открыть базу данных</Link>
-                <Link className="secondaryButton" href="#assign">
+                <Link className="secondaryButton" href="/admin?view=assign">
                   Привязать роутер
                 </Link>
-                <Link className="secondaryButton" href={latestNewTicketHref}>
-                  Открыть тикеты
+                <Link className="secondaryButton" href={`/admin?view=tickets${latestNewTicketHref}`}>
+                  Открыть обращения
                 </Link>
               </div>
             </div>
             <AdminServerMetrics />
           </div>
+          <section className="adminDailySummary"><h2>Финансы и задачи администратора</h2><div className="adminFinanceGrid">
+            <Link className="adminFinanceCard" href={`/admin?view=database&tab=clients&metric=payments&month=${overview.dashboard.month}`}><span>Получено за {overview.dashboard.month}</span><strong>{overview.dashboard.confirmedPaymentsLabel}</strong><small>Подтверждённые поступления, без импорта</small></Link>
+            <Link className="adminFinanceCard" href={getDatabaseHref("clients","",{metric:"forecast",month:overview.dashboard.month})}><span>Прогноз · {overview.dashboard.nextMonth}</span><strong>{overview.dashboard.nextMonthForecastLabel}</strong><small>{overview.dashboard.nextMonthOrders} ожидаемых заказов</small></Link>
+            <Link className="adminFinanceCard" href={getDatabaseHref("subscriptions","",{expiry:"soon"})}><span>До окончания ≤ 5 дней</span><strong>{overview.dashboard.expiringSubscriptions}</strong><small>Перейти к соответствующим услугам</small></Link>
+            <Link className="adminFinanceCard" href="/admin?view=tickets&ticketStatus=OPEN"><span>Новые обращения</span><strong>{overview.dashboard.newTickets}</strong><small>Открыть новые обращения</small></Link>
+          </div><p className="helperText">Всего клиентов {overview.stats.users}; рабочая база {overview.dashboard.totalClients} исключает архив ({overview.dashboard.archivedClients}) и тестовые записи ({overview.dashboard.testClients}). Платящих клиентов {overview.dashboard.activeClients}, платных услуг {overview.dashboard.paidSubscriptions}; бесплатные тесты {overview.dashboard.freeTests} считаются отдельно.</p></section>
           <div className="miniGrid adminOverviewGrid">
             {dashboardCards.map((card) => (
               <Link key={card.label} className="metricCard adminDashboardMetricCard" href={card.href}>
@@ -978,92 +1066,39 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
 
         {successMessage ? <div className="banner successBanner">{successMessage}</div> : null}
         {errorMessage ? <div className="banner errorBanner">{errorMessage}</div> : null}
+        {isDatabaseView ? <details className="panel adminReconciliation"><summary>Сверка исходного импорта · {overview.reconciliation.length} записей</summary><p className="helperText">Предпросмотр из прежних документов. Применение заблокировано до сверки актуального файла Google Диска. Последующие оплаты сохраняются. Суммы переноса не являются выручкой.</p>
+          <p className="helperText">Сводка использует текущие сохранённые данные. Перед применением сверяйте источник: значения трёх записей нового PDF отличаются от прежнего локального Excel. Корректировка переноса сохраняет исходные значения и не создаёт денежное поступление.</p>
+          <div className="contentStack">{overview.reconciliation.map(record => <section key={record.routerId} className="adminImportReview"><strong>{record.code} · {record.object}</strong><p>{record.currentPlan} / {record.currentPrice} ₽ → {record.expectedPlan} / {record.expectedPrice} ₽ · сумма переноса {record.importedAmount} → {record.expectedAmount} ₽</p><p className="helperText">Срок {formatDateTime(record.currentEnd)} → {formatDateTime(record.expectedEnd)} МСК · {record.source}</p><p className="helperText">{record.state}</p>
+            {!record.completed ? <form data-admin-path={`/api/admin/routers/${record.routerId}/reconcile`}><label className="fieldStack"><span className="fieldLabel">Причина исторической корректировки</span><input className="textInput" name="reason" minLength={8} maxLength={1000} required placeholder="Сверка с ТЗ от 08.10.2026" /></label><button className="secondaryButton" type="submit" disabled={!record.eligible} data-confirm={`Исправить исходный импорт ${record.code} · ${record.object}? Новая оплата создана не будет. Исходные значения сохранятся в аудите.`}>Применить корректировку</button></form> : null}
+          </section>)}</div>
+        </details> : null}
+
+        {isDatabaseView && ["payments", "forecast", "refunds"].includes(metric) ? <section className="panel sectionPanel">
+          <div className="sectionHeader"><h2 className="adminSectionTitle">{metric === "forecast" ? `Ожидаемые заказы · ${overview.dashboard.nextMonth}` : metric === "refunds" ? `Возвраты · ${overview.dashboard.month}` : `Подтверждённые поступления · ${overview.dashboard.month}`}</h2><Link className="secondaryButton" href={clientListHref({ metric: "" })}>Закрыть детализацию</Link></div>
+          <p className="helperText">Вся база. Импорт и бесплатные тесты в поступления не входят. Прогноз рассчитан по оплаченному окончанию и сохранённой цене продления.</p>
+          <ul className="list adminList">{(metric === "forecast" ? overview.dashboard.forecastDetails : metric === "refunds" ? overview.dashboard.refundDetails : overview.dashboard.paymentDetails).map(item => <li key={item.id}><Link href={getDatabaseHref("clients", item.clientCode ?? item.userId)}>{item.clientCode} · {item.name}</Link> · {item.routerCode} · {item.plan ?? item.provider} · {formatDateTime(item.at)} МСК · <strong>{item.amount.toLocaleString("ru-RU")} ₽</strong></li>)}</ul>
+          {!(metric === "forecast" ? overview.dashboard.forecastDetails : metric === "refunds" ? overview.dashboard.refundDetails : overview.dashboard.paymentDetails).length ? <p className="helperText">Записей за этот период нет.</p> : null}
+        </section> : null}
 
         {!isDatabaseView ? <>
-        <section id="assign" className="panel sectionPanel adminSectionPanel">
+        <section id="assign" hidden={adminView !== "assign"} className="panel sectionPanel adminSectionPanel">
           <span className="pill">Ручная привязка</span>
           <h2 className="adminSectionTitle">Создать роутер вручную</h2>
-          <form action={createRouterAction} className="contentStack">
-            <div className="settingsGrid">
-              <label className="fieldStack">
-                <span className="fieldLabel">Клиент</span>
-                <select className="textInput" name="userId" required>
-                  <option value="">Выберите клиента</option>
-                  {overview.users.map((user) => (
-                    <option key={user.id} value={user.id}>
-                      {user.clientCode} · {getAdminUserName(user)}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              <label className="fieldStack">
-                <span className="fieldLabel">Название роутера</span>
-                <input className="textInput" name="displayName" placeholder="Роутер дома" required type="text" />
-              </label>
-
-              <label className="fieldStack">
-                <span className="fieldLabel">Модель</span>
-                <input className="textInput" name="model" placeholder="Netis NX31" type="text" />
-              </label>
-
-              <label className="fieldStack">
-                <span className="fieldLabel">Серийный номер</span>
-                <input className="textInput" name="serialNumber" placeholder="SN-001" type="text" />
-              </label>
-
-              <label className="fieldStack">
-                <span className="fieldLabel">Конфигурация</span>
-                <select className="textInput" defaultValue="BASIC" name="configurationType">
-                  <option value="BASIC">BASIC</option>
-                  <option value="EXTENDED">EXTENDED</option>
-                </select>
-              </label>
-
-              <label className="fieldStack">
-                <span className="fieldLabel">Сопровождение</span>
-                <select className="textInput" defaultValue="NONE" name="supportType">
-                  <option value="NONE">Без сопровождения</option>
-                  <option value="BASIC">Базовое</option>
-                  <option value="EXTENDED">Расширенное</option>
-                </select>
-              </label>
-            </div>
-
-            <label className="checkboxRow">
-              <input name="accessEnabled" type="checkbox" />
-              <span>Сразу включить расширенный доступ</span>
-            </label>
-
-            <label className="checkboxRow">
-              <input name="startTrial" type="checkbox" />
-              <span>Активировать бесплатный тест при создании</span>
-            </label>
-
-            <label className="fieldStack">
-              <span className="fieldLabel">Заметка администратора / IP роутера</span>
-              <textarea
-                className="textAreaInput"
-                name="adminNote"
-                placeholder="Комментарий по привязке. Для автопроверки укажите IP роутера, например 192.168.1.1 или 203.0.113.10:8080."
-              />
-            </label>
-
-            <div className="ctaRow">
-              <button className="primaryButton" type="submit">
-                Привязать роутер
-              </button>
-            </div>
-          </form>
+          <AdminAssignment users={overview.users} /><AdminCreateClient />
         </section>
 
-        <form action="/admin/settings" autoComplete="off" className="contentStack" method="post">
-          <input name="returnTo" type="hidden" value="/admin#Платежи" />
+        <div hidden={adminView !== "settings"} className="contentStack">
           {groupNames.map((groupName) => (
-            <section key={groupName} id={groupName} className="panel settingsSection adminSettingsSection">
+            <form key={groupName} id={groupName} data-admin-path="/api/admin/settings" className="panel settingsSection adminSettingsSection" autoComplete="off"><input name="group" type="hidden" value={groupName}/><input name="returnTo" type="hidden" value={`/admin?view=settings#${groupName}`}/>
               <div className="sectionHeader">
                 <div>
                   <h2 className="adminSectionTitle">{groupName}</h2>
+                  {groupName === "Платежи" ? (<div className="adminPaymentReadiness"><p className="helperText">Включённый провайдер и проверенное подключение — разные состояния. Проверка ниже оценивает заполненность конфигурации без списаний.</p>{overview.integrations?.map(provider=><p key={provider.id}>{provider.label}: {provider.enabled?"включён":"выключен"} · {provider.ready?"обязательные поля заполнены":"не хватает обязательных полей"} · соединение с провайдером не проверялось</p>)}<Link className="secondaryButton" href="/admin?view=payments">Журнал поступлений</Link></div>) : null}
+                  {groupName === "Подписки" ? <p className="helperText">Пять бизнес-планов: Сервер — доступ; Техничка — сопровождение; Полный — доступ и сопровождение; Самостоятельно — без подписки и списаний; Индивидуальный — явно заданные состав, цена и срок. Ниже цены технических компонентов. Изменение влияет на новые заказы; исторические суммы сохраняются. Стандартный период: ровно 30 суток.</p> : null}
+                  {groupName === "Продажи" ? <p className="helperText">Цены указаны в ₽. Новый заказ: роутер {settingsByGroup[groupName].find(s=>s.key==="router_price")?.value} + подготовка {settingsByGroup[groupName].find(s=>s.key==="setup_price")?.value} ₽. Цены 1 ₽ требуют проверки владельцем; автоматически не заменяются. Доставка и выезд отдельно не добавляются, поскольку не входят в текущую модель.</p> : null}
+                  {groupName === "Пробный период" ? <p className="helperText">Тест 14 дней после получения роутера проекта и ручной активации. Сервер и выбранное сопровождение — в карточке устройства. Полученные заказы и использованные тесты проверяются backend. Завершение теста не создаёт списание.</p> : null}
+                  {groupName === "Рефералы" ? <p className="helperText">Импорт, бесплатные тесты и самостоятельный план не являются основанием начисления. Пример процента: подтверждённые 1000 ₽ × {settingsByGroup[groupName].find(s=>s.key==="referral_subscription_percent")?.value}% / 100 = {1000*Number(settingsByGroup[groupName].find(s=>s.key==="referral_subscription_percent")?.value??0)/100} ₽. Доступность после проверки: {settingsByGroup[groupName].find(s=>s.key==="referral_review_days")?.value} дней. Автоматическое начисление и правила возврата требуют согласованной модели; текущие начисления проверяются вручную, повтор платежа не создаёт награду автоматически.</p> : null}
+                  {groupName === "Коммуникации" ? <p className="helperText">Рабочая ссылка бота должна быть подтверждена владельцем. example_bot считается заглушкой; восстановление доступа ведёт в поддержку, без обещания несуществующей функции бота. Проверка доставки и входа требует подключённого тестового аккаунта.</p> : null}
                   {groupName === "Платежи" ? (
                     <>
                       <div className="adminSettingsBlocks">
@@ -1097,13 +1132,14 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                                         </label>
                                       </>
                                     ) : (
-                                      <input
-                                        readOnly={setting.key === "subscription_period_days"}
+                                      setting.key === "yoomoney_payment_type" ? <select className="textInput" name={setting.key} defaultValue={setting.value || "AC"}><option value="AC">Банковская карта</option><option value="PC">Кошелёк ЮMoney</option></select> :                                       <input
+                                        readOnly={["subscription_period_days","trial_period_days"].includes(setting.key)}
+                          min={setting.input === "number" ? 0 : undefined} max={setting.input === "number" ? setting.key === "referral_subscription_percent" ? 100 : 1000000 : undefined} step={setting.input === "number" ? "0.01" : undefined}
                                         autoComplete={setting.input === "password" ? "new-password" : "off"}
                                         className="textInput"
                                         data-form-type="other"
                                         data-lpignore="true"
-                                        defaultValue={setting.value}
+                                        defaultValue={setting.input === "password" ? "" : setting.value}
                                         inputMode={setting.key === "api_public_url" ? "url" : getFieldInputMode(setting.input)}
                                         name={setting.key}
                                         type={
@@ -1118,7 +1154,7 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                                       />
                                     )}
                                     <span className="helperText">
-                                      {setting.description}
+                                      {setting.input === "password" ? "Секрет сохранён на сервере. Пустое поле сохраняет текущий; новый секрет вводится явно." : setting.description}
                                       {setting.public ? " Это значение используется на публичных страницах." : ""}
                                     </span>
                                   </label>
@@ -1146,8 +1182,9 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                           </div>
                         </div>
                         <p className="helperText" style={{ marginTop: "12px" }}>
-                          Меняйте `NEXT_PUBLIC_APP_URL` здесь, чтобы управлять публичным доменом для ссылок и видеть текущий адрес сайта прямо в админке.
+                          Публичный адрес сайта задаёт адрес входа и ссылок поддержки. После изменения проверяйте новые ссылки.
                         </p>
+                        <details><summary>Техническое имя параметра</summary><code>NEXT_PUBLIC_APP_URL</code></details>
                       </div>
                     </>
                   ) : null}
@@ -1169,12 +1206,13 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                         </>
                       ) : (
                         <input
-                          readOnly={setting.key === "subscription_period_days"}
+                          readOnly={["subscription_period_days","trial_period_days"].includes(setting.key)}
+                          min={setting.input === "number" ? 0 : undefined} max={setting.input === "number" ? setting.key === "referral_subscription_percent" ? 100 : 1000000 : undefined} step={setting.input === "number" ? "0.01" : undefined}
                           autoComplete={setting.input === "password" ? "new-password" : "off"}
                           className="textInput"
                           data-form-type="other"
                           data-lpignore="true"
-                          defaultValue={setting.value}
+                          defaultValue={setting.input === "password" ? "" : setting.value}
                           inputMode={setting.key === "api_public_url" ? "url" : getFieldInputMode(setting.input)}
                           name={setting.key}
                           type={
@@ -1196,53 +1234,82 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                   ))}
                 </div>
               )}
-            </section>
+              <div className="ctaRow"><button className="primaryButton" type="submit">Сохранить {groupName === "Платежи" ? "настройки оплаты" : groupName.toLowerCase()}</button></div></form>
           ))}
 
-          <div className="stickyActions">
-            <button className="primaryButton" type="submit">
-              Сохранить настройки
-            </button>
-          </div>
-        </form>
+        </div>
         </> : null}
 
         {isDatabaseView && databaseTab === "clients" ? (
-        <section id="clients" className="panel sectionPanel adminSectionPanel">
+        <section id="clients" data-admin-results className="panel sectionPanel adminSectionPanel">
           <span className="pill">Клиенты</span>
-          <div className="sectionHeader">
+          <AdminStickySearch><div className="sectionHeader">
             <div>
               <h2 className="adminSectionTitle">База клиентов и поиск</h2>
               <p className="helperText">
                 Ищите по коду клиента или роутера, имени, телефону, городу, email и Telegram.
               </p>
             </div>
-            <form key={overview.clientQuery} action="/admin" className="adminClientSearchForm">
+            <form action="/admin" data-admin-query className="adminClientSearchForm">
               <input name="view" type="hidden" value="database" />
               <input name="tab" type="hidden" value="clients" />
-              <input className="textInput" defaultValue={overview.clientQuery} name="q" placeholder="Поиск по базе клиентов" type="search" />
+              <input name="plan" type="hidden" value={overview.clientPlan} /><input name="status" type="hidden" value={overview.clientStatus} /><input name="city" type="hidden" value={overview.clientCity} /><input name="expiry" type="hidden" value={overview.clientExpiry} /><input name="sort" type="hidden" value={overview.clientSort} /><input name="pageSize" type="hidden" value={overview.clientPageSize} /><input name="month" type="hidden" value={overview.dashboard.month} />
+              <input key={overview.clientQuery} className="textInput" defaultValue={overview.clientQuery} name="q" placeholder="Поиск по базе клиентов" type="search" />
               <div className="ctaRow">
                 <button className="primaryButton" type="submit">
                   Найти
                 </button>
                 {overview.clientQuery ? (
-                  <Link className="secondaryButton" href={getDatabaseHref()}>
+                  <Link data-admin-query-link scroll={false} className="secondaryButton" href={getDatabaseHref()}>
                     Сбросить
                   </Link>
                 ) : null}
               </div>
             </form>
           </div>
-          <p className="helperText adminClientSearchMeta">
-            {overview.clientQuery
-              ? `Найдено клиентов: ${overview.clientCount}. Показаны первые ${overview.clients.length}.`
-              : `Показаны последние ${overview.clients.length} клиентов из ${overview.clientCount}.`}
-          </p>
+          <details className="adminFilterDisclosure"><summary>Фильтры и сортировка</summary><form key={clientReturnTo} className="adminClientFilters" data-admin-query action="/admin"><input type="hidden" name="month" value={overview.dashboard.month} />
+            <input type="hidden" name="view" value="database" /><input type="hidden" name="tab" value="clients" />
+            {overview.clientQuery ? <input type="hidden" name="q" value={overview.clientQuery} /> : null}
+            <label><span className="fieldLabel">Тариф</span><select className="textInput" name="plan" defaultValue={overview.clientPlan}><option value="">Все тарифы</option><option>Сервер</option><option>Техничка</option><option>Полный</option><option>Самостоятельно</option><option>Индивидуальный</option></select></label>
+            <label><span className="fieldLabel">Статус аккаунта</span><select className="textInput" name="status" defaultValue={overview.clientStatus}><option value="">Все статусы</option><option value="ACTIVE">Активен</option><option value="BLOCKED">Заблокирован</option><option value="PENDING">Ожидает</option><option value="ARCHIVED">Архив</option><option value="TEST">Тестовые записи</option></select></label>
+            <label><span className="fieldLabel">Город</span><input className="textInput" name="city" defaultValue={overview.clientCity} placeholder="Любой город" /></label>
+            <label><span className="fieldLabel">Срок</span><select className="textInput" name="expiry" defaultValue={overview.clientExpiry}><option value="">Любой срок</option><option value="active">Действуют</option><option value="soon">≤ 5 дней</option><option value="expired">Истекли</option><option value="pending">Ждут активации</option><option value="none">Без подписки</option></select></label>
+            <label><span className="fieldLabel">Сортировка</span><select className="textInput" name="sort" defaultValue={overview.clientSort}><option value="created">Новые сначала</option><option value="name">По имени</option><option value="code">По CLI-ID</option><option value="end">По окончанию</option></select></label>
+            <label><span className="fieldLabel">На странице</span><select className="textInput" name="pageSize" defaultValue={overview.clientPageSize}><option value="25">25</option><option value="50">50</option><option value="100">100</option></select></label>
+            <button className="secondaryButton" type="submit">Применить</button><Link data-admin-query-link scroll={false} className="secondaryButton" href={getDatabaseHref("clients","",{month:overview.dashboard.month})}>Сбросить фильтры</Link>
+          </form></details></AdminStickySearch>
+          <p className="helperText adminClientSearchMeta">{overview.clientQuery ? `Найдено клиентов: ${overview.clientCount}.` : `Клиентов в выборке: ${overview.clientCount}.`} Показано {overview.clients.length}. В выборке: {overview.selection.routers} роутеров · назначенные пакеты на {overview.selection.periodPrice.toLocaleString("ru-RU")} ₽ за период (включая черновики; это не выручка) · получено оплат {overview.selection.payments.toLocaleString("ru-RU")} ₽.</p>
+          <div className="adminClientTableHeader" aria-hidden="true"><span>Клиент</span><span>Роутеры / CLI</span><span>Тариф и срок</span><span>Статус</span><span>Действие</span></div>
           <div className="contentStack">
             {overview.clients.length ? (
-              overview.clients.map((user) => (
-              <article key={user.id} className="panel adminRecordCard adminClientRecord">
-              <form action={updateUserAction}>
+              overview.clients.map((user) => {
+                const ownerRouters = user.devices;
+                const ownerSubscriptions = ownerRouters.flatMap(router => router.subscriptions);
+                const plans = [...new Set(ownerRouters.map(router => router.plan))];
+                const primaryPlan = plans.length > 1 ? "Несколько планов" : plans[0] ?? "Не выбран";
+                const ends = [...new Set(ownerSubscriptions.map(s => s.endAt).filter(Boolean))];
+                const primaryEnd = ends.length === 1 ? ends[0] : null;
+                const remaining = ownerSubscriptions.find(s => s.endAt === primaryEnd)?.daysRemaining;
+                const expiryClass = ownerSubscriptions.some(s => s.status === "EXPIRED") ? "adminExpiryExpired" : ownerSubscriptions.some(s => s.status === "ACTIVE" && (s.daysRemaining ?? 999) <= 5) ? "adminExpirySoon" : "";
+                const totalPrice = ownerRouters.reduce((sum, r) => sum + r.price, 0);
+                return <AdminSingleDisclosure key={user.id} summary={<div className="adminClientRow">
+                  <span className="adminClientRowMain"><strong>{getAdminUserName(user)}</strong><small>{user.clientCode ?? user.id} · {user.city ?? "Город не указан"}</small></span>
+                  <span className="adminClientRowRouters">{ownerRouters.length === 1 ? <small>{ownerRouters[0].routerCode} · {ownerRouters[0].displayName}</small> : <small>{ownerRouters.length ? `${ownerRouters.length} роутера` : "Нет роутеров"}</small>}</span>
+                  <span className="adminClientRowPlan"><span className="adminClientPlanLine"><span className={getAdminPlanClass(primaryPlan)}>{primaryPlan}</span><small>{totalPrice.toLocaleString("ru-RU")} ₽</small></span><small className={expiryClass}>{ends.length > 1 ? "См. роутеры — разные сроки" : primaryEnd ? `до ${formatDate(primaryEnd)} · ${remaining ?? 0} дн.` : primaryPlan === "Самостоятельно" ? "Без подписки" : "Срок не начат"}</small></span>
+                  <span className={`adminStatusBadge adminStatus${user.status}`}><span aria-hidden="true" />{user.serviceState ?? (user.status === "ACTIVE" ? "Аккаунт активен" : user.status === "BLOCKED" ? "Аккаунт заблокирован" : "Аккаунт ожидает")}<small>· {user.status === "ACTIVE" ? "аккаунт активен" : user.status === "BLOCKED" ? "аккаунт заблокирован" : "аккаунт ожидает"}</small></span>
+                  <span className="adminClientRowAction">Открыть <span aria-hidden="true">⌄</span></span>
+                </div>}>
+              <div className="panel adminRecordCard adminClientRecord">
+              <div className="adminClientDetailSummary"><strong>{getAdminUserName(user)} · {user.clientCode}</strong><p className="helperText">{user.phone ?? "Телефон не указан"} · {user.email ?? "Email не указан"} · {getAdminUserTelegramLabel(user)} · {user.city ?? "Город не указан"}</p></div>
+              <div className="adminClientDevices">{ownerRouters.map(router => <section key={router.id} className="adminClientDevice panel">
+                <div className="sectionHeader"><div><strong>{router.routerCode} · {router.displayName}</strong><p className="helperText">{router.archivedAt ? "В архиве · " : ""}{router.model ?? "Модель не указана"} · SN: {router.serialNumber ?? "Не указано"} · конфигурация {adminStatus(router.configurationType)} · состояние устройства: {adminStatus(router.status)}</p></div><span className={getAdminPlanClass(router.plan)}>{router.plan} · {router.priceLabel}</span></div>
+                {router.plan === "Самостоятельно" ? <p className="helperText">Без подписки и регулярных списаний.</p> : <ul className="list">{router.subscriptions.map(s => <li key={s.id}>{s.accessEnabled ? "Сервер" : ""}{s.accessEnabled && s.supportType !== "NONE" ? " + " : ""}{s.supportType !== "NONE" ? "Поддержка" : ""} · {adminStatus(s.status)} · {s.pendingActivation ? `Ждёт активации, оплачено ${s.pendingDays} дней` : `до ${formatDateTime(s.endAt)} МСК · ${s.daysRemaining ?? 0} дн.`} · <Link href={`${getDatabaseHref("subscriptions")}#subscription-${s.id}`}>Запись подписки</Link></li>)}</ul>}
+                {router.adminNote ? <p className="helperText">Внутренняя заметка: {router.adminNote}</p> : null}
+                <div className="ctaRow"><Link className="secondaryButton" href={getDatabaseHref("routers",router.routerCode ?? router.id)}>Редактировать / изменить план</Link><AdminQrTools id={router.id} code={router.routerCode} name={router.displayName}/></div>
+                <details><summary>История оплат и переноса ({router.payments.length})</summary><ul className="list">{router.payments.map(p => <li key={p.id}>{formatDateTime(p.paidAt)} МСК · {p.amountLabel} · {p.allocationNeeded ? "Требует распределения — дни не начислены" : `${p.daysAdded ?? "—"} дней`} · {p.imported ? "Перенос из Excel — не денежное поступление" : p.provider} · {adminStatus(p.status)}</li>)}</ul></details>
+              </section>)}</div>
+              <details className="adminClientEdit"><summary>Редактировать клиента</summary>
+              <form action={updateUserAction} data-admin-path={`/api/admin/users/${user.id}`}>
                 <input name="userId" type="hidden" value={user.id} />
                 <input name="returnTo" type="hidden" value={clientReturnTo} />
                 <div className="sectionHeader">
@@ -1260,6 +1327,7 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                     <span className="fieldLabel">Имя</span>
                     <input className="textInput" defaultValue={user.name ?? ""} name="name" placeholder="Имя клиента" type="text" />
                   </label>
+                  <label className="fieldStack"><span className="fieldLabel">Имя в личном кабинете</span><input className="textInput" name="publicName" defaultValue={user.publicName ?? ""} placeholder={user.clientCode ?? "Имя для клиента"} /></label>
                   <label className="fieldStack">
                     <span className="fieldLabel">Email</span>
                     <input className="textInput" defaultValue={user.email ?? ""} name="email" placeholder="client@example.com" type="email" />
@@ -1284,7 +1352,7 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                   </label>
                   <label className="fieldStack">
                     <span className="fieldLabel">Статус</span>
-                    <select className="textInput" defaultValue={user.status} name="status">
+                    <select className="textInput" defaultValue={adminStatus(user.status)} name="status">
                       <option value="ACTIVE">Активен</option>
                       <option value="BLOCKED">Заблокирован</option>
                       <option value="PENDING">Ожидает</option>
@@ -1292,6 +1360,7 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                   </label>
                 </div>
                 <div className="settingsGrid adminClientStatsGrid">
+                  <label className="checkboxRow"><input type="checkbox" name="archived" defaultChecked={!!user.archivedAt} /> В архив — история сохраняется</label><label className="checkboxRow"><input type="checkbox" name="isTest" defaultChecked={user.isTest} /> Тестовая запись</label>
                   <div className="fieldStack">
                     <span className="fieldLabel">Telegram</span>
                     <strong>{getAdminUserTelegramLabel(user)}</strong>
@@ -1317,24 +1386,28 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                     Сохранить клиента
                   </button>
                 </div>
+                <label className="fieldStack"><span className="fieldLabel">Причина изменения</span><input className="textInput" name="reason" maxLength={1000} placeholder="Что изменили и почему" /></label>
               </form>
+              </details>
+              <p className="helperText">Аккаунт: {adminStatus(user.status)} · {user.archivedAt ? "В архиве" : "Рабочая запись"}{user.isTest ? " · Тестовая запись" : ""}</p>
               <details style={{ marginTop: "20px" }}>
                 <summary>Доступ клиента в кабинет</summary>
-                <form action={setClientCredentialsAction} className="contentStack" style={{ marginTop: "16px" }}>
+                <form action={setClientCredentialsAction} data-admin-path={`/api/admin/users/${user.id}/credentials`} className="contentStack" style={{ marginTop: "16px" }}>
                   <input type="hidden" name="userId" value={user.id} />
                   <input type="hidden" name="returnTo" value={clientReturnTo} />
                   <label className="fieldStack"><span className="fieldLabel">Логин</span>
-                    <input className="textInput" name="login" defaultValue={user.clientCode?.toLowerCase() ?? ""} minLength={3} maxLength={32} pattern="[a-zA-Z0-9._-]+" required />
+                    <input className="textInput" name="login" defaultValue={user.localLogin ?? user.clientCode?.toLowerCase() ?? ""} minLength={3} maxLength={32} pattern="[a-zA-Z0-9._-]+" required />
                   </label>
                   <label className="fieldStack"><span className="fieldLabel">Новый пароль</span>
-                    <input className="textInput" name="password" type="password" autoComplete="new-password" minLength={6} maxLength={128} required />
+                    <input className="textInput" name="password" type="password" autoComplete="new-password" minLength={6} maxLength={128} />
                   </label>
-                  <p className="helperText">Назначьте доступ после проверки клиента. Если логин уже был привязан, пароль будет заменён.</p>
+                  <p className="helperText">Пустой пароль сохраняет действующий доступ. Для первого входа задайте пароль.</p>
                   <button className="secondaryButton" type="submit">Сохранить доступ</button>
                 </form>
               </details>
-              </article>
-            ))
+              </div>
+                </AdminSingleDisclosure>;
+              })
             ) : (
               <div className="panel adminInfoCard">
                 <strong>Совпадений не найдено.</strong>
@@ -1342,16 +1415,26 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
               </div>
             )}
           </div>
+          {overview.clients.length ? <nav className="adminPagination" aria-label="Страницы клиентов">
+            <span className="helperText">Страница {overview.clientPage} из {pageCount}</span>
+            <div className="ctaRow">
+              {overview.clientPage > 1 ? <Link data-admin-query-link scroll={false} className="secondaryButton" href={clientListHref({ page: overview.clientPage - 1 })}>Назад</Link> : null}
+              {overview.clientPage < pageCount ? <Link data-admin-query-link scroll={false} className="secondaryButton" href={clientListHref({ page: overview.clientPage + 1 })}>Далее</Link> : null}
+            </div>
+          </nav> : null}
         </section>
         ) : null}
 
         {isDatabaseView && databaseTab === "routers" ? (
-        <section id="routers" className="panel sectionPanel adminSectionPanel">
+        <section id="routers" data-admin-results className="panel sectionPanel adminSectionPanel">
           <span className="pill">Роутеры</span>
-          <h2 className="adminSectionTitle">Управление назначениями</h2>
+          <h2 className="adminSectionTitle">Управление назначениями</h2><AdminQueryFilters tab="routers" statuses={[["ACTIVE","Активные устройства"],["DRAFT","Черновики"],["SUSPENDED","Приостановлены"],["DISABLED","Отключены"],["ARCHIVED","Архив"]]}/><div className="adminRegisterColumnHeader"><span>Клиент / роутер</span><span>План / цена</span><span>Срок услуги</span><span>Устройство</span></div>
           <div className="contentStack">
             {overview.routers.map((router) => (
-              <form key={router.id} id={`router-${router.id}`} action={updateRouterAction} className="panel adminRecordCard">
+              <div key={router.id} id={`router-${router.id}`}><AdminSingleDisclosure summary={<div className="adminRegisterRow"><span><strong>{router.routerCode} · {router.displayName}</strong><small>{router.clientCode} · {router.ownerName}</small></span><span className={getAdminPlanClass(router.plan)}>{router.plan} · {adminMoney(router.planPrice)}</span><span>{router.plan==="Самостоятельно"?"Без подписки":router.pendingActivation?"Ожидает активации":formatDateTime(router.endAt)+" МСК"}</span><span>{router.archivedAt?"Архив":adminStatus(router.status)}</span></div>}>
+              <AdminPlanChange router={router} subscriptions={router.services} />
+              <AdminQrTools id={router.id} code={router.routerCode} name={router.displayName}/>
+              <details className="adminClientEdit"><summary>Редактировать данные роутера</summary><form key={router.id} action={updateRouterAction} data-admin-path={`/api/admin/routers/${router.id}`} className="panel adminRecordCard">
                 <input name="routerId" type="hidden" value={router.id} />
                 <div className="sectionHeader">
                   <div>
@@ -1400,59 +1483,61 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                       <option value="EXTENDED">Расширенная</option>
                     </select>
                   </label>
+                  <label className="checkboxRow"><input type="checkbox" name="archived" defaultChecked={!!router.archivedAt} /> Роутер в архиве</label>
                   <div className="fieldStack">
-                    <span className="fieldLabel">Текущий шаблон</span>
-                    <strong>{router.savedTemplate}</strong>
+                    <span className="fieldLabel">Назначенный план продления</span>
+                    <strong>{router.serviceTariff ?? router.savedTemplate}</strong>
                   </div>
                 </div>
+
                 <label className="fieldStack" style={{ marginTop: "16px" }}>
-                  <span className="fieldLabel">Заметка администратора / IP роутера</span>
+                  <span className="fieldLabel">Внутренняя заметка администратора</span>
                   <textarea
                     className="textAreaInput"
                     defaultValue={router.adminNote ?? ""}
                     name="adminNote"
-                    placeholder="Для автопроверки укажите IP роутера, например 192.168.1.1 или 203.0.113.10:8080."
+                    placeholder="Свободная заметка. IP и порт для проверки задаются отдельно."
                   />
                 </label>
                 <div className="ctaRow" style={{ marginTop: "16px" }}>
-                  {router.routerCode ? <Link className="secondaryButton" target="_blank" href={`/support?router=${encodeURIComponent(router.routerCode)}`}>
-                    Ссылка для QR / поддержки
-                  </Link> : null}
-                  {router.routerCode ? <Link className="secondaryButton" target="_blank" href={`/admin/routers/${router.id}/label`}>
-                    Табличка с QR-кодом
-                  </Link> : null}
                   <button className="primaryButton" type="submit">
                     Сохранить роутер
                   </button>
                   <button
                     aria-label={getAdminRouterDeleteLabel(router)}
+                    data-admin-path={`/api/admin/routers/${router.id}/delete`}
+                    data-confirm={`Перенести в архив ${router.routerCode} · ${router.displayName}? История оплат, сроки и QR сохранятся.`}
                     className="secondaryButton adminDangerButton"
                     formAction={deleteRouterAction}
+                    formNoValidate
                     type="submit"
                   >
-                    Удалить
+                    В архив
                   </button>
                 </div>
-              </form>
+                <label className="fieldStack"><span className="fieldLabel">Причина изменения</span><input className="textInput" name="reason" maxLength={1000} placeholder="Что изменили и почему" /></label>
+              </form></details></AdminSingleDisclosure></div>
             ))}
           </div>
+          <AdminPagination {...overview.registerMeta.routers} />
         </section>
         ) : null}
 
         {isDatabaseView && databaseTab === "subscriptions" ? (
-        <section id="subscriptions" className="panel sectionPanel adminSectionPanel">
+        <section id="subscriptions" data-admin-results className="panel sectionPanel adminSectionPanel">
           <span className="pill">Подписки</span>
-          <h2 className="adminSectionTitle">Продления и активации</h2>
+          <h2 className="adminSectionTitle">Продления и активации</h2><AdminQueryFilters tab="subscriptions" statuses={[["active_paid","Активные платные"],["trial","Бесплатный тест"],["DRAFT","Черновики"],["PENDING_ACTIVATION","Ожидают активации"],["EXPIRED","Истекли"],["PAUSED","На паузе"],["CANCELLED","Отменены"]]}/><div className="adminRegisterColumnHeader"><span>Клиент / роутер</span><span>Услуга / цена</span><span>Оплачено до</span><span>Состояние</span></div>
           <div className="contentStack">
             {overview.subscriptions.map((subscription) => (
-              <article key={subscription.id} id={`subscription-${subscription.id}`} className="panel adminRecordCard">
-              <form action={updateSubscriptionAction}>
+              <div key={subscription.id} id={`subscription-${subscription.id}`}><AdminSingleDisclosure summary={<div className="adminRegisterRow"><span><strong>{subscription.routerCode} · {subscription.routerName}</strong><small>{subscription.clientCode} · {subscription.customerName}</small></span><span>{subscription.bundleLabel} · {subscription.priceLabel}</span><span>{subscription.pendingActivation?`Удерживается ${subscription.pendingDays} дней`:formatDateTime(subscription.endAt)+" МСК"}</span><span>{subscription.isTrial?"Бесплатный тест":adminStatus(subscription.status)}</span></div>}>
+              <details className="adminClientEdit"><summary>Редактировать срок / активировать</summary>
+              <form action={updateSubscriptionAction} data-admin-path={`/api/admin/subscriptions/${subscription.id}`}>
                 <input name="subscriptionId" type="hidden" value={subscription.id} />
                 <div className="sectionHeader">
                   <div>
                     <h3 className="adminSectionTitle">{subscription.routerCode} · {subscription.routerName}</h3>
                     <p className="helperText">
-                      {subscription.bundleLabel} · {subscription.priceLabel} · осталось {subscription.daysRemaining ?? 0} дней
+                      {subscription.bundleLabel} · {subscription.priceLabel} · {subscription.pendingActivation ? `ждёт активации, оплачено ${subscription.pendingDays} дней` : `осталось ${subscription.daysRemaining ?? 0} дней`}
                     </p>
                   </div>
                 </div>
@@ -1469,7 +1554,7 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                     </select>
                   </label>
                   <label className="fieldStack">
-                    <span className="fieldLabel">Начало</span>
+                    <span className="fieldLabel">Начало · МСК</span>
                     <input
                       className="textInput"
                       defaultValue={formatDateTimeInputValue(subscription.startAt)}
@@ -1478,7 +1563,7 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                     />
                   </label>
                   <label className="fieldStack">
-                    <span className="fieldLabel">Окончание</span>
+                    <span className="fieldLabel">Окончание · МСК</span>
                     <input
                       className="textInput"
                       defaultValue={formatDateTimeInputValue(subscription.endAt)}
@@ -1489,7 +1574,7 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                   <div className="fieldStack">
                     <span className="fieldLabel">Пакет</span>
                     <strong>
-                      {subscription.accessEnabled ? "Доступ включен" : "Доступ выключен"} ·{" "}
+                      {subscription.accessEnabled ? "Сервер предусмотрен пакетом" : "Сервер не предусмотрен пакетом"} ·{" "}
                       {subscription.supportType === "NONE"
                         ? "Без сопровождения"
                         : subscription.supportType === "BASIC"
@@ -1509,49 +1594,35 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                     Сохранить подписку
                   </button>
                 </div>
+                <label className="fieldStack"><span className="fieldLabel">Причина изменения срока / статуса</span><input className="textInput" name="reason" maxLength={1000} placeholder="Активация, исправление срока или другое основание" /></label>
               </form>
-              <form action={addSubscriptionPaymentAction} className="contentStack" style={{ marginTop: "24px" }}>
-                <input name="subscriptionId" type="hidden" value={subscription.id} />
-                <input name="requestKey" type="hidden" value={randomUUID()} />
-                <h4>Записать оплату и добавить дни</h4>
-                <div className="settingsGrid">
-                  <label className="fieldStack">
-                    <span className="fieldLabel">Сумма оплаты, ₽</span>
-                    <input className="textInput" defaultValue={subscription.price || ""} min="0.01" max="1000000" step="0.01" name="amount" type="number" required />
-                  </label>
-                  <label className="fieldStack">
-                    <span className="fieldLabel">Добавить дней</span>
-                    <input className="textInput" defaultValue="30" min="1" max="3650" name="days" type="number" required />
-                  </label>
-                </div>
-                <p className="helperText">Один месяц = 30 дней. Оставшиеся дни сохраняются: 5 + 30 = 35. Для двух месяцев укажите 60 дней.</p>
-                <button className="primaryButton" type="submit">Записать пополнение</button>
-              </form>
+              </details><AdminPaymentForm subscription={subscription} price={subscription.nextPrice}/>
               <details style={{ marginTop: "20px" }}>
-                <summary>История пополнений ({subscription.payments.length})</summary>
+                <summary>История операций ({subscription.payments.length})</summary>
                 <ul className="list">
                   {subscription.payments.length ? subscription.payments.map((payment) => <li key={payment.id}>
-                    {formatDateTime(payment.paidAt)} · {payment.amountLabel} · +{payment.daysAdded ?? "—"} дней
+                    {formatDateTime(payment.paidAt)} МСК · {payment.amountLabel} · +{payment.daysAdded ?? "—"} дней
                     {payment.provider === "client_register_import" ? " · импорт из Excel" : ""}
                   </li>) : <li>Пополнений пока нет.</li>}
                 </ul>
               </details>
-              </article>
+              </AdminSingleDisclosure></div>
             ))}
           </div>
+          <AdminPagination {...overview.registerMeta.subscriptions} />
         </section>
         ) : null}
 
         {!isDatabaseView ? <>
-        <section id="orders" className="panel sectionPanel adminSectionPanel">
+        <section id="orders" data-admin-results hidden={adminView !== "orders"} className="panel sectionPanel adminSectionPanel">
           <span className="pill">
             Заказы
             {newOrderCount ? <span className="adminTicketNewBadge">+{newOrderCount}</span> : null}
           </span>
-          <h2 className="adminSectionTitle">Магазин и доставка</h2>
+          <h2 className="adminSectionTitle">Магазин и доставка</h2><AdminQueryFilters view="orders" statuses={[["CREATED","Созданы"],["WAITING_PAYMENT","Ожидают оплаты"],["PAID","Оплачены"],["CONFIGURING","Подготовка"],["READY_TO_SHIP","Готовы к отправке"],["SHIPPED","Отправлены"],["RECEIVED","Получены"],["CANCELED","Отменены"],["REFUND","Возврат"]]} statusKey="orderStatus"/>
           <div className="contentStack">
             {overview.orders.map((order) => (
-              <form key={order.id} id={`order-${order.id}`} action={updateOrderAction} className="panel adminRecordCard">
+              <div key={order.id} id={`order-${order.id}`}><AdminSingleDisclosure summary={<div className="adminRegisterRow"><span><strong>{order.clientCode} · {order.customerName}</strong><small>Заказ {order.id}</small></span><span>{order.totalPriceLabel}</span><span>{formatDateTime(order.createdAt)} МСК</span><span>{adminStatus(order.status)}</span></div>}><form action={updateOrderAction} data-admin-path={`/api/admin/orders/${order.id}`} className="panel adminRecordCard">
                 <input name="orderId" type="hidden" value={order.id} />
                 <div className="sectionHeader">
                   <div>
@@ -1597,6 +1668,7 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                   </button>
                   <button
                     aria-label={getAdminOrderDeleteLabel(order)}
+                    data-admin-path={`/api/admin/orders/${order.id}/delete`} data-confirm="Удалить заказ? История платежей сохраняется, сам заказ останется в аудите."
                     className="secondaryButton adminDangerButton"
                     formAction={deleteOrderAction}
                     type="submit"
@@ -1604,18 +1676,19 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                     Удалить
                   </button>
                 </div>
-              </form>
+              </form></AdminSingleDisclosure></div>
             ))}
           </div>
+          {!overview.orders.length?<p className="helperText">Заказов пока нет или нет совпадений с фильтрами.</p>:null}<AdminPagination {...overview.registerMeta.orders} />
         </section>
 
-        <section id="tickets" className="panel sectionPanel adminSectionPanel">
+        <section id="tickets" data-admin-results hidden={adminView !== "tickets"} className="panel sectionPanel adminSectionPanel">
           <span className="pill">Поддержка</span>
-          <h2 className="adminSectionTitle">Обращения клиентов</h2>
+          <h2 className="adminSectionTitle">Обращения клиентов</h2><AdminQueryFilters view="tickets" statuses={[["open","Все открытые"],["OPEN","Новые"],["IN_PROGRESS","В работе"],["WAITING_CLIENT","Ждём клиента"],["RESOLVED","Решены"],["CLOSED","Закрыты"],["ARCHIVED","Архив"]]} statusKey="ticketStatus"/>
           <div className="contentStack">
             {overview.tickets.map((ticket) => {
               return (
-                <article key={ticket.id} id={getTicketAnchorId(ticket.id)} className="panel adminRecordCard adminTicketCard">
+                <div key={ticket.id} id={getTicketAnchorId(ticket.id)}><AdminSingleDisclosure summary={<div className="adminRegisterRow"><span><strong>#{ticket.number} · {ticket.customerName}</strong><small>{ticket.clientCode} · {ticket.routerCode} · {ticket.routerName}</small></span><span>{adminStatus(ticket.status)} · {ticket.assigneeId?overview.administrators.find(a=>a.id===ticket.assigneeId)?.name??"Администратор":"Не назначен"}</span><span>{formatDateTime(ticket.updatedAt)} МСК</span><span>{ticket.messages.at(-1)?.body.slice(0,80)??ticket.description.slice(0,80)}</span></div>}>
                 <div className="sectionHeader">
                   <div>
                     <h3 className="adminSectionTitle adminTicketTitleRow">
@@ -1623,14 +1696,14 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                       {isTicketAwaitingAdminReply(ticket) ? <span className="adminTicketNewBadge">+1</span> : null}
                     </h3>
                     <p className="helperText">
-                      {ticket.clientCode} · роутер {ticket.routerCode ?? ticket.routerName} · создано {formatDateTime(ticket.createdAt)}
+                      {ticket.clientCode} · роутер {ticket.routerCode} · {ticket.routerName} · создано {formatDateTime(ticket.createdAt)} МСК
                     </p>
                   </div>
                 </div>
                 <p className="helperText" style={{ marginBottom: "16px" }}>
                   {ticket.description}
                 </p>
-                {ticket.guestContact ? <p className="helperText">Обращение без регистрации. Контакт для ответа: <strong>{ticket.guestContact}</strong></p> : null}
+                {ticket.contact ? <p className="helperText">{ticket.guestContact?"Обращение без регистрации. ":""}Контакт для ответа: <strong>{ticket.contact}</strong> <AdminCopyContact value={ticket.contact}/></p> : null}
                 <TicketConversation
                   adminLabel="Поддержка"
                   closedLabel="Чат закрыт. Новые сообщения отправить нельзя."
@@ -1643,7 +1716,8 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                   status={ticket.status}
                   ticketId={ticket.id}
                 />
-                <form action={updateTicketAction}>
+                <div className="ctaRow"><Link className="secondaryButton" href={getDatabaseHref("clients",ticket.clientCode??ticket.userId)}>Карточка клиента</Link>{ticket.routerId?<Link className="secondaryButton" href={getDatabaseHref("routers",ticket.routerCode??ticket.routerId)}>Карточка роутера</Link>:null}</div><form action={updateTicketAction} data-admin-path={`/api/admin/tickets/${ticket.id}`}>
+                  <label className="checkboxRow"><input name="archived" type="checkbox" defaultChecked={!!ticket.archivedAt}/> В архиве · снимите отметку для восстановления</label>
                   <input name="ticketId" type="hidden" value={ticket.id} />
                   <div className="settingsGrid">
                     <label className="fieldStack">
@@ -1658,13 +1732,7 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                     </label>
                     <label className="fieldStack">
                       <span className="fieldLabel">Исполнитель</span>
-                      <input
-                        className="textInput"
-                        defaultValue={ticket.assigneeId ?? ""}
-                        name="assigneeId"
-                        placeholder="admin_1"
-                        type="text"
-                      />
+                      <select className="textInput" defaultValue={ticket.assigneeId??""} name="assigneeId"><option value="">Не назначен</option><option value={overview.currentAdmin}>Взять себе</option>{overview.administrators.filter(a=>a.id!==overview.currentAdmin).map(a=><option key={a.id} value={a.id}>{a.name??a.id}</option>)}</select>
                     </label>
                     <div className="fieldStack">
                       <span className="fieldLabel">ID клиента</span>
@@ -1679,30 +1747,32 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
                     <button
                       aria-label={getAdminTicketDeleteLabel(ticket)}
                       className="secondaryButton adminDangerButton"
+                      data-admin-path={`/api/admin/tickets/${ticket.id}/delete`} data-confirm={`Перенести обращение №${ticket.number} в архив? История сообщений сохраняется.`}
                       formAction={deleteTicketAction}
                       type="submit"
                     >
-                      Удалить
+                      В архив
                     </button>
                   </div>
                 </form>
-                </article>
+                </AdminSingleDisclosure></div>
               );
             })}
           </div>
+          {!overview.tickets.length?<p className="helperText">Обращений по выбранным условиям нет.</p>:null}<AdminPagination {...overview.registerMeta.tickets} />
         </section>
 
-        <section id="rewards" className="panel sectionPanel adminSectionPanel">
+        <section id="rewards" data-admin-results hidden={adminView !== "rewards"} className="panel sectionPanel adminSectionPanel">
           <span className="pill">Рефералки</span>
-          <h2 className="adminSectionTitle">Начисления по приглашениям</h2>
+          <h2 className="adminSectionTitle">Начисления по приглашениям</h2><p className="helperText">Вся база начислений: на проверке {adminMoney(overview.rewardTotals.pending)} · доступны {adminMoney(overview.rewardTotals.available)} · отменены {adminMoney(overview.rewardTotals.canceled)}. Статус «доступно» не подтверждает фактическую выплату.</p><AdminQueryFilters view="rewards" statuses={[["PENDING","Проверка"],["AVAILABLE","Доступны"],["CANCELED","Отменены"]]} statusKey="rewardStatus"/>
           <div className="contentStack">
             {overview.rewards.map((reward) => (
-              <form key={reward.id} action={updateRewardAction} className="panel adminRecordCard">
+              <form key={reward.id} action={updateRewardAction} data-admin-path={`/api/admin/rewards/${reward.id}`} className="panel adminRecordCard">
                 <input name="rewardId" type="hidden" value={reward.id} />
                 <div className="settingsGrid">
                   <div className="fieldStack">
                     <span className="fieldLabel">Источник</span>
-                    <strong>{reward.sourceType}</strong>
+                    <strong>{reward.referrerCode??"Пригласивший не указан"} · {reward.referrerName} → {reward.referredCode} · {reward.referredName}</strong><span className="helperText">Получатель начисления: {reward.beneficiaryCode} · {reward.beneficiaryName}. {reward.sourceType} · основание {reward.sourceId} · доступно с {formatDateTime(reward.availableAt)} МСК</span>
                   </div>
                   <div className="fieldStack">
                     <span className="fieldLabel">Сумма</span>
@@ -1729,32 +1799,16 @@ export default async function AdminPage(props: { searchParams: PageSearchParams 
               </form>
             ))}
           </div>
+          {!overview.rewards.length?<p className="helperText">Начислений пока нет или нет совпадений с фильтрами.</p>:null}<AdminPagination {...overview.registerMeta.rewards} />
         </section>
 
-        <section id="audit" className="panel sectionPanel adminSectionPanel">
+        <section id="audit" data-admin-results hidden={adminView !== "audit"} className="panel sectionPanel adminSectionPanel">
           <span className="pill">Аудит</span>
-          <h2 className="adminSectionTitle">Последние действия</h2>
-          <div className="ctaRow">
-            <form action={clearAuditAction}>
-              <button className="secondaryButton adminDangerButton" type="submit" disabled={!overview.logs.length}>
-                Очистить аудит
-              </button>
-            </form>
-          </div>
-          <ul className="list adminList">
-            {overview.logs.length ? (
-              overview.logs.map((log) => (
-                <li key={log.id}>
-                  {log.action} · {log.entityType} · {log.entityId.slice(0, 8)} · {formatDateTime(log.createdAt)}
-                </li>
-              ))
-            ) : (
-              <li>Пока нет записей аудита.</li>
-            )}
-          </ul>
+          <h2 className="adminSectionTitle">Журнал действий</h2>
+          <AdminQueryFilters view="audit" extra/><div className="contentStack">{overview.logs.map(log=><AdminAuditCard key={log.id} log={log}/>)}{!overview.logs.length?<p>Записей по выбранным условиям нет.</p>:null}</div><AdminPagination {...overview.registerMeta.logs}/>
         </section>
         </> : null}
       </section>
-    </main>
+    </main></AdminRegisterNavigation>
   );
 }

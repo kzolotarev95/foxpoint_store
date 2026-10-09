@@ -472,6 +472,7 @@ export async function bindEmailIdentityForUser(input: { email: string; userId: s
     throw new Error("Этот email уже используется в другом аккаунте.");
   }
 
+
   if (existingIdentity) {
     return prisma.authIdentity.update({
       where: {
@@ -511,11 +512,12 @@ export async function bindEmailIdentityForUser(input: { email: string; userId: s
 
 export async function upsertLocalCredentialsForUser(input: {
   login: string;
-  password: string;
+  password?: string;
   userId: string;
+  adminUpdate?: boolean;
 }) {
   const login = normalizeLogin(input.login);
-  const passwordHash = createPasswordHash(input.password);
+  const passwordHash = input.password ? createPasswordHash(input.password) : undefined;
 
   const [user, existingIdentity, conflictingIdentity] = await Promise.all([
     prisma.user.findUnique({
@@ -541,9 +543,19 @@ export async function upsertLocalCredentialsForUser(input: {
     throw new Error("Клиент не найден.");
   }
 
+  if (!passwordHash && !existingIdentity?.passwordHash) throw new Error("Для первого доступа задайте пароль.");
+
   if (conflictingIdentity && conflictingIdentity.userId !== input.userId) {
     throw new Error("Такой логин уже занят.");
   }
+
+  const adminEmail = `admin+${config.ADMIN_USERNAME}@foxpoint.local`;
+  const admin = input.adminUpdate ? await prisma.authIdentity.upsert({ where: { provider_providerUserId: { provider: "EMAIL", providerUserId: adminEmail } },
+    create: { provider: "EMAIL", providerUserId: adminEmail, email: adminEmail, user: { create: { name: `Admin ${config.ADMIN_USERNAME}` } } }, update: {} }) : null;
+  const audit = async (tx: import("@prisma/client").Prisma.TransactionClient) => {
+    if (admin) await tx.adminAuditLog.create({ data: { adminId: admin.userId, entityType: "AuthIdentity", entityId: existingIdentity?.id ?? input.userId,
+      action: "credentials_updated", beforeData: { login: existingIdentity?.providerUserId ?? null }, afterData: { login, passwordChanged: !!passwordHash } } });
+  };
 
   if (existingIdentity) {
     return prisma.$transaction(async (tx) => {
@@ -557,6 +569,8 @@ export async function upsertLocalCredentialsForUser(input: {
           verifiedAt: existingIdentity.verifiedAt ?? new Date()
         }
       });
+
+      await audit(tx);
 
       await tx.user.update({
         where: {
@@ -582,6 +596,8 @@ export async function upsertLocalCredentialsForUser(input: {
         verifiedAt: new Date()
       }
     });
+
+    await audit(tx);
 
     await tx.user.update({
       where: {

@@ -184,7 +184,7 @@ export default async function LoginPage(props: { searchParams: PageSearchParams 
             <p className="authHint">
               {mode === "register"
                 ? "Рефкод подтянется автоматически из ссылки ?ref=."
-                : "Если пароль забыли, используйте Telegram-бота для восстановления доступа."}
+                : "Если пароль забыли, обратитесь в поддержку для проверки владельца и восстановления доступа."}
             </p>
           </form>
           <p className="authHint"><Link href="/support">Помощь с роутером без регистрации</Link></p>

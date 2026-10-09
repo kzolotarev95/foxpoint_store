@@ -142,7 +142,7 @@ function getNearestSubscriptionEnd(routers: RouterOverviewItem[]): string | null
 }
 
 function getPrimaryPaymentRouter(routers: RouterOverviewItem[]): RouterOverviewItem | null {
-  const sorted = [...routers].sort((left, right) => {
+  const sorted = routers.filter(router => router.currentPackage !== "Самостоятельно").sort((left, right) => {
     const leftDate = left.currentSubscription?.endAt ?? left.trial?.endAt ?? "9999-12-31T00:00:00.000Z";
     const rightDate = right.currentSubscription?.endAt ?? right.trial?.endAt ?? "9999-12-31T00:00:00.000Z";
     return new Date(leftDate).getTime() - new Date(rightDate).getTime();
@@ -724,6 +724,7 @@ function getRouterDeviceVariant(model: string | null, index: number): RouterDevi
 }
 
 function getRouterDeviceSkin(router: RouterOverviewItem, index: number): RouterDeviceSkin {
+  if (!router.model) return { antennaCount: 4, brandLabel: "РОУТЕР", modelLabel: "Не указано", variant: "netis", imageClassName: "isNetis", imageSrc: "/images/router-netis-nx31.png", imageAlt: "Иллюстрация роутера" };
   const variant = getRouterDeviceVariant(router.model, index);
 
   if (variant === "xiaomi-ax3000t") {
@@ -858,7 +859,7 @@ function getRouterIdentity(router: RouterOverviewItem): { label: string; value: 
 
   return {
     label: "ID устройства",
-    value: router.serialNumber ?? router.id.slice(0, 8).toUpperCase()
+    value: router.serialNumber ?? "Не указано"
   };
 }
 
@@ -879,7 +880,7 @@ function getRouterLastCheckLabel(router: RouterOverviewItem): string {
     return formatRelativeDateTime(router.lastCheckAt);
   }
 
-  return extractIpAddress(router.adminNote) ? "проверка не выполнена" : "не указан IP роутера";
+  return "проверка не выполнена";
 }
 
 function IconShell({ children }: { children: ReactNode }) {
@@ -1480,7 +1481,7 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                             </span>
                             <strong>{getRouterLastCheckLabel(router)}</strong>
                           </div>
-                          <form action={renewRouterAction} className="clientRouterFactActionForm">
+                          {router.currentPackage !== "Самостоятельно" ? <form action={renewRouterAction} className="clientRouterFactActionForm">
                           <input name="routerId" type="hidden" value={router.id} />
                           <input name="returnTo" type="hidden" value="/cabinet/routers" />
                           <button className="clientRouterActionButton" type="submit">
@@ -1490,7 +1491,7 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                             <span className="clientRouterActionLabel">Продлить</span>
                             <ChevronIcon />
                           </button>
-                        </form>
+                        </form> : <span className="helperText">Самостоятельно · без подписки</span>}
 
                         <Link className="clientRouterActionButton isGhost" href={getCabinetTabHref("support")}>
                           <span className="clientRouterActionIcon">
@@ -2138,7 +2139,7 @@ export async function CabinetRoutePage(props: { activeTab: CabinetTab; searchPar
                         ) : null}
                         <span className="clientPaymentsMethodBody">
                           <span className="clientPaymentsMethodText">
-                            {hasSingleEnabledPaymentMethod ? "Продлить без комиссии" : `Заказать роутер через ${method.label}`}
+                            {hasSingleEnabledPaymentMethod ? "Заказать роутер" : `Заказать роутер через ${method.label}`}
                           </span>
                           {hasSingleEnabledPaymentMethod ? <PaymentBankMarks /> : null}
                         </span>

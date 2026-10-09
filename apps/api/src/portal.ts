@@ -1,5 +1,9 @@
 import { createHmac, randomUUID, timingSafeEqual } from "node:crypto";
 import net from "node:net";
+import { buildAdminDatabase, type AdminDatabaseQuery } from "./admin-database.js";
+import { importReconciliation } from "./import-reconciliation.js";
+import { businessPlan, moscowDate, type BusinessPlan } from "./business-plans.js";
+import { registerPage, safeAudit, adminAuditObjects } from "./admin-register.js";
 import {
   ConfigurationType,
   OrderStatus,
@@ -24,7 +28,7 @@ import { getAdminSettings, getPublicSettingLinks } from "./admin-settings.js";
 import { config } from "./config.js";
 import { prisma } from "./prisma.js";
 import { assignMissingCodes, CLIENT_USER_WHERE, ensureClientAndRouterCodes } from "./client-codes.js";
-import { extendSubscriptionEnd, SUBSCRIPTION_MONTH_DAYS } from "./subscription-period.js";
+import { DAY_MS, extendSubscriptionEnd, SUBSCRIPTION_MONTH_DAYS } from "./subscription-period.js";
 import { createClientNotification, getClientNotificationFeed } from "./notifications.js";
 
 type SettingMap = Map<string, string>;
@@ -242,19 +246,18 @@ function probeRouterPort(host: string, port: number): Promise<boolean> {
   });
 }
 
-async function runRouterLiveCheck(adminNote: string | null | undefined): Promise<RouterLiveCheckResult> {
-  const target = extractRouterMonitorTarget(adminNote);
-  if (!target) {
+async function runRouterLiveCheck(host: string | null | undefined, port = 443): Promise<RouterLiveCheckResult> {
+  if (!host || !net.isIP(host) || port < 1 || port > 65535) {
     return {
       checkedAt: null,
       reachable: null
     };
   }
 
-  const results = await Promise.all(target.ports.map((port) => probeRouterPort(target.host, port)));
+  const reachable = await probeRouterPort(host, port);
   return {
     checkedAt: new Date().toISOString(),
-    reachable: results.some(Boolean)
+    reachable
   };
 }
 
@@ -686,7 +689,7 @@ async function applyPaymentSuccess(input: {
     throw new Error("Платеж не найден.");
   }
 
-  if (payment.status === "PAID") {
+  if (payment.status === "PAID" || payment.status === "REFUNDED") {
     return {
       paymentId: payment.id,
       status: payment.status
@@ -698,6 +701,7 @@ async function applyPaymentSuccess(input: {
     requiresActivation?: boolean;
     supportType?: SupportType;
     type?: string;
+    periodPrice?: number;
   };
 
   let applied = false;
@@ -705,7 +709,7 @@ async function applyPaymentSuccess(input: {
     const claimed = await tx.payment.updateMany({
       where: {
         id: payment.id,
-        status: { not: "PAID" }
+        status: { in: ["CREATED", "PENDING", "FAILED"] }
       },
       data: {
         paidAt: input.paidAt ?? payment.paidAt ?? new Date(),
@@ -751,7 +755,7 @@ async function applyPaymentSuccess(input: {
             endAt: "desc"
           }
         },
-        template: true
+        template: true, trial: true
       }
     });
 
@@ -759,16 +763,28 @@ async function applyPaymentSuccess(input: {
       return;
     }
 
-    const currentSubscription = pickCurrentSubscription(router.subscriptions);
+    const unallocated = snapshot.accessEnabled === undefined || snapshot.supportType === undefined || !payment.daysAdded ||
+      router.serviceTariff === "Самостоятельно" || router.subscriptions.some(s => s.pendingActivation && !s.pendingDays && s.endAt);
+    if (unallocated) {
+      await tx.payment.update({ where: { id: payment.id }, data: { payloadSnapshot: { ...snapshot, providerStatus: input.providerStatus ?? null,
+        allocationNeeded: true, allocationReason: "Сверить назначение оплаты и сохранённые дни ожидания активации" } as Prisma.InputJsonValue } });
+      return;
+    }
+
     const accessEnabled = snapshot.accessEnabled ?? router.template?.accessEnabled ?? false;
     const supportType = snapshot.supportType ?? router.template?.supportType ?? "NONE";
-    const requiresActivation =
-      snapshot.requiresActivation ??
-      (router.configurationType === "BASIC" && (accessEnabled || supportType === "EXTENDED"));
+    const currentSubscription = pickCurrentSubscription(router.subscriptions.filter(s => s.accessEnabled === accessEnabled && s.supportType === supportType));
+    const trialActive = !!router.trial?.startAt && !!router.trial.endAt && router.trial.endAt > new Date() && (() => {
+      const trial = router.trial.packageSnapshot as { accessEnabled?: boolean; supportType?: string } | null;
+      return (!accessEnabled || !!trial?.accessEnabled) && (supportType === "NONE" || trial?.supportType === supportType);
+    })();
+    const requiresActivation = currentSubscription?.pendingActivation || (currentSubscription?.startAt || trialActive ? false : snapshot.requiresActivation ?? true);
     const periodDays = payment.daysAdded ?? SUBSCRIPTION_MONTH_DAYS;
     const now = input.paidAt ?? new Date();
-    const activeEndAt = currentSubscription?.endAt ?? null;
-    const nextEndAt = extendSubscriptionEnd(activeEndAt, periodDays, now);
+    const activeEndAt = currentSubscription?.endAt ?? (trialActive ? router.trial!.endAt : null);
+    const nextEndAt = requiresActivation ? null : extendSubscriptionEnd(activeEndAt, periodDays, now);
+    const pendingDays = requiresActivation ? (currentSubscription?.pendingDays ?? 0) + periodDays : 0;
+    const periodPrice = snapshot.periodPrice ?? toNumber(router.template?.priceOverride ?? router.template?.currentPrice ?? payment.amount);
     await tx.payment.update({ where: { id: payment.id }, data: { daysAdded: periodDays } });
 
     if (currentSubscription) {
@@ -781,8 +797,9 @@ async function applyPaymentSuccess(input: {
           endAt: nextEndAt,
           lastPaymentId: payment.id,
           pendingActivation: requiresActivation,
-          priceSnapshot: payment.amount,
-          startAt: currentSubscription.startAt ?? now,
+          pendingDays,
+          priceSnapshot: periodPrice,
+          startAt: requiresActivation ? null : currentSubscription.startAt ?? now,
           status: requiresActivation ? "PENDING_ACTIVATION" : "ACTIVE",
           supportType
         }
@@ -797,9 +814,10 @@ async function applyPaymentSuccess(input: {
         endAt: nextEndAt,
         lastPaymentId: payment.id,
         pendingActivation: requiresActivation,
-        priceSnapshot: payment.amount,
+        pendingDays,
+        priceSnapshot: periodPrice,
         routerId: payment.routerId,
-        startAt: now,
+        startAt: requiresActivation ? null : now,
         status: requiresActivation ? "PENDING_ACTIVATION" : "ACTIVE",
         supportType
       }
@@ -820,7 +838,7 @@ async function applyPaymentSuccess(input: {
 
   return {
     paymentId: payment.id,
-    status: "PAID"
+    status: applied ? "PAID" : (await prisma.payment.findUniqueOrThrow({ where: { id: payment.id }, select: { status: true } })).status
   };
 }
 
@@ -840,29 +858,26 @@ async function applyPaymentFailure(input: {
     throw new Error("Платеж не найден.");
   }
 
-  if (payment.status === "PAID") {
+  if (payment.status === "REFUNDED" || payment.status === input.status || (payment.status === "PAID" && input.status !== "REFUNDED")) {
     return {
       paymentId: payment.id,
       status: payment.status
     };
   }
 
-  const snapshot = (payment.payloadSnapshot ?? {}) as Record<string, unknown>;
-  await prisma.payment.update({
-    where: {
-      id: payment.id
-    },
-    data: {
-      providerPaymentId: input.providerPaymentId ?? payment.providerPaymentId,
-      payloadSnapshot: {
-        ...snapshot,
-        providerStatus: input.providerStatus ?? null
-      } as Prisma.InputJsonValue,
-      status: input.status
-    }
+  const changed = await prisma.$transaction(async tx => {
+    await tx.$queryRaw`SELECT "id" FROM "Payment" WHERE "id" = ${payment.id} FOR UPDATE`;
+    const previous = await tx.payment.findUniqueOrThrow({ where: { id: payment.id } });
+    if (previous.status === "REFUNDED" || previous.status === input.status || (previous.status === "PAID" && input.status !== "REFUNDED")) return false;
+    await tx.payment.update({ where: { id: payment.id }, data: {
+      providerPaymentId: input.providerPaymentId ?? previous.providerPaymentId,
+      payloadSnapshot: { ...(previous.payloadSnapshot as object ?? {}), providerStatus: input.providerStatus ?? null } as Prisma.InputJsonValue,
+      status: input.status, refundedAt: input.status === "REFUNDED" ? previous.refundedAt ?? new Date() : previous.refundedAt
+    } });
+    return true;
   });
 
-  await recordAdminAction({
+  if (changed) await recordAdminAction({
     action: "payment_status_updated",
     entityType: "Payment",
     entityId: payment.id,
@@ -1323,18 +1338,18 @@ export async function buildClientOverview(input: { currentSessionId?: string; li
   const liveCheckEntries: Array<readonly [string, RouterLiveCheckResult]> = await Promise.all(
     user.routers.map(async (router): Promise<readonly [string, RouterLiveCheckResult]> => [
       router.id,
-      input.liveCheck ? await runRouterLiveCheck(router.adminNote) : { checkedAt: null, reachable: null }
+      input.liveCheck ? await runRouterLiveCheck(router.monitorHost, router.monitorPort ?? 443) : { checkedAt: null, reachable: null }
     ])
   );
   const liveCheckByRouterId = new Map<string, RouterLiveCheckResult>(liveCheckEntries);
   const routerCards = user.routers.map((router) => {
-    const currentSubscription = pickCurrentSubscription(router.subscriptions);
+    const currentSubscription = router.serviceTariff === "Самостоятельно" ? null : pickCurrentSubscription(router.subscriptions);
     const savedTemplate = router.template ?? currentSubscription ?? {
       accessEnabled: false,
       supportType: "NONE" as const
     };
-    const nextPrice = router.template?.priceOverride != null
-      ? toNumber(router.template.priceOverride) : calculateBundlePrice(settings, savedTemplate);
+    const nextPrice = router.serviceTariff === "Самостоятельно" ? 0 : router.template
+      ? toNumber(router.template.priceOverride ?? router.template.currentPrice) : calculateBundlePrice(settings, savedTemplate);
     const liveCheck = liveCheckByRouterId.get(router.id) ?? {
       checkedAt: null,
       reachable: null
@@ -1348,8 +1363,8 @@ export async function buildClientOverview(input: { currentSessionId?: string; li
       serialNumber: router.serialNumber,
       configurationType: router.configurationType,
       status: router.status,
-      // Imported register notes are private; the cabinet only needs the monitor IP.
-      adminNote: router.importKey ? extractRouterMonitorTarget(router.adminNote)?.host ?? null : router.adminNote,
+      // Internal notes and network addresses never leave the admin interface.
+      adminNote: null,
       currentPackage: router.serviceTariff ?? describeBundle(savedTemplate),
       lastCheckAt: liveCheck.checkedAt,
       lastCheckReachable: liveCheck.reachable,
@@ -1387,7 +1402,7 @@ export async function buildClientOverview(input: { currentSessionId?: string; li
         status: ticket.status,
         updatedAt: ticket.updatedAt.toISOString()
       })),
-      trial: router.trial
+      trial: router.serviceTariff !== "Самостоятельно" && router.trial
         ? {
             used: router.trial.used,
             startAt: router.trial.startAt?.toISOString() ?? null,
@@ -1410,7 +1425,7 @@ export async function buildClientOverview(input: { currentSessionId?: string; li
     profile: {
       id: user.id,
       clientCode: user.clientCode,
-      name: user.name ?? "Клиент FoxPoint",
+      name: user.publicName ?? (user.routers.some(r => r.importKey) ? user.clientCode ?? "Клиент FoxPoint" : user.name ?? "Клиент FoxPoint"),
       email: getPrimaryEmail(user.identities),
       telegram: getTelegramIdentity(user.identities),
       localLogin,
@@ -1715,7 +1730,8 @@ export async function createSupportTicketForUser(input: {
 }
 
 export async function createPublicSupportTicket(input: { routerCode: string; description: string; contact: string }) {
-  const router = await prisma.router.findUnique({ where: { routerCode: input.routerCode.trim().toUpperCase() } });
+  const code = input.routerCode.trim().toUpperCase();
+  const router = await prisma.router.findFirst({ where: { OR: [{ routerCode: code }, { codeAliases: { has: code } }] } });
   if (!router || router.status === "DISABLED") throw new Error("Проверьте код роутера на табличке.");
   const description = input.description.trim();
   const ticket = await prisma.supportTicket.create({ data: {
@@ -1728,33 +1744,50 @@ export async function createPublicSupportTicket(input: { routerCode: string; des
 
 export async function addAdminSubscriptionPayment(input: {
   subscriptionId: string; amount: number; days: number; requestKey: string;
+  paidAt?: string; method?: string; reason?: string;
 }) {
+  if (!Number.isFinite(input.amount) || input.amount <= 0 || input.amount > 1000000 || !Number.isInteger(input.days) || input.days < 1 || input.days > 3650) throw new Error("Укажите сумму от 0,01 до 1 000 000 ₽ и от 1 до 3650 дней.");
+  const paidAt = moscowDate(input.paidAt);
+  const actor = await ensureAdminActorUser();
   const result = await prisma.$transaction(async (tx) => {
     const initial = await tx.subscription.findUnique({ where: { id: input.subscriptionId } });
     if (!initial) throw new Error("Подписка не найдена.");
     await tx.$queryRaw`SELECT "id" FROM "Router" WHERE "id" = ${initial.routerId} FOR UPDATE`;
     const importKey = `admin-renewal:${input.requestKey}`;
     const existing = await tx.payment.findUnique({ where: { importKey } });
-    if (existing) return { paymentId: existing.id, repeated: true };
+    if (existing) {
+      const previous = existing.payloadSnapshot as { subscriptionId?: string } | null;
+      if (previous?.subscriptionId !== input.subscriptionId || Number(existing.amount) !== input.amount || existing.daysAdded !== input.days) throw new Error("Ключ оплаты уже использован для другой операции.");
+      return { paymentId: existing.id, repeated: true };
+    }
     const subscription = await tx.subscription.findUniqueOrThrow({ where: { id: input.subscriptionId } });
-    const router = await tx.router.findUniqueOrThrow({ where: { id: subscription.routerId } });
-    const paidAt = new Date();
-    const endAt = extendSubscriptionEnd(subscription.endAt, input.days, paidAt);
+    const router = await tx.router.findUniqueOrThrow({ where: { id: subscription.routerId }, include: { template: true, owner:true } });
+    if(router.archivedAt || router.owner.archivedAt || subscription.status === "CANCELLED")throw new Error("Для архивной или отменённой услуги сначала выполните восстановление.");
+    if (router.serviceTariff === "Самостоятельно") throw new Error("Самостоятельное обслуживание не имеет подписки.");
+    if (subscription.pendingActivation && !subscription.pendingDays && subscription.endAt) throw new Error("Сначала сверить дни старой подписки, ожидающей активации. Сохранённый срок не изменён.");
+    const periodDays = router.serviceTariff === "Индивидуальный" ? router.template?.periodDays ?? 30 : 30;
+    const periodPrice = Number((input.amount * periodDays / input.days).toFixed(2));
+    const pendingActivation = subscription.pendingActivation || (!subscription.startAt && !subscription.endAt);
+    const endAt = pendingActivation ? null : extendSubscriptionEnd(subscription.endAt, input.days, paidAt);
     const payment = await tx.payment.create({ data: {
       importKey, userId: router.ownerUserId, routerId: router.id, amount: input.amount,
       daysAdded: input.days, provider: "admin_manual", status: "PAID", paidAt,
-      payloadSnapshot: { type: "subscription_renewal", subscriptionId: subscription.id }
+      payloadSnapshot: { type: "subscription_renewal", subscriptionId: subscription.id, accessEnabled: subscription.accessEnabled,
+        supportType: subscription.supportType, tariff: router.serviceTariff, periodPrice, periodDays, days: input.days,
+        method: input.method?.trim() || "Ручная регистрация", reason: input.reason?.trim() || "Регистрация полученной оплаты" }
     } });
     await tx.subscription.update({ where: { id: subscription.id }, data: {
-      startAt: subscription.startAt ?? paidAt, endAt, lastPaymentId: payment.id,
-      status: subscription.pendingActivation ? "PENDING_ACTIVATION" : "ACTIVE"
+      startAt: pendingActivation ? null : subscription.startAt ?? paidAt, endAt, lastPaymentId: payment.id, pendingActivation,
+      pendingDays: pendingActivation ? subscription.pendingDays + input.days : 0,
+      priceSnapshot: periodPrice,
+      status: pendingActivation ? "PENDING_ACTIVATION" : "ACTIVE"
     } });
     await createClientNotification(tx, { userId: router.ownerUserId, type: "PAYMENT_PAID", relatedType: "Payment", relatedId: payment.id,
       title: "Оплата подтверждена", detail: `${formatMoney(input.amount)} · ${router.displayName} · продление на ${input.days} дней.`, href: "/cabinet/payments" });
+    await tx.adminAuditLog.create({ data: { adminId: actor.id, action: "subscription_payment_added", entityType: "Payment", entityId: payment.id,
+      beforeData: JSON.parse(JSON.stringify(subscription)), afterData: { subscriptionId: subscription.id, routerId: router.id, amount: input.amount, daysAdded: input.days, paidAt: paidAt.toISOString(), method: input.method ?? "Ручная регистрация", reason: input.reason ?? "Регистрация полученной оплаты", endAt: endAt?.toISOString() ?? null } } });
     return { paymentId: payment.id, repeated: false };
   });
-  if (!result.repeated) await recordAdminAction({ action: "subscription_payment_added", entityType: "Payment",
-    entityId: result.paymentId, afterData: { amount: input.amount, daysAdded: input.days, subscriptionId: input.subscriptionId } });
   return result;
 }
 
@@ -1985,6 +2018,7 @@ export async function createRenewalPaymentForUser(input: {
   if (!router) {
     throw new Error("Роутер не найден.");
   }
+  if (router.serviceTariff === "Самостоятельно") throw new Error("Самостоятельное обслуживание не требует продления.");
 
   const activeTemplate =
     router.template ??
@@ -1992,8 +2026,7 @@ export async function createRenewalPaymentForUser(input: {
       accessEnabled: false,
       supportType: "NONE" as const
     };
-  const amount = router.template?.priceOverride != null
-    ? toNumber(router.template.priceOverride) : calculateBundlePrice(settings, activeTemplate);
+  const amount = router.template ? toNumber(router.template.priceOverride ?? router.template.currentPrice) : calculateBundlePrice(settings, activeTemplate);
   const provider = resolveRequestedPaymentProvider(settings, input.provider);
   const description = `Продление обслуживания: ${router.displayName}`;
 
@@ -2001,9 +2034,9 @@ export async function createRenewalPaymentForUser(input: {
     throw new Error("Сначала выберите пакет для продления.");
   }
 
-  const requiresActivation =
-    router.configurationType === "BASIC" &&
-    (activeTemplate.supportType === "EXTENDED" || activeTemplate.accessEnabled);
+  const sameService = router.subscriptions.find(s => s.accessEnabled === activeTemplate.accessEnabled && s.supportType === activeTemplate.supportType);
+  const requiresActivation = sameService?.pendingActivation || !sameService?.startAt;
+  const purchasedDays = router.serviceTariff === "Индивидуальный" ? router.template?.periodDays ?? 30 : 30;
 
   const payment = await prisma.payment.create({
     data: {
@@ -2011,7 +2044,7 @@ export async function createRenewalPaymentForUser(input: {
       routerId: input.routerId,
       provider,
       amount,
-      daysAdded: SUBSCRIPTION_MONTH_DAYS,
+      daysAdded: purchasedDays,
       status: "CREATED",
       payloadSnapshot: {
         description,
@@ -2020,6 +2053,7 @@ export async function createRenewalPaymentForUser(input: {
         accessEnabled: activeTemplate.accessEnabled,
         supportType: activeTemplate.supportType,
         requiresActivation
+        ,periodPrice: amount, periodDays: purchasedDays, tariff: router.serviceTariff
       }
     }
   });
@@ -2027,6 +2061,7 @@ export async function createRenewalPaymentForUser(input: {
   let paymentUrl = buildPaymentUrl(links.support, "renewal", input.routerId);
   let providerPaymentId: string | null = null;
   let payloadSnapshot = {
+    periodPrice: amount, periodDays: purchasedDays, tariff: router.serviceTariff,
     accessEnabled: activeTemplate.accessEnabled,
     description,
     requiresActivation,
@@ -2388,40 +2423,27 @@ export async function handleYooKassaCallback(payload: Record<string, unknown>) {
   };
 }
 
-export async function buildAdminOverview(input: { clientQuery?: string | null } = {}) {
+export async function buildAdminOverview(input: AdminDatabaseQuery = {}) {
   await ensureClientAndRouterCodes();
-  const clientQuery = normalizeAdminClientQuery(input.clientQuery);
-  const clientSearchWhere: Prisma.UserWhereInput = {
-    AND: [CLIENT_USER_WHERE, buildAdminClientSearchWhere(clientQuery) ?? {}]
-  };
+  const currentAdmin = await ensureAdminActorUser();
+  const database = await buildAdminDatabase(input);
   const userRelationInclude = {
     identities: true,
+    orders: {select:{status:true,receivedAt:true}},
     routers: {
       select: {
-        id: true
+        id: true, trial: {select:{used:true}}
       }
     }
   } satisfies Prisma.UserInclude;
-  const [settings, users, clients, clientCount, routers, subscriptions, orders, tickets, rewards, logs] = await Promise.all([
+  const [settings, users, routers, subscriptions, orders, tickets, rewards, logs] = await Promise.all([
     getAdminSettings(),
     prisma.user.findMany({
       where: CLIENT_USER_WHERE,
       include: userRelationInclude,
       orderBy: {
         createdAt: "desc"
-      },
-      take: 200
-    }),
-    prisma.user.findMany({
-      where: clientSearchWhere,
-      include: userRelationInclude,
-      orderBy: {
-        createdAt: "desc"
-      },
-      take: 200
-    }),
-    prisma.user.count({
-      where: clientSearchWhere
+      }
     }),
     prisma.router.findMany({
       include: {
@@ -2430,39 +2452,37 @@ export async function buildAdminOverview(input: { clientQuery?: string | null } 
             id: true,
             name: true,
             clientCode: true
+            , city: true, archivedAt: true, isTest: true, status: true, phone: true, contactTelegram: true
           }
         },
-        template: true
+        template: true, trial: true, subscriptions: { include: { lastPayment: true } }
       },
       orderBy: {
         createdAt: "desc"
-      },
-      take: 200
+      }
     }),
     prisma.subscription.findMany({
       include: {
         router: {
-          include: { payments: { where: { status: "PAID" }, orderBy: { paidAt: "desc" }, take: 20 } }
-        }
+          include: { owner: true, trial: true, template: true, payments: { where: { status: "PAID" }, orderBy: { paidAt: "desc" } } }
+        }, lastPayment: true
       },
       orderBy: {
         endAt: "asc"
-      },
-      take: 200
+      }
     }),
     prisma.routerOrder.findMany({
       include: {
         user: {
           select: {
             name: true,
-            id: true
+            id: true, clientCode: true, phone: true, contactTelegram: true
           }
         }
       },
       orderBy: {
         createdAt: "desc"
       },
-      take: 12
     }),
     prisma.supportTicket.findMany({
       select: {
@@ -2479,6 +2499,7 @@ export async function buildAdminOverview(input: { clientQuery?: string | null } 
         adminCommentUpdatedAt: true,
         createdAt: true,
         updatedAt: true,
+        archivedAt: true,
         messages: {
           select: {
             id: true,
@@ -2493,7 +2514,7 @@ export async function buildAdminOverview(input: { clientQuery?: string | null } 
         user: {
           select: {
             name: true,
-            clientCode: true
+            clientCode: true, phone: true, contactTelegram: true
           }
         },
         router: {
@@ -2506,45 +2527,54 @@ export async function buildAdminOverview(input: { clientQuery?: string | null } 
       orderBy: {
         updatedAt: "desc"
       },
-      take: 12
     }),
     prisma.referralReward.findMany({
+      include: { beneficiary: true, referred: true },
       orderBy: {
         createdAt: "desc"
       },
-      take: 12
     }),
     prisma.adminAuditLog.findMany({
+      include: { admin: { select: { name: true } } },
       orderBy: {
         createdAt: "desc"
       },
-      take: 12
     })
   ]);
 
+  const objectLinks = await adminAuditObjects(logs);
+  const referrals=await prisma.referral.findMany({where:{referredUserId:{in:rewards.map(r=>r.referredUserId)}},include:{referrer:{select:{name:true,clientCode:true}}}});
+  const referrerByReferred=new Map(referrals.map(r=>[r.referredUserId,r.referrer]));
+  const registerMeta: Record<string, {total:number;page:number;pageSize:number}> = {};
+  const paginate = <T extends Record<string,unknown>>(name:string, rows:T[], query:AdminDatabaseQuery, statusKey?:keyof AdminDatabaseQuery) => { const page=registerPage(rows,query,statusKey); registerMeta[name]={total:page.total,page:page.page,pageSize:page.pageSize}; return page.rows; };
+  const recordInput: AdminDatabaseQuery = { pageSize:100 };
+
   return {
-    clientCount,
-    clientQuery,
+    ...database,
+    dashboard: { ...database.dashboard,
+      paidSubscriptions: subscriptions.filter(s=>!s.router.archivedAt && !s.router.owner.archivedAt && !s.router.owner.isTest && s.router.status==="ACTIVE" && s.router.owner.status==="ACTIVE" && s.status==="ACTIVE" && !s.pendingActivation && s.endAt && s.endAt>new Date() && s.lastPayment?.status==="PAID" && Number(s.lastPayment.amount)>0).length,
+      expiringSubscriptions: subscriptions.filter(s=>!s.router.archivedAt && !s.router.owner.archivedAt && s.status==="ACTIVE" && !s.pendingActivation && s.endAt && s.endAt>new Date() && getDaysRemaining(s.endAt)!<=5).length,
+      newTickets: tickets.filter(t=>t.status==="OPEN" && !t.archivedAt).length
+    },
+    reconciliation: await importReconciliation(),
     stats: {
       users: await prisma.user.count({ where: CLIENT_USER_WHERE }),
       routers: await prisma.router.count(),
       activeSubscriptions: await prisma.subscription.count({
         where: {
-          status: "ACTIVE"
+          status: "ACTIVE", pendingActivation: false, endAt: { gt: new Date() }, router: { owner: { is: CLIENT_USER_WHERE } }
         }
       }),
       openTickets: await prisma.supportTicket.count({
         where: {
-          status: {
-            not: "CLOSED"
-          }
+          status: { in: ["OPEN", "IN_PROGRESS", "WAITING_CLIENT"] }, archivedAt: null
         }
       })
     },
     settings,
-    users: users.map(mapAdminUserRecord),
-    clients: clients.map(mapAdminUserRecord),
-    routers: routers.map((router) => ({
+    users: users.map(user=>({...mapAdminUserRecord(user),archivedAt:user.archivedAt?.toISOString()??null,
+      trialReceivedOrders:user.orders.filter(o=>o.status==="RECEIVED"&&o.receivedAt).length,trialUsed:user.routers.filter(r=>r.trial?.used).length})),
+    routers: paginate("routers", routers.map((router) => ({
       id: router.id,
       routerCode: router.routerCode,
       clientCode: router.owner.clientCode,
@@ -2555,16 +2585,37 @@ export async function buildAdminOverview(input: { clientQuery?: string | null } 
       configurationType: router.configurationType,
       status: router.status,
       ownerId: router.owner.id,
+      archivedAt: router.archivedAt?.toISOString() ?? null,
       ownerName: router.owner.name ?? router.owner.id,
       savedTemplate: router.template ? describeBundle(router.template) : "Не выбран",
+      planPrice: toNumber(router.template?.priceOverride ?? router.template?.currentPrice),
+      planPeriodDays: router.template?.periodDays ?? 30,
+      planAccessEnabled: router.template?.accessEnabled ?? false,
+      planSupportType: router.template?.supportType ?? "NONE",
       adminNote: router.adminNote,
+      monitorHost: router.monitorHost, monitorPort: router.monitorPort,
+      services: router.subscriptions.filter(s=>s.status!=="CANCELLED").map(s=>({id:s.id,accessEnabled:s.accessEnabled,supportType:s.supportType,endAt:s.endAt?.toISOString()??null,startAt:s.startAt?.toISOString()??null,pendingActivation:s.pendingActivation,pendingDays:s.pendingDays})),
+      plan: router.serviceTariff ?? (router.template?.accessEnabled ? router.template.supportType !== "NONE" ? "Полный" : "Сервер" : router.template?.supportType !== "NONE" ? "Техничка" : "Самостоятельно"),
+      city: router.owner.city, name: router.owner.name,
+      endAt: router.subscriptions.map(s=>s.endAt?.toISOString()).filter(Boolean).sort()[0] ?? null,
+      daysRemaining: Math.min(...router.subscriptions.map(s=>getDaysRemaining(s.endAt)??999)),
+      pendingActivation: router.subscriptions.some(s=>s.pendingActivation),
+      paidActive: !router.archivedAt && !router.owner.archivedAt && !router.owner.isTest && router.owner.status === "ACTIVE" && router.status === "ACTIVE" && router.subscriptions.some(s=>s.status === "ACTIVE" && !s.pendingActivation && s.endAt && s.endAt > new Date() && s.lastPayment?.status === "PAID" && Number(s.lastPayment.amount)>0),
+      searchText: [router.id,router.routerCode,...router.codeAliases,router.displayName,router.owner.id,router.owner.name,router.owner.clientCode,router.owner.phone,router.owner.contactTelegram].join(" "),
       createdAt: router.createdAt.toISOString()
-    })),
-    subscriptions: subscriptions.map((subscription) => ({
+    })), input.tab === "routers" ? input : recordInput),
+    subscriptions: paginate("subscriptions", subscriptions.map((subscription) => ({
       id: subscription.id,
       routerId: subscription.routerId,
       routerName: subscription.router.displayName,
       routerCode: subscription.router.routerCode,
+      clientCode: subscription.router.owner.clientCode, userId: subscription.router.ownerUserId, customerName: subscription.router.owner.name,
+      plan: subscription.router.serviceTariff ?? describeBundle(subscription), city: subscription.router.owner.city,
+      archivedAt: subscription.router.archivedAt?.toISOString() ?? subscription.router.owner.archivedAt?.toISOString() ?? null,
+      isTrial: Number(subscription.priceSnapshot)===0 && !!subscription.router.trial?.endAt && subscription.router.trial.endAt > new Date(),
+      paidActive: !subscription.router.archivedAt && !subscription.router.owner.archivedAt && !subscription.router.owner.isTest && subscription.router.status === "ACTIVE" && subscription.router.owner.status === "ACTIVE" && subscription.status === "ACTIVE" && !subscription.pendingActivation && !!subscription.endAt && subscription.endAt > new Date() && subscription.lastPayment?.status === "PAID" && Number(subscription.lastPayment.amount)>0,
+      searchText: [subscription.id,subscription.routerId,subscription.router.routerCode,subscription.router.displayName,subscription.router.owner.clientCode,subscription.router.owner.name,subscription.router.owner.phone,subscription.router.owner.contactTelegram].join(" "),
+      createdAt: subscription.startAt?.toISOString() ?? subscription.router.createdAt.toISOString(),
       bundleLabel: subscription.router.serviceTariff ?? describeBundle(subscription),
       daysRemaining: getDaysRemaining(subscription.endAt),
       payments: subscription.router.payments.map((payment) => ({
@@ -2579,8 +2630,12 @@ export async function buildAdminOverview(input: { clientQuery?: string | null } 
       accessEnabled: subscription.accessEnabled,
       supportType: subscription.supportType,
       pendingActivation: subscription.pendingActivation
-    })),
-    orders: orders.map((order) => ({
+      ,pendingDays: subscription.pendingDays, periodDays: subscription.router.template?.periodDays ?? 30,
+      nextPrice: toNumber(subscription.router.template?.priceOverride ?? subscription.router.template?.currentPrice ?? subscription.priceSnapshot),
+    })), input.tab === "subscriptions" ? input : recordInput),
+    orders: paginate("orders", orders.map((order) => ({
+      clientCode: order.user.clientCode,
+      searchText: [order.id,order.user.name,order.user.clientCode,order.user.phone,order.user.contactTelegram,order.trackingNumber].join(" "),
       id: order.id,
       userId: order.userId,
       customerName: order.user.name ?? order.user.id,
@@ -2590,8 +2645,8 @@ export async function buildAdminOverview(input: { clientQuery?: string | null } 
       trackingNumber: order.trackingNumber,
       createdAt: order.createdAt.toISOString(),
       receivedAt: order.receivedAt?.toISOString() ?? null
-    })),
-    tickets: tickets.map((ticket) => ({
+    })), {...input,plan:"",city:"",expiry:""},"orderStatus"),
+    tickets: paginate("tickets", tickets.map((ticket) => ({
       id: ticket.id,
       number: ticket.number,
       userId: ticket.userId,
@@ -2600,6 +2655,7 @@ export async function buildAdminOverview(input: { clientQuery?: string | null } 
       clientCode: ticket.user.clientCode,
       routerCode: ticket.router?.routerCode ?? null,
       guestContact: ticket.guestContact,
+      contact: ticket.guestContact ?? ticket.user.phone ?? ticket.user.contactTelegram,
       routerName: ticket.router?.displayName ?? "Без роутера",
       category: ticket.category,
       description: ticket.description,
@@ -2609,6 +2665,7 @@ export async function buildAdminOverview(input: { clientQuery?: string | null } 
       adminCommentUpdatedAt: ticket.adminCommentUpdatedAt?.toISOString() ?? null,
       createdAt: ticket.createdAt.toISOString(),
       updatedAt: ticket.updatedAt.toISOString(),
+      archivedAt: ticket.archivedAt?.toISOString() ?? null,
       messages: mapSupportTicketMessages({
         adminComment: ticket.adminComment,
         adminCommentUpdatedAt: ticket.adminCommentUpdatedAt ?? null,
@@ -2617,31 +2674,49 @@ export async function buildAdminOverview(input: { clientQuery?: string | null } 
         id: ticket.id,
         messages: ticket.messages
       })
-    })),
-    rewards: rewards.map((reward) => ({
+    })), {...input,plan:"",city:"",expiry:""},"ticketStatus"),
+    rewardTotals: {pending:rewards.filter(r=>r.status==="PENDING").reduce((sum,r)=>sum+toNumber(r.amount),0),available:rewards.filter(r=>r.status==="AVAILABLE").reduce((sum,r)=>sum+toNumber(r.amount),0),canceled:rewards.filter(r=>r.status==="CANCELED").reduce((sum,r)=>sum+toNumber(r.amount),0)},
+    rewards: paginate("rewards", rewards.map((reward) => ({
       id: reward.id,
       amount: toNumber(reward.amount),
       amountLabel: formatMoney(toNumber(reward.amount)),
       status: reward.status,
       sourceType: reward.sourceType,
+      beneficiaryName: reward.beneficiary.name, beneficiaryCode: reward.beneficiary.clientCode, referredName: reward.referred.name, referredCode: reward.referred.clientCode,
+      referrerName:referrerByReferred.get(reward.referredUserId)?.name??null,referrerCode:referrerByReferred.get(reward.referredUserId)?.clientCode??null,
+      sourceId: reward.sourceId, paymentId: reward.paymentId, availableAt: reward.availableAt?.toISOString() ?? null,
       createdAt: reward.createdAt.toISOString()
-    })),
-    logs: logs.map((log) => ({
+    })), {...input,plan:"",city:"",expiry:""},"rewardStatus"),
+    logs: paginate("logs", logs.map((log,index) => ({
       id: log.id,
       action: log.action,
       entityType: log.entityType,
-      entityId: log.entityId,
+      entityId: log.entityId, admin: log.admin.name ?? log.adminId, beforeData: safeAudit(log.beforeData), afterData: safeAudit(log.afterData),
+      href: objectLinks[index].href, objectLabel: objectLinks[index].label,
       createdAt: log.createdAt.toISOString()
-    }))
+    })), {...input,plan:"",city:"",expiry:""}),
+    registerMeta,
+    administrators: await prisma.user.findMany({ where: { identities: { some: { provider: "EMAIL", email: { startsWith: "admin+", endsWith: "@foxpoint.local" } } } }, select: { id:true,name:true } }),
+    currentAdmin: currentAdmin.id
+    , integrations: [
+      {id:"platega",label:"Platega",keys:["platega_api_base_url","platega_merchant_id","platega_secret"]},
+      {id:"yoomoney",label:"ЮMoney",keys:["yoomoney_receiver","yoomoney_payment_type","yoomoney_notification_secret"]},
+      {id:"yookassa",label:"ЮKassa",keys:["yookassa_shop_id","yookassa_secret_key"]}
+    ].map(p=>({id:p.id,label:p.label,enabled:settings.find(s=>s.key===`${p.id}_enabled`)?.value==="true",ready:p.keys.every(k=>!!settings.find(s=>s.key===k)?.value?.trim())}))
   };
 }
 
 export async function updateAdminTicket(input: {
+  archived?: boolean;
   adminComment?: string | null;
   assigneeId?: string | null;
   status: TicketStatus;
   ticketId: string;
 }) {
+  if (input.assigneeId) {
+    const administrator = await prisma.user.findFirst({ where: { id: input.assigneeId, identities: { some: { provider: "EMAIL", email: { startsWith: "admin+", endsWith: "@foxpoint.local" } } } } });
+    if (!administrator) throw new Error("Выберите существующего администратора.");
+  }
   const ticket = await prisma.supportTicket.findUnique({
     where: {
       id: input.ticketId
@@ -2667,7 +2742,8 @@ export async function updateAdminTicket(input: {
   const updated = await prisma.$transaction(async tx => {
     await tx.$queryRaw`SELECT "id" FROM "SupportTicket" WHERE "id" = ${input.ticketId} FOR UPDATE`;
     const previous = await tx.supportTicket.findUniqueOrThrow({ where: { id: input.ticketId } });
-    const changed = await tx.supportTicket.update({ where: { id: input.ticketId }, data: { status: input.status, assigneeId: input.assigneeId?.trim() || null } });
+    const changed = await tx.supportTicket.update({ where: { id: input.ticketId }, data: { status: input.status, assigneeId: input.assigneeId?.trim() || null,
+      archivedAt: input.archived === undefined ? previous.archivedAt : input.archived ? previous.archivedAt ?? new Date() : null } });
     if (previous.status !== input.status) {
       const statuses: Record<string, string> = { OPEN: "Открыто", IN_PROGRESS: "В работе", WAITING_CLIENT: "Ожидаем ваш ответ", RESOLVED: "Решено", CLOSED: "Закрыто" };
       await createClientNotification(tx, { userId: ticket.userId, type: "SUPPORT_STATUS", relatedType: "SupportTicket", relatedId: ticket.id,
@@ -2699,11 +2775,13 @@ export async function updateAdminTicket(input: {
     beforeData: {
       status: ticket.status,
       assigneeId: ticket.assigneeId,
+      archivedAt: ticket.archivedAt?.toISOString() ?? null,
       adminComment: ticket.adminComment
     },
     afterData: {
       status: updated.status,
       assigneeId: updated.assigneeId,
+      archivedAt: updated.archivedAt?.toISOString() ?? null,
       adminComment: input.adminComment?.trim() || ticket.adminComment
     }
   });
@@ -2724,14 +2802,14 @@ export async function deleteAdminTicket(input: { ticketId: string }) {
     throw new Error("Обращение не найдено.");
   }
 
-  await prisma.supportTicket.delete({
+  await prisma.supportTicket.update({
     where: {
       id: input.ticketId
-    }
+    }, data: { archivedAt: new Date() }
   });
 
   await recordAdminAction({
-    action: "ticket_deleted",
+    action: "ticket_archived",
     entityType: "SupportTicket",
     entityId: ticket.id,
     beforeData: {
@@ -2845,14 +2923,14 @@ export async function deleteAdminRouter(input: { routerId: string }) {
     throw new Error("Роутер не найден.");
   }
 
-  await prisma.router.delete({
+  await prisma.router.update({
     where: {
       id: input.routerId
-    }
+    }, data: { archivedAt: new Date() }
   });
 
   await recordAdminAction({
-    action: "router_deleted",
+    action: "router_archived",
     entityType: "Router",
     entityId: router.id,
     beforeData: {
@@ -2863,7 +2941,7 @@ export async function deleteAdminRouter(input: { routerId: string }) {
       model: router.model,
       serialNumber: router.serialNumber,
       status: router.status
-    }
+    }, afterData: { archivedAt: new Date().toISOString(), reason: "Архивирование роутера администратором" }
   });
 
   return {
@@ -2872,141 +2950,83 @@ export async function deleteAdminRouter(input: { routerId: string }) {
 }
 
 export async function updateAdminRouter(input: {
-  adminNote?: string | null;
-  configurationType: ConfigurationType;
-  displayName: string;
-  ownerUserId: string;
-  model?: string | null;
-  routerId: string;
-  serialNumber?: string | null;
-  status: RouterStatus;
+  adminNote?: string | null; configurationType: ConfigurationType; displayName: string; ownerUserId: string;
+  model?: string | null; routerId: string; serialNumber?: string | null; status: RouterStatus;
+  serviceTariff?: string; planPrice?: number; planPeriodDays?: number; planAccessEnabled?: boolean; planSupportType?: SupportType;
+  archived?: boolean;
+  reason?: string;
+  monitorHost?: string; monitorPort?: number;
 }) {
-  const [router, owner] = await Promise.all([
-    prisma.router.findUnique({
-      where: {
-        id: input.routerId
-      }
-    }),
-    prisma.user.findUnique({
-      where: {
-        id: input.ownerUserId
-      }
-    })
-  ]);
-
-  if (!router) {
-    throw new Error("Роутер не найден.");
-  }
-
-  if (!owner) {
-    throw new Error("Новый владелец не найден.");
-  }
-
-  const updated = await prisma.router.update({
-    where: {
-      id: input.routerId
-    },
-    data: {
-      ownerUserId: input.ownerUserId,
-      displayName: input.displayName.trim(),
-      model: input.model?.trim() || null,
-      serialNumber: input.serialNumber?.trim() || null,
-      configurationType: input.configurationType,
-      status: input.status,
-      adminNote: input.adminNote?.trim() || null
+  if (input.serviceTariff === "Индивидуальный" && (!input.planPrice || !input.planPeriodDays || (!input.planAccessEnabled && (!input.planSupportType || input.planSupportType === "NONE")))) throw new Error("Для индивидуального плана задайте состав, цену и срок.");
+  const actor = await ensureAdminActorUser();
+  return prisma.$transaction(async tx => {
+    await tx.$queryRaw`SELECT "id" FROM "Router" WHERE "id" = ${input.routerId} FOR UPDATE`;
+    if(input.serialNumber?.trim()) {
+      const serial=input.serialNumber.trim();await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`serial:${serial.toLowerCase()}`},0))`;
+      if(await tx.router.findFirst({where:{id:{not:input.routerId},serialNumber:{equals:serial,mode:"insensitive"}}}))throw new Error("Серийный номер уже указан у другого роутера.");
     }
-  });
-
-  await recordAdminAction({
-    action: "router_updated",
-    entityType: "Router",
-    entityId: updated.id,
-    beforeData: {
-      displayName: router.displayName,
-      ownerUserId: router.ownerUserId,
-      model: router.model,
-      serialNumber: router.serialNumber,
-      configurationType: router.configurationType,
-      status: router.status,
-      adminNote: router.adminNote
-    },
-    afterData: {
-      displayName: updated.displayName,
-      ownerUserId: updated.ownerUserId,
-      model: updated.model,
-      serialNumber: updated.serialNumber,
-      configurationType: updated.configurationType,
-      status: updated.status,
-      adminNote: updated.adminNote
+    const router = await tx.router.findUniqueOrThrow({ where: { id: input.routerId }, include: { template: true } });
+    await tx.user.findUniqueOrThrow({ where: { id: input.ownerUserId } });
+    const updated = await tx.router.update({ where: { id: input.routerId }, data: {
+      ownerUserId: input.ownerUserId, displayName: input.displayName.trim(), model: input.model?.trim() || null,
+      serialNumber: input.serialNumber?.trim() || null, configurationType: input.configurationType, status: input.status,
+      adminNote: input.adminNote?.trim() || null, serviceTariff: input.serviceTariff ?? router.serviceTariff,
+      monitorHost: input.monitorHost === undefined ? router.monitorHost : input.monitorHost.trim() || null,
+      monitorPort: input.monitorPort === undefined ? router.monitorPort : input.monitorPort || null,
+      archivedAt: input.archived === undefined ? router.archivedAt : input.archived ? router.archivedAt ?? new Date() : null
+    } });
+    if (input.serviceTariff) {
+      const accessEnabled = input.serviceTariff === "Индивидуальный" ? !!input.planAccessEnabled : ["Сервер", "Полный"].includes(input.serviceTariff);
+      const supportType: SupportType = input.serviceTariff === "Индивидуальный" ? input.planSupportType ?? "NONE" : ["Техничка", "Полный"].includes(input.serviceTariff) ? "BASIC" : "NONE";
+      const price = input.serviceTariff === "Самостоятельно" ? 0 : input.planPrice ?? (input.serviceTariff === "Полный" ? 2000 : 1000);
+      if (input.serviceTariff !== "Самостоятельно" && price <= 0) throw new Error("Для платного плана задайте положительную цену.");
+      const data = { accessEnabled, supportType, periodDays: input.serviceTariff === "Индивидуальный" ? input.planPeriodDays! : 30, currentPrice: price, priceOverride: price };
+      await tx.subscriptionTemplate.upsert({ where: { routerId: router.id }, create: { routerId: router.id, ...data }, update: data });
+      if (input.serviceTariff === "Самостоятельно") await tx.subscription.updateMany({ where: { routerId: router.id }, data: { status: "CANCELLED", pendingActivation: false, pendingDays: 0 } });
     }
+    const after = await tx.router.findUniqueOrThrow({ where: { id: router.id }, include: { template: true } });
+    await tx.adminAuditLog.create({ data: { adminId: actor.id, entityType: "Router", entityId: router.id, action: "router_updated",
+      beforeData: JSON.parse(JSON.stringify(router)), afterData: JSON.parse(JSON.stringify({ ...after, reason: input.reason?.trim() || "Изменение роутера через админку" })) } });
+    return { routerId: updated.id };
   });
-
-  return {
-    routerId: updated.id
-  };
 }
 
 export async function updateAdminSubscription(input: {
-  endAt?: string | null;
-  pendingActivation: boolean;
-  startAt?: string | null;
-  status: SubscriptionStatus;
-  subscriptionId: string;
+  endAt?: string | null; pendingActivation: boolean; startAt?: string | null; status: SubscriptionStatus; subscriptionId: string;
+  reason?: string;
 }) {
-  const subscription = await prisma.subscription.findUnique({
-    where: {
-      id: input.subscriptionId
+  const initial = await prisma.subscription.findUniqueOrThrow({ where: { id: input.subscriptionId } });
+  const actor = await ensureAdminActorUser();
+  return prisma.$transaction(async tx => {
+    await tx.$queryRaw`SELECT "id" FROM "Router" WHERE "id" = ${initial.routerId} FOR UPDATE`;
+    const subscription = await tx.subscription.findUniqueOrThrow({ where: { id: input.subscriptionId } });
+    const router = await tx.router.findUniqueOrThrow({ where: { id: subscription.routerId } });
+    if (router.serviceTariff === "Самостоятельно" && input.status !== "CANCELLED") throw new Error("Самостоятельное обслуживание не имеет подписки.");
+    const parseMoscow = (value: string | null | undefined) => value?.trim() ? new Date(/[Zz]|[+-]\d\d:\d\d$/.test(value) ? value : `${value}+03:00`) : null;
+    let startAt = parseMoscow(input.startAt), endAt = parseMoscow(input.endAt);
+    // A status-only save must retain seconds/milliseconds hidden by datetime-local.
+    if (startAt && subscription.startAt && Math.floor(startAt.getTime() / 60000) === Math.floor(subscription.startAt.getTime() / 60000)) startAt = subscription.startAt;
+    if (endAt && subscription.endAt && Math.floor(endAt.getTime() / 60000) === Math.floor(subscription.endAt.getTime() / 60000)) endAt = subscription.endAt;
+    const activating = subscription.pendingActivation && !input.pendingActivation && input.status === "ACTIVE";
+    if (activating) {
+      if (!subscription.pendingDays) throw new Error("Нет сохранённых дней активации. Сначала сверить исходную оплату.");
+      startAt = new Date(); endAt = extendSubscriptionEnd(null, subscription.pendingDays, startAt);
     }
-  });
-
-  if (!subscription) {
-    throw new Error("Подписка не найдена.");
-  }
-
-  const nextStartAt = input.startAt?.trim() ? new Date(input.startAt) : null;
-  const nextEndAt = input.endAt?.trim() ? new Date(input.endAt) : null;
-
-  if (nextStartAt && Number.isNaN(nextStartAt.getTime())) {
-    throw new Error("Некорректная дата начала.");
-  }
-
-  if (nextEndAt && Number.isNaN(nextEndAt.getTime())) {
-    throw new Error("Некорректная дата окончания.");
-  }
-
-  const updated = await prisma.subscription.update({
-    where: {
-      id: input.subscriptionId
-    },
-    data: {
-      status: input.status,
-      startAt: nextStartAt,
-      endAt: nextEndAt,
-      pendingActivation: input.pendingActivation
+    if ([startAt, endAt].some(date => date && Number.isNaN(date.getTime()))) throw new Error("Некорректная дата.");
+    if (startAt && endAt && endAt <= startAt) throw new Error("Окончание должно быть позже начала.");
+    if (input.pendingActivation) {
+      if (!subscription.pendingDays && subscription.endAt) throw new Error("Нельзя скрыть действующий срок. Сначала сверить дни ожидания активации.");
+      startAt = null; endAt = null;
     }
+    const updated = await tx.subscription.update({ where: { id: subscription.id }, data: {
+      status: input.pendingActivation ? "PENDING_ACTIVATION" : input.status, startAt, endAt, pendingActivation: input.pendingActivation,
+      pendingDays: activating ? 0 : subscription.pendingDays
+    } });
+    if (activating && Number(subscription.priceSnapshot) === 0) await tx.trial.updateMany({ where: { routerId: router.id, used: true }, data: { startAt, endAt } });
+    await tx.adminAuditLog.create({ data: { adminId: actor.id, entityType: "Subscription", entityId: updated.id, action: "subscription_updated",
+      beforeData: JSON.parse(JSON.stringify(subscription)), afterData: JSON.parse(JSON.stringify({ ...updated, reason: input.reason?.trim() || (activating ? "Подтверждение технической активации" : "Изменение подписки через админку") })) } });
+    return { subscriptionId: updated.id };
   });
-
-  await recordAdminAction({
-    action: "subscription_updated",
-    entityType: "Subscription",
-    entityId: updated.id,
-    beforeData: {
-      status: subscription.status,
-      startAt: subscription.startAt?.toISOString() ?? null,
-      endAt: subscription.endAt?.toISOString() ?? null,
-      pendingActivation: subscription.pendingActivation
-    },
-    afterData: {
-      status: updated.status,
-      startAt: updated.startAt?.toISOString() ?? null,
-      endAt: updated.endAt?.toISOString() ?? null,
-      pendingActivation: updated.pendingActivation
-    }
-  });
-
-  return {
-    subscriptionId: updated.id
-  };
 }
 
 export async function updateAdminReward(input: {
@@ -3055,9 +3075,13 @@ export async function updateAdminReward(input: {
 export async function updateAdminUser(input: {
   email?: string | null;
   name?: string | null;
+  publicName?: string | null;
+  reason?: string;
   phone?: string | null;
   city?: string | null;
   status: UserStatus;
+  archived?: boolean;
+  isTest?: boolean;
   telegramUsername?: string | null;
   userId: string;
 }) {
@@ -3149,10 +3173,13 @@ export async function updateAdminUser(input: {
       },
       data: {
         name: nextName,
+        publicName: input.publicName === undefined ? user.publicName : input.publicName?.trim() || null,
         phone: input.phone?.trim() || null,
         city: input.city?.trim() || null,
         contactTelegram: existingTelegramIdentity ? user.contactTelegram : nextTelegramUsername,
-        status: input.status
+        status: input.status,
+        archivedAt: input.archived === undefined ? user.archivedAt : input.archived ? user.archivedAt ?? new Date() : null,
+        isTest: input.isTest ?? user.isTest
       }
     });
 
@@ -3169,15 +3196,22 @@ export async function updateAdminUser(input: {
     entityId: updated.user.id,
     beforeData: {
       name: user.name,
+      publicName: user.publicName,
+      phone: user.phone, city: user.city, contactTelegram: user.contactTelegram,
       email: existingEmail,
       telegramUsername: existingTelegramUsername,
       status: user.status
+      ,archivedAt: user.archivedAt?.toISOString() ?? null, isTest: user.isTest
     },
     afterData: {
       name: updated.user.name,
+      publicName: updated.user.publicName,
+      phone: updated.user.phone, city: updated.user.city, contactTelegram: updated.user.contactTelegram,
+      reason: input.reason?.trim() || "Изменение клиента через админку",
       email: updated.email,
       telegramUsername: updated.telegramUsername,
       status: updated.user.status
+      ,archivedAt: updated.user.archivedAt?.toISOString() ?? null, isTest: updated.user.isTest
     }
   });
 
@@ -3196,6 +3230,7 @@ export async function createAdminRouterAssignment(input: {
   startTrial: boolean;
   supportType: SupportType;
   userId: string;
+  serviceTariff?: BusinessPlan; planPrice?: number; planPeriodDays?: number; monitorHost?: string; monitorPort?: number;
 }) {
   const settings = await getSettingMap();
   const owner = await prisma.user.findUnique({
@@ -3210,11 +3245,24 @@ export async function createAdminRouterAssignment(input: {
 
   const now = new Date();
   const periodDays = SUBSCRIPTION_MONTH_DAYS;
-  const trialDays = getNumericSetting(settings, "trial_period_days", 14);
-  const templatePrice = calculateBundlePrice(settings, input);
+  const trialDays = 14;
+  const chosen = input.serviceTariff ? businessPlan({ plan: input.serviceTariff, price: input.planPrice ?? 0, periodDays: input.planPeriodDays, accessEnabled: input.accessEnabled, supportType: input.supportType }) : null;
+  if (chosen) { input = { ...input, accessEnabled: chosen.accessEnabled, supportType: chosen.supportType }; }
+  if (input.startTrial && input.serviceTariff === "Самостоятельно") throw new Error("Самостоятельный план не имеет пробной подписки.");
+  const templatePrice = chosen?.currentPrice ?? calculateBundlePrice(settings, input);
   const price = input.startTrial ? 0 : templatePrice;
 
   const router = await prisma.$transaction(async (tx) => {
+    await tx.$queryRaw`SELECT "id" FROM "User" WHERE "id" = ${input.userId} FOR UPDATE`;
+    if(owner.archivedAt)throw new Error("Сначала восстановите клиента из архива.");
+    if(input.serialNumber?.trim()) {const serial=input.serialNumber.trim();await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`serial:${serial.toLowerCase()}`},0))`;if(await tx.router.findFirst({where:{serialNumber:{equals:serial,mode:"insensitive"}}}))throw new Error("Серийный номер уже указан у другого роутера.");}
+    if (input.startTrial) {
+      const received = await tx.routerOrder.count({ where: { userId: input.userId, status: "RECEIVED", receivedAt: { not: null } } });
+      const used = await tx.trial.count({ where: { used: true, router: { ownerUserId: input.userId } } });
+      if (received <= used) throw new Error("14-дневный тест доступен для полученного устройства проекта. Подтвердите получение заказа.");
+      if (!input.accessEnabled && input.supportType === "NONE") throw new Error("Выберите услуги теста.");
+    }
+    const needsActivation = input.accessEnabled || input.supportType !== "NONE";
     const createdRouter = await tx.router.create({
       data: {
         ownerUserId: input.userId,
@@ -3223,6 +3271,7 @@ export async function createAdminRouterAssignment(input: {
         serialNumber: input.serialNumber?.trim() || null,
         configurationType: input.configurationType,
         status: "ACTIVE",
+        serviceTariff: input.serviceTariff ?? null, monitorHost: input.monitorHost?.trim() || null, monitorPort: input.monitorPort || null,
         adminNote: input.adminNote?.trim() || null
       }
     });
@@ -3234,7 +3283,7 @@ export async function createAdminRouterAssignment(input: {
         routerId: createdRouter.id,
         accessEnabled: input.accessEnabled,
         supportType: input.supportType,
-        periodDays,
+        periodDays: chosen?.periodDays ?? periodDays,
         currentPrice: templatePrice
       }
     });
@@ -3245,13 +3294,10 @@ export async function createAdminRouterAssignment(input: {
           routerId: createdRouter.id,
           accessEnabled: input.accessEnabled,
           supportType: input.supportType,
-          status: "ACTIVE",
-          startAt: now,
-          endAt: new Date(now.getTime() + (input.startTrial ? trialDays : periodDays) * 24 * 60 * 60 * 1000),
-          priceSnapshot: price,
-          pendingActivation:
-            input.configurationType === "BASIC" &&
-            (input.accessEnabled || input.supportType === "EXTENDED")
+          status: input.startTrial ? needsActivation ? "PENDING_ACTIVATION" : "ACTIVE" : "DRAFT",
+          startAt: input.startTrial && !needsActivation ? now : null,
+          endAt: input.startTrial && !needsActivation ? new Date(now.getTime() + trialDays * DAY_MS) : null,
+          priceSnapshot: price, pendingActivation: needsActivation, pendingDays: input.startTrial && needsActivation ? trialDays : 0
         }
       });
     }
@@ -3261,8 +3307,8 @@ export async function createAdminRouterAssignment(input: {
         data: {
           routerId: createdRouter.id,
           used: true,
-          startAt: now,
-          endAt: new Date(now.getTime() + trialDays * 24 * 60 * 60 * 1000),
+          startAt: needsActivation ? null : now,
+          endAt: needsActivation ? null : new Date(now.getTime() + trialDays * DAY_MS),
           packageSnapshot: {
             accessEnabled: input.accessEnabled,
             supportType: input.supportType,

@@ -24,11 +24,12 @@ type TicketConversationProps = {
 
 function formatMessageTime(value: string): string {
   return new Intl.DateTimeFormat("ru-RU", {
+    timeZone: "Europe/Moscow",
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
     month: "2-digit"
-  }).format(new Date(value));
+  }).format(new Date(value)) + " МСК";
 }
 
 export function TicketConversation({
@@ -71,6 +72,8 @@ export function TicketConversation({
     let active = true;
 
     const syncTicket = async () => {
+      const parent = threadBodyRef.current?.closest("details.adminClientDisclosure") as HTMLDetailsElement | null;
+      if (parent && !parent.open) return;
       if (syncInFlight.current) {
         return;
       }
@@ -110,12 +113,15 @@ export function TicketConversation({
     };
 
     void syncTicket();
+    const parent = threadBodyRef.current?.closest("details.adminClientDisclosure");
+    parent?.addEventListener("toggle", syncTicket);
     const interval = window.setInterval(() => {
       void syncTicket();
     }, 5000);
 
     return () => {
       active = false;
+      parent?.removeEventListener("toggle", syncTicket);
       window.clearInterval(interval);
     };
   }, [refreshUrl]);

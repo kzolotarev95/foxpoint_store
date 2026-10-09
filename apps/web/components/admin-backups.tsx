@@ -7,6 +7,7 @@ type Job = { id: string; kind: "create" | "upload" | "restore"; status: string; 
 type Snapshot = { jobs: Job[]; busy: boolean; restoreAvailable: boolean; error?: string };
 const api = "/admin/backups/api";
 const size = (bytes: number) => bytes > 1024 ** 3 ? `${(bytes / 1024 ** 3).toFixed(2)} ГБ` : `${(bytes / 1024 ** 2).toFixed(1)} МБ`;
+const backupDate = (value:string)=>`${new Date(value).toLocaleString("ru-RU",{timeZone:"Europe/Moscow"})} МСК`;
 
 export function AdminBackups({ initial }: { initial: Snapshot }) {
   const [snapshot, setSnapshot] = useState(initial);
@@ -24,6 +25,9 @@ export function AdminBackups({ initial }: { initial: Snapshot }) {
   const requestRunning = useRef(false);
   const activeRestore = snapshot.jobs.find(job => job.kind === "restore" && job.status === "running");
   const busy = creating || uploading || Boolean(deleting) || snapshot.busy || Boolean(activeRestore);
+  const selectedJob = snapshot.jobs.find(job=>job.id===selected);
+  const lastReady = snapshot.jobs.find(job=>job.kind==="create" && job.status==="ready");
+  const lastRun = snapshot.jobs.find(job=>job.kind==="create");
 
   async function refresh() {
     try {
@@ -107,6 +111,7 @@ export function AdminBackups({ initial }: { initial: Snapshot }) {
   }
 
   return <>
+    <section className="panel sectionPanel"><h2>Состояние резервных копий</h2><p>Последняя готовая копия: {lastReady?backupDate(lastReady.createdAt):"Пока нет"}. {lastReady?`Возраст: ${Math.max(0,Math.floor((Date.now()-new Date(lastReady.createdAt).getTime())/3600000))} ч.`:""}</p><p className="helperText">Последний запуск: {lastRun?`${backupDate(lastRun.createdAt)} · ${lastRun.step}`:"Пока не запускался"}. Политика панели: архивы хранятся до ручного удаления. Автоматическое расписание панель не запускает; расписание на VPS требует отдельной проверки и настройки владельцем.</p></section>
     {error ? <div className="banner errorBanner" role="alert">{error}</div> : null}
     {message ? <div className="banner successBanner" role="status">{message}{targetUrl ? <> <a href={`${targetUrl}/admin/login`}>Открыть восстановленную панель</a></> : null}</div> : null}
     <section className="panel sectionPanel adminSectionPanel">
@@ -124,7 +129,7 @@ export function AdminBackups({ initial }: { initial: Snapshot }) {
       <span className="pill">Сохранённые копии</span><h2 className="adminSectionTitle">Архивы и ход операций</h2>
       <p className="helperText">Скачайте нужные копии на компьютер. Ненужные архивы можно удалить здесь, чтобы освободить место на сервере.</p>
       <div className="contentStack">{snapshot.jobs.length ? snapshot.jobs.map(job => <article key={job.id} className="panel adminRecordCard adminBackupRecord">
-        <div className="sectionHeader"><div><strong>{job.kind === "create" ? "Полный бэкап" : job.kind === "upload" ? "Загруженный бэкап" : "Восстановление"}</strong><p className="helperText">{new Date(job.createdAt).toLocaleString("ru-RU")}{job.bytes ? ` · ${size(job.bytes)}` : ""}</p></div><span className="pill">{job.status === "running" ? "Выполняется" : job.status === "ready" ? "Готов" : job.status === "restored" ? "Восстановлен" : "Ошибка"}</span></div>
+        <div className="sectionHeader"><div><strong>{job.kind === "create" ? "Полный бэкап" : job.kind === "upload" ? "Загруженный бэкап" : "Восстановление"}</strong><p className="helperText">{backupDate(job.createdAt)}{job.bytes ? ` · ${size(job.bytes)}` : ""}</p></div><span className="pill">{job.status === "running" ? "Выполняется" : job.status === "ready" ? "Готов" : job.status === "restored" ? "Восстановлен" : "Ошибка"}</span></div>
         <p className="helperText" role="status">{job.step}</p>{job.error ? <p className="errorText">{job.error}</p> : null}
         {job.manifest ? <p className="helperText">Источник: {job.manifest.publicUrl} · Таблиц: {job.manifest.tables.length} · Всего записей: {job.manifest.tables.reduce((sum, table) => sum + table.rows, 0)}</p> : null}
         {job.kind !== "restore" && job.status !== "running" ? <div className="ctaRow">
@@ -133,7 +138,7 @@ export function AdminBackups({ initial }: { initial: Snapshot }) {
         </div> : null}
         {deleteCandidate === job.id ? <div className="adminBackupRestoreConfirmation" role="group" aria-label="Подтверждение удаления архива">
           <h3>{job.status === "ready" ? "Удалить этот архив?" : "Удалить запись и оставшиеся файлы?"}</h3>
-          <p className="helperText">Копия от {new Date(job.createdAt).toLocaleString("ru-RU")}{job.bytes ? ` · ${size(job.bytes)}` : ""} будет безвозвратно удалена с сервера. Файлы, скачанные на ваш компьютер, сохранятся.</p>
+          <p className="helperText">Копия от {backupDate(job.createdAt)}{job.bytes ? ` · ${size(job.bytes)}` : ""} будет безвозвратно удалена с сервера. Файлы, скачанные на ваш компьютер, сохранятся.</p>
           <div className="ctaRow"><button className="secondaryButton dangerButton" type="button" disabled={busy} onClick={() => void deleteBackup(job)}>{deleting === job.id ? "Удаляем…" : "Да, удалить с сервера"}</button><button className="secondaryButton" type="button" disabled={Boolean(deleting)} onClick={() => setDeleteCandidate(null)}>Отмена</button></div>
         </div> : null}
       </article>) : <p className="helperText">Полных архивов пока нет. Создайте первую копию выше.</p>}</div>
@@ -146,6 +151,8 @@ export function AdminBackups({ initial }: { initial: Snapshot }) {
       </form>
       {selected ? <div className="adminBackupRestoreConfirmation">
         <h3>Заменить панель данными из выбранного бэкапа</h3>
+        <p className="helperText">Выбрана копия {selectedJob?backupDate(selectedJob.createdAt):selected} · {selectedJob?.bytes?size(selectedJob.bytes):"Объём уточняется"} · источник {selectedJob?.manifest?.publicUrl??"Не указан"}. Полная замена {selectedJob?.manifest?.tables.length??"—"} таблиц / {selectedJob?.manifest?.tables.reduce((sum,t)=>sum+t.rows,0)??"—"} записей и файлов панели.</p>
+        <button className="secondaryButton" type="button" disabled={busy} onClick={()=>setSelected(null)}>Отменить выбор архива</button>
         <p className="helperText">Будут восстановлены приложение, вся база данных, файлы и настройки. Перед заменой автоматически сохраняется полная копия текущей панели с паролем выбранного архива. После завершения используйте логин и пароль администратора из восстановленного бэкапа.</p>
         {snapshot.restoreAvailable ? <form onSubmit={restore} className="contentStack">
           <label className="fieldStack"><span className="fieldLabel">Пароль выбранного архива</span><input className="textInput" name="password" type="password" minLength={12} maxLength={256} autoComplete="off" required disabled={busy} /></label>

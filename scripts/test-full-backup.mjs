@@ -31,17 +31,17 @@ const pg = name => process.env.FOXPOINT_PG_BIN ? join(process.env.FOXPOINT_PG_BI
 const pgEnv = { PGHOST: sourceUrl.hostname, PGPORT: sourceUrl.port || "5432", PGUSER: decodeURIComponent(sourceUrl.username), PGPASSWORD: decodeURIComponent(sourceUrl.password), PGDATABASE: sourceUrl.pathname.slice(1) };
 let target;
 try {
-  const user = await source.user.create({ data: { name: "Backup integration client", clientCode: `TEST-${randomUUID()}`, balance: "1234.56", status: "ACTIVE" } });
+  const user = await source.user.create({ data: { name: "Backup integration client", publicName: "Публичное имя", isTest: true, archivedAt: new Date(), clientCode: `TEST-${randomUUID()}`, balance: "1234.56", status: "ACTIVE" } });
   const second = await source.user.create({ data: { name: "Backup referral client" } });
-  const router = await source.router.create({ data: { ownerUserId: user.id, displayName: "All fields router", routerCode: `TEST-${randomUUID()}`, importSnapshot: { nested: { unicode: "База", values: [1, false, null] } } } });
-  const payment = await source.payment.create({ data: { userId: user.id, routerId: router.id, provider: "TEST", amount: "777.99", status: "PAID", payloadSnapshot: { key: "round-trip" }, paidAt: new Date() } });
-  await source.subscription.create({ data: { routerId: router.id, priceSnapshot: "777.99", status: "ACTIVE", lastPaymentId: payment.id, startAt: new Date(), endAt: new Date("2027-01-02T03:04:05.006Z") } });
+  const router = await source.router.create({ data: { ownerUserId: user.id, displayName: "All fields router", routerCode: `TEST-${randomUUID()}`, codeAliases: ["OLD-QR/01"], archivedAt: new Date(), monitorHost:"127.0.0.1",monitorPort:443, importSnapshot: { nested: { unicode: "База", values: [1, false, null] } } } });
+  const payment = await source.payment.create({ data: { userId: user.id, routerId: router.id, provider: "TEST", amount: "777.99", status: "REFUNDED", refundedAt: new Date(), payloadSnapshot: { key: "round-trip" }, paidAt: new Date() } });
+  await source.subscription.create({ data: { routerId: router.id, priceSnapshot: "777.99", status: "PENDING_ACTIVATION", pendingActivation: true, pendingDays: 60, lastPaymentId: payment.id } });
   await source.subscriptionTemplate.create({ data: { routerId: router.id, currentPrice: "777.99", supportType: "EXTENDED" } });
   await source.trial.create({ data: { routerId: router.id, used: true, packageSnapshot: { support: true } } });
   await source.authIdentity.create({ data: { userId: user.id, provider: "LOCAL", providerUserId: randomUUID(), passwordHash: "saved-password-hash" } });
   await source.clientSession.create({ data: { userId: user.id, expiresAt: new Date("2027-01-01"), userAgent: "saved-session" } });
   await source.routerOrder.create({ data: { userId: user.id, routerPrice: 100, setupPrice: 200, totalPrice: 300, trackingNumber: "backup-tracking" } });
-  const ticket = await source.supportTicket.create({ data: { userId: user.id, routerId: router.id, category: "OTHER", description: "Полный бэкап обращения" } });
+  const ticket = await source.supportTicket.create({ data: { userId: user.id, routerId: router.id, archivedAt:new Date(),category: "OTHER", description: "Полный бэкап обращения" } });
   await source.supportTicketMessage.create({ data: { ticketId: ticket.id, authorRole: "ADMIN", body: "Сохранённое сообщение" } });
   await source.referral.create({ data: { referrerUserId: user.id, referredUserId: second.id, referralCode: "backup-referral" } });
   await source.referralReward.create({ data: { beneficiaryUserId: user.id, referredUserId: second.id, sourceType: "PAYMENT", sourceId: payment.id, paymentId: payment.id, amount: "5.25" } });

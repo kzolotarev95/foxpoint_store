@@ -191,14 +191,68 @@ export type ClientOverview = {
   notificationFeedHasMore: boolean;
 };
 
+export type AdminClientDevice = {
+  id: string; routerCode: string | null; displayName: string; plan: string; price: number; priceLabel: string;
+  model: string | null; serialNumber: string | null; configurationType: string; status: string; adminNote: string | null;
+  imported: boolean;
+  archivedAt: string | null;
+  subscriptions: Array<{ id: string; accessEnabled: boolean; supportType: string; endAt: string | null; startAt: string | null; daysRemaining: number | null; status: string; pendingActivation: boolean; pendingDays: number; isTrial: boolean }>;
+  payments: Array<{ id: string; status: string; amount: number; amountLabel: string; paidAt: string | null; daysAdded: number | null; imported: boolean; provider: string; allocationNeeded: boolean }>;
+};
+export type AdminMoneyDetail = { id: string; userId: string; clientCode: string | null; name: string | null; routerCode: string | null; amount: number; at: string; provider?: string; plan?: string };
 export type AdminOverview = {
+  integrations: Array<{id:string;label:string;enabled:boolean;ready:boolean}>;
+  registerMeta: Record<string,{total:number;page:number;pageSize:number}>;
+  administrators: Array<{id:string;name:string|null}>;
+  currentAdmin: string;
+  reconciliation: Array<{ routerId: string; code: string | null; object: string; currentPlan: string | null; expectedPlan: string | null; currentPrice: number; expectedPrice: number; importedAmount: number; expectedAmount: number; currentEnd: string | null; expectedEnd: string | null; eligible: boolean; completed: boolean; state: string; source: string }>;
   clientCount: number;
   clientQuery: string;
+  clientPage: number;
+  clientPageSize: number;
+  clientPlan: string;
+  clientStatus: string;
+  clientCity: string;
+  clientSort: "created" | "name" | "code" | "end";
+  clientExpiry: string;
+  selection: {
+    routers: number;
+    periodPrice: number;
+    payments: number;
+  };
   stats: {
     users: number;
     routers: number;
     activeSubscriptions: number;
     openTickets: number;
+  };
+  dashboard: {
+    paidSubscriptions: number;
+    expiringSubscriptions: number;
+    newTickets: number;
+    month: string;
+    totalClients: number;
+    activeClients: number;
+    confirmedPayments: number;
+    confirmedPaymentsLabel: string;
+    refunds: number;
+    refundsLabel: string;
+    nextMonthForecast: number;
+    nextMonthForecastLabel: string;
+    nextMonthRouters: number;
+    activeDevices: number;
+    selfServiceClients: number;
+    freeTests: number;
+    asOf: string;
+    nextMonth: string;
+    archivedClients: number;
+    testClients: number;
+    activeSubscriptions: number;
+    overdue: number;
+    nextMonthOrders: number;
+    paymentDetails: AdminMoneyDetail[];
+    refundDetails: AdminMoneyDetail[];
+    forecastDetails: AdminMoneyDetail[];
   };
   settings: Array<{
     defaultValue: string;
@@ -212,6 +266,9 @@ export type AdminOverview = {
   }>;
   users: Array<{
     id: string;
+    trialReceivedOrders: number;
+    trialUsed: number;
+    archivedAt: string | null;
     clientCode: string | null;
     phone: string | null;
     city: string | null;
@@ -245,6 +302,13 @@ export type AdminOverview = {
     referralCode: string;
     createdAt: string;
     lastActivityAt: string | null;
+    serviceState: string;
+    archivedAt: string | null;
+    isTest: boolean;
+    active: boolean;
+    devices: AdminClientDevice[];
+    localLogin: string | null;
+    publicName: string | null;
   }>;
   routers: Array<{
     id: string;
@@ -257,9 +321,22 @@ export type AdminOverview = {
     configurationType: string;
     status: string;
     ownerId: string;
+    archivedAt: string | null;
     ownerName: string;
     savedTemplate: string;
+    planPrice: number;
+    planPeriodDays: number;
+    planAccessEnabled: boolean;
+    planSupportType: string;
     adminNote: string | null;
+    monitorHost: string | null;
+    monitorPort: number | null;
+    services: Array<{id:string;accessEnabled:boolean;supportType:string;endAt:string|null;startAt:string|null;pendingActivation:boolean;pendingDays:number}>;
+    endAt: string | null;
+    daysRemaining: number | null;
+    pendingActivation: boolean;
+    paidActive: boolean;
+    plan: string;
     createdAt: string;
   }>;
   subscriptions: Array<{
@@ -278,10 +355,19 @@ export type AdminOverview = {
     accessEnabled: boolean;
     supportType: string;
     pendingActivation: boolean;
+    pendingDays: number;
+    clientCode: string | null;
+    userId: string;
+    customerName: string | null;
+    paidActive: boolean;
+    isTrial: boolean;
+    periodDays: number;
+    nextPrice: number;
   }>;
   orders: Array<{
     id: string;
     userId: string;
+    clientCode: string | null;
     customerName: string;
     status: string;
     totalPrice: number;
@@ -299,6 +385,7 @@ export type AdminOverview = {
     clientCode: string | null;
     routerCode: string | null;
     guestContact: string | null;
+    contact: string | null;
     routerName: string;
     category: string;
     description: string;
@@ -308,6 +395,7 @@ export type AdminOverview = {
     adminCommentUpdatedAt: string | null;
     createdAt: string;
     updatedAt: string;
+    archivedAt: string | null;
     messages: Array<{
       id: string;
       authorRole: "CLIENT" | "ADMIN";
@@ -315,19 +403,34 @@ export type AdminOverview = {
       createdAt: string;
     }>;
   }>;
+  rewardTotals: {pending:number;available:number;canceled:number};
   rewards: Array<{
     id: string;
     amount: number;
     amountLabel: string;
     status: string;
     sourceType: string;
+    sourceId: string;
+    paymentId: string | null;
+    beneficiaryName: string | null;
+    beneficiaryCode: string | null;
+    referredName: string | null;
+    referredCode: string | null;
+    referrerName: string | null;
+    referrerCode: string | null;
+    availableAt: string | null;
     createdAt: string;
   }>;
   logs: Array<{
     id: string;
+    admin: string;
+    beforeData: unknown;
+    afterData: unknown;
     action: string;
     entityType: string;
     entityId: string;
+    href: string | null;
+    objectLabel: string;
     createdAt: string;
   }>;
 };

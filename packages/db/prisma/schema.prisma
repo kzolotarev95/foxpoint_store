@@ -105,10 +105,13 @@ model User {
   id             String               @id @default(cuid())
   clientCode     String?              @unique
   name           String?
+  publicName     String?
   phone          String?
   city           String?
   contactTelegram String?
   nextRouterNumber Int                @default(1)
+  archivedAt     DateTime?
+  isTest         Boolean              @default(false)
   status         UserStatus           @default(PENDING)
   createdAt      DateTime             @default(now())
   lastActivityAt DateTime?
@@ -173,6 +176,10 @@ model Router {
   status            RouterStatus          @default(DRAFT)
   createdAt         DateTime              @default(now())
   adminNote         String?
+  monitorHost       String?
+  monitorPort       Int?
+  codeAliases       String[]              @default([])
+  archivedAt        DateTime?
   owner             User                  @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
   subscriptions     Subscription[]
   template          SubscriptionTemplate?
@@ -193,6 +200,7 @@ model Subscription {
   endAt             DateTime?
   priceSnapshot     Decimal            @db.Decimal(12, 2)
   pendingActivation Boolean            @default(false)
+  pendingDays       Int                @default(0)
   lastPaymentId     String?
   router            Router             @relation(fields: [routerId], references: [id], onDelete: Cascade)
   lastPayment       Payment?           @relation("SubscriptionLastPayment", fields: [lastPaymentId], references: [id], onDelete: SetNull)
@@ -235,6 +243,7 @@ model Payment {
   payloadSnapshot   Json?
   createdAt         DateTime       @default(now())
   paidAt            DateTime?
+  refundedAt        DateTime?
   user              User           @relation(fields: [userId], references: [id], onDelete: Cascade)
   router            Router?        @relation(fields: [routerId], references: [id], onDelete: SetNull)
   order             RouterOrder?   @relation("OrderPayment", fields: [orderId], references: [id], onDelete: SetNull)
@@ -274,6 +283,7 @@ model SupportTicket {
   adminCommentUpdatedAt DateTime?
   createdAt            DateTime     @default(now())
   updatedAt            DateTime     @updatedAt
+  archivedAt           DateTime?
   user                 User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   router               Router?      @relation(fields: [routerId], references: [id], onDelete: SetNull)
   messages             SupportTicketMessage[]

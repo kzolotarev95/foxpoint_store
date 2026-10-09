@@ -2,6 +2,7 @@ import cors from "@fastify/cors";
 import sensible from "@fastify/sensible";
 import Fastify, { type FastifyRequest } from "fastify";
 import { z } from "zod";
+import { isIP } from "node:net";
 import { readAdminSession, readAdminSessionToken } from "./admin-auth.js";
 import {
   bindTelegramIdentityForUser,
@@ -16,6 +17,9 @@ import {
 } from "./client-auth.js";
 import { getAdminSettings, saveAdminSettings } from "./admin-settings.js";
 import { config } from "./config.js";
+import { changeAdminPlan, planChangeSchema } from "./admin-plan-change.js";
+import { adminPayments } from "./admin-payments.js";
+import { assignMissingCodes } from "./client-codes.js";
 import { buildOverview } from "./overview.js";
 import {
   buildAdminOverview,
@@ -48,6 +52,9 @@ import {
   updateRouterTemplateForUser
 } from "./portal.js";
 import { prisma } from "./prisma.js";
+import { adminDatabaseQuery, buildAdminDatabase } from "./admin-database.js";
+import { exportDatabase } from "./database-export.js";
+import { applyImportCorrection } from "./import-reconciliation.js";
 import { registerBackupRoutes } from "./backup-routes.js";
 import { registerServerMetricsRoutes } from "./server-metrics-routes.js";
 import { registerNotificationRoutes } from "./notification-routes.js";
@@ -55,6 +62,11 @@ import { registerClientSupportRoutes } from "./client-support-routes.js";
 
 const app = Fastify({
   logger: true
+});
+
+app.setErrorHandler((error, request, reply) => {
+  if (error instanceof z.ZodError) return reply.code(400).send({ error: `Проверьте заполнение полей: ${[...new Set(error.issues.map(issue => issue.path.join(".") || "форма"))].join(", ")}.` });
+  return reply.send(error);
 });
 
 function hasAdminSession(headers: { cookie?: string; "x-admin-session"?: string | string[] }): boolean {
@@ -65,13 +77,8 @@ function hasAdminSession(headers: { cookie?: string; "x-admin-session"?: string 
   return Boolean(readAdminSession(headers.cookie) || readAdminSessionToken(headerToken));
 }
 
-function isLocalAdminRequest(request: FastifyRequest): boolean {
-  const remoteAddress = request.socket.remoteAddress ?? "";
-  return request.ip === "127.0.0.1" || request.ip === "::1" || remoteAddress === "127.0.0.1" || remoteAddress === "::1";
-}
-
 function isAuthorizedAdminRequest(request: FastifyRequest): boolean {
-  return isLocalAdminRequest(request) || hasAdminSession(request.headers);
+  return hasAdminSession(request.headers);
 }
 
 async function getAuthorizedUserId(request: FastifyRequest): Promise<string | null> {
@@ -720,15 +727,34 @@ app.get("/api/admin/overview", async (request, reply) => {
     };
   }
 
-  const query = z
-    .object({
-      q: z.string().trim().max(120).optional()
-    })
-    .parse(request.query);
+  return buildAdminOverview(adminDatabaseQuery.parse(request.query));
+});
+app.get("/api/admin/payments",async(request,reply)=>{if(!isAuthorizedAdminRequest(request))return reply.code(401).send({error:"unauthorized"});return adminPayments(adminDatabaseQuery.parse(request.query));});
 
-  return buildAdminOverview({
-    clientQuery: query.q
-  });
+app.get("/api/admin/database/export", async (request, reply) => {
+  if (!isAuthorizedAdminRequest(request)) return reply.code(401).send({ error: "unauthorized" });
+  const query = adminDatabaseQuery.extend({ format: z.enum(["xlsx", "csv"]).default("xlsx") }).parse(request.query);
+  const data = await buildAdminDatabase(query, true);
+  const result = exportDatabase(data, query.format);
+  reply.header("content-type", result.contentType);
+  reply.header("content-disposition", 'attachment; filename="foxpoint-client-database.' + query.format + '"');
+  reply.header("cache-control", "no-store");
+  return reply.send(result.body);
+});
+app.post("/api/admin/routers/:routerId/reconcile", async (request, reply) => {
+  if (!isAuthorizedAdminRequest(request)) return reply.code(401).send({ error: "unauthorized" });
+  const params = z.object({ routerId: z.string().min(1) }).parse(request.params);
+  const body = z.object({ reason: z.string().trim().min(8).max(1000) }).parse(request.body);
+  try { return await applyImportCorrection(params.routerId, body.reason); }
+  catch (error) { return reply.code(400).send({ error: error instanceof Error ? error.message : "Не удалось применить корректировку." }); }
+});
+
+app.post("/api/admin/routers/:routerId/plan-change", async (request, reply) => {
+  if (!isAuthorizedAdminRequest(request)) return reply.code(401).send({ error: "unauthorized" });
+  const params = z.object({ routerId: z.string().min(1) }).parse(request.params);
+  const body = planChangeSchema.parse(request.body);
+  try { return await changeAdminPlan(params.routerId, body); }
+  catch (error) { return reply.code(400).send({ error: error instanceof Error ? error.message : "Не удалось изменить план." }); }
 });
 
 app.post("/api/admin/audit/clear", async (request, reply) => {
@@ -767,8 +793,13 @@ app.put("/api/admin/settings", async (request, reply) => {
     .parse(request.body);
 
   try {
+    const before=await getAdminSettings();
+    const saved=await saveAdminSettings(body.settings);
+    const adminEmail=`admin+${config.ADMIN_USERNAME}@foxpoint.local`;
+    const actor=await prisma.authIdentity.findFirst({where:{provider:"EMAIL",email:adminEmail}});
+    if(actor)await prisma.adminAuditLog.create({data:{adminId:actor.userId,action:"settings_updated",entityType:"AppSetting",entityId:"settings",beforeData:Object.fromEntries(before.filter(s=>Object.hasOwn(body.settings,s.key)).map(s=>[s.key,s.input==="password"?"Скрыто":s.value])),afterData:Object.fromEntries(saved.filter(s=>Object.hasOwn(body.settings,s.key)).map(s=>[s.key,s.input==="password"?"Секрет сохранён":s.value]))}});
     return {
-      settings: await saveAdminSettings(body.settings)
+      settings: saved
     };
   } catch (error) {
     reply.code(400);
@@ -796,7 +827,10 @@ app.post("/api/admin/routers", async (request, reply) => {
       accessEnabled: z.boolean(),
       supportType: z.enum(["NONE", "BASIC", "EXTENDED"]),
       startTrial: z.boolean().default(false),
-      adminNote: z.string().trim().max(1000).optional()
+      adminNote: z.string().trim().max(1000).optional(),
+      serviceTariff: z.enum(["Сервер", "Техничка", "Полный", "Самостоятельно", "Индивидуальный"]).optional(),
+      planPrice: z.coerce.number().min(0).max(1000000).optional(), planPeriodDays: z.coerce.number().int().min(1).max(3650).optional(),
+      monitorHost: z.string().refine(value=>!value||isIP(value)>0,"Укажите IP-адрес").optional(), monitorPort: z.coerce.number().int().min(0).max(65535).optional()
     })
     .parse(request.body);
 
@@ -808,6 +842,27 @@ app.post("/api/admin/routers", async (request, reply) => {
       error: error instanceof Error ? error.message : "Не удалось привязать роутер."
     };
   }
+});
+
+app.get("/api/admin/routers/:routerId/label", async (request,reply)=>{
+  if(!isAuthorizedAdminRequest(request))return reply.code(401).send({error:"unauthorized"});
+  const {routerId}=z.object({routerId:z.string().min(1)}).parse(request.params);
+  const router=await prisma.router.findUnique({where:{id:routerId},select:{id:true,routerCode:true,displayName:true}});
+  return router?{router}:reply.code(404).send({error:"Роутер не найден"});
+});
+
+app.post("/api/admin/users", async (request, reply) => {
+  if (!isAuthorizedAdminRequest(request)) return reply.code(401).send({error:"unauthorized"});
+  const body=z.object({name:z.string().trim().min(2).max(120),publicName:z.string().trim().max(120).optional(),phone:z.string().trim().max(120).optional(),city:z.string().trim().max(120).optional(),contactTelegram:z.string().trim().max(120).optional()}).parse(request.body);
+  const adminEmail=`admin+${config.ADMIN_USERNAME}@foxpoint.local`;
+  const actor=await prisma.authIdentity.upsert({where:{provider_providerUserId:{provider:"EMAIL",providerUserId:adminEmail}},update:{},create:{provider:"EMAIL",providerUserId:adminEmail,email:adminEmail,user:{create:{name:`Admin ${config.ADMIN_USERNAME}`,status:"ACTIVE"}}}});
+  return prisma.$transaction(async tx=>{
+    const user=await tx.user.create({data:{...body,status:"PENDING"}});
+    await assignMissingCodes(tx);
+    const saved=await tx.user.findUniqueOrThrow({where:{id:user.id}});
+    await tx.adminAuditLog.create({data:{adminId:actor.userId,action:"client_created",entityType:"User",entityId:user.id,afterData:{name:saved.name,clientCode:saved.clientCode,city:saved.city}}});
+    return {userId:user.id,clientCode:saved.clientCode};
+  });
 });
 
 app.post("/api/admin/tickets/:ticketId", async (request, reply) => {
@@ -822,6 +877,7 @@ app.post("/api/admin/tickets/:ticketId", async (request, reply) => {
   const body = z
     .object({
       status: z.enum(["OPEN", "IN_PROGRESS", "WAITING_CLIENT", "RESOLVED", "CLOSED"]),
+      archived: z.boolean().optional(),
       assigneeId: z.string().trim().max(120).optional(),
       adminComment: z.string().trim().max(3000).optional()
     })
@@ -832,6 +888,7 @@ app.post("/api/admin/tickets/:ticketId", async (request, reply) => {
       ticketId: params.ticketId,
       status: body.status,
       assigneeId: body.assigneeId,
+      archived: body.archived,
       adminComment: body.adminComment
     });
   } catch (error) {
@@ -968,7 +1025,14 @@ app.post("/api/admin/routers/:routerId", async (request, reply) => {
       serialNumber: z.string().trim().max(120).optional(),
       configurationType: z.enum(["BASIC", "EXTENDED"]),
       status: z.enum(["DRAFT", "ACTIVE", "SUSPENDED", "DISABLED"]),
-      adminNote: z.string().trim().max(1000).optional()
+      adminNote: z.string().trim().max(1000).optional(),
+      monitorHost: z.string().refine(value=>!value||isIP(value)>0,"Укажите IP-адрес").optional(), monitorPort: z.coerce.number().int().min(0).max(65535).optional(),
+      serviceTariff: z.enum(["Сервер", "Техничка", "Полный", "Самостоятельно", "Индивидуальный"]).optional(),
+      archived: z.boolean().optional(),
+      reason: z.string().trim().max(1000).optional(),
+      planPrice: z.coerce.number().min(0).max(1000000).optional(),
+      planPeriodDays: z.coerce.number().int().min(1).max(3650).optional(),
+      planAccessEnabled: z.boolean().optional(), planSupportType: z.enum(["NONE", "BASIC", "EXTENDED"]).optional()
     })
     .parse(request.body);
 
@@ -981,7 +1045,8 @@ app.post("/api/admin/routers/:routerId", async (request, reply) => {
       serialNumber: body.serialNumber,
       configurationType: body.configurationType,
       status: body.status,
-      adminNote: body.adminNote
+      adminNote: body.adminNote, reason: body.reason, archived: body.archived, serviceTariff: body.serviceTariff, planPrice: body.planPrice, planPeriodDays: body.planPeriodDays, planAccessEnabled: body.planAccessEnabled, planSupportType: body.planSupportType
+      , monitorHost: body.monitorHost, monitorPort: body.monitorPort
     });
   } catch (error) {
     reply.code(400);
@@ -1003,13 +1068,16 @@ app.post("/api/admin/users/:userId", async (request, reply) => {
   const body = z
     .object({
       name: z.string().trim().max(120).optional(),
+      publicName: z.string().trim().max(120).optional(),
+      reason: z.string().trim().max(1000).optional(),
       phone: z.string().trim().max(120).optional(),
       city: z.string().trim().max(120).optional(),
       email: z.union([z.string().trim().email().max(320), z.literal("")]).optional(),
       telegramUsername: z
         .union([z.string().trim().regex(/^@?[A-Za-z0-9_]{2,64}$/).max(64), z.literal("")])
         .optional(),
-      status: z.enum(["ACTIVE", "BLOCKED", "PENDING"])
+      status: z.enum(["ACTIVE", "BLOCKED", "PENDING"]),
+      archived: z.boolean().optional(), isTest: z.boolean().optional()
     })
     .parse(request.body);
 
@@ -1017,11 +1085,12 @@ app.post("/api/admin/users/:userId", async (request, reply) => {
     return await updateAdminUser({
       userId: params.userId,
       name: body.name,
+      publicName: body.publicName, reason: body.reason,
       phone: body.phone,
       city: body.city,
       email: body.email,
       telegramUsername: body.telegramUsername,
-      status: body.status
+      status: body.status, archived: body.archived, isTest: body.isTest
     });
   } catch (error) {
     reply.code(400);
@@ -1039,11 +1108,11 @@ app.post("/api/admin/users/:userId/credentials", async (request, reply) => {
   const params = z.object({ userId: z.string().min(1) }).parse(request.params);
   const payload = z.object({
     login: z.string().trim().min(3).max(32).regex(/^[a-zA-Z0-9._-]+$/),
-    password: z.string().min(6).max(128)
+    password: z.string().max(128).refine(value => !value || value.length >= 6).optional()
   }).safeParse(request.body);
   if (!payload.success) { reply.code(400); return { error: "Логин: 3–32 латинских символа; пароль: минимум 6 символов." }; }
   try {
-    await upsertLocalCredentialsForUser({ ...payload.data, userId: params.userId });
+    await upsertLocalCredentialsForUser({ ...payload.data, userId: params.userId, adminUpdate: true });
     return { userId: params.userId };
   } catch (error) {
     reply.code(400);
@@ -1088,6 +1157,7 @@ app.post("/api/admin/subscriptions/:subscriptionId", async (request, reply) => {
       startAt: z.string().trim().max(40).optional(),
       endAt: z.string().trim().max(40).optional(),
       pendingActivation: z.boolean()
+      ,reason: z.string().trim().max(1000).optional()
     })
     .parse(request.body);
 
@@ -1098,6 +1168,7 @@ app.post("/api/admin/subscriptions/:subscriptionId", async (request, reply) => {
       startAt: body.startAt,
       endAt: body.endAt,
       pendingActivation: body.pendingActivation
+      ,reason: body.reason
     });
   } catch (error) {
     reply.code(400);
@@ -1117,6 +1188,7 @@ app.post("/api/admin/subscriptions/:subscriptionId/payments", async (request, re
     amount: z.coerce.number().positive().max(1000000),
     days: z.coerce.number().int().min(1).max(3650),
     requestKey: z.string().uuid()
+    , paidAt: z.string().max(40).optional(), method: z.string().trim().max(120).optional(), reason: z.string().trim().max(1000).optional()
   }).safeParse(request.body);
   if (!payload.success) {
     reply.code(400);

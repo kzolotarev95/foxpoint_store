@@ -14,7 +14,9 @@ const plan = getImportPlan(validateClientDatabase([row])[0]);
 assert.equal(plan.monthlyPrice, 1000); // Excel column I is not the server sale price.
 assert.equal(plan.endAt.getTime() - plan.startAt.getTime(), 30 * DAY_MS);
 assert.equal(getImportPlan({ ...row, tariff: "Индивидуальный", monthlyPrice: 500 }).monthlyPrice, 500);
-assert.equal(getImportPlan({ ...row, tariff: "Самостоятельно" }).monthlyPrice, 0);
+assert.equal(getImportPlan({ ...row, tariff: "Самостоятельно", paidAmount: null }).monthlyPrice, 0);
+assert.equal(getImportPlan({ ...row, tariff: "Самостоятельно", paidAmount: null }).daysAdded, 0);
+assert.throws(() => getImportPlan({ ...row, tariff: "Индивидуальный", monthlyPrice: null }));
 assert.throws(() => validateClientDatabase([row, row]));
 assert.throws(() => validateClientDatabase([{ ...row, startDate: null }]));
 assert.throws(() => validateClientDatabase([{ ...row, startDate: "2026-02-31" }]));

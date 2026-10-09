@@ -49,4 +49,4 @@ if ($SshUser -eq 'root') {
 }
 & ssh -t $fixTarget $fixRemoteCommand
 if ($LASTEXITCODE -ne 0) { throw 'Deployment failed. Read the VPS output for the backup and restoration result.' }
-Write-Host "Done. Open your admin panel: Navigation -> Backup."
+Write-Host "Done. Open your admin panel: Navigation -> Database."

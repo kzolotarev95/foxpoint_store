@@ -66,6 +66,6 @@ export function AdminServerMetrics() {
       <MetricCard kind="memory" label="ОЗУ" value={metrics?.memory ? `${number.format(metrics.memory.usagePercent)}%` : "—"} detail={metrics?.memory ? `${bytes(metrics.memory.usedBytes)} из ${bytes(metrics.memory.totalBytes)}` : missing} usage={metrics?.memory?.usagePercent ?? null} stale={stale} />
       <MetricCard kind="disk" label="Диск" value={metrics?.disk ? bytes(metrics.disk.availableBytes) : "—"} detail={metrics?.disk ? `Свободно из ${bytes(metrics.disk.totalBytes)}` : missing} usage={metrics?.disk?.usagePercent ?? null} stale={stale} />
     </div>
-    {metrics ? <span className="adminServerMetricsTime">Последние данные: {new Date(metrics.sampledAt).toLocaleTimeString("ru-RU")}</span> : null}
+    {metrics ? <span className="adminServerMetricsTime">Последние данные: {new Date(metrics.sampledAt).toLocaleTimeString("ru-RU",{timeZone:"Europe/Moscow"})} МСК</span> : null}
   </section>;
 }
